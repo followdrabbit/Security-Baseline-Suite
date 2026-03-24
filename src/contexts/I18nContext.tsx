@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import translations, { type TranslationKeys } from '@/i18n/translations';
+import translations from '@/i18n/translations';
 import type { Locale } from '@/types';
+
+type Translations = typeof translations.en;
 
 interface I18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: TranslationKeys;
+  t: Translations;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -21,7 +23,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('aureum-locale', l);
   }, []);
 
-  const t = translations[locale];
+  const t = translations[locale] as unknown as Translations;
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, t }}>
