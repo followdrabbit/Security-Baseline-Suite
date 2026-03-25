@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockProjects, mockControls } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
