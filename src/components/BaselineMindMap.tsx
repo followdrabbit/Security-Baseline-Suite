@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { Download, Search, X } from 'lucide-react';
 import type { ControlItem } from '@/types';
 
 interface MindMapNode {
@@ -41,6 +41,42 @@ interface Props {
 const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLabels }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedControl, setSelectedControl] = useState<ControlItem | null>(null);
+
+  // Filter state
+  const [searchText, setSearchText] = useState('');
+  const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const hasActiveFilter = searchText.trim() !== '' || criticalityFilter !== 'all' || statusFilter !== 'all';
+
+  const matchingControlIds = useMemo(() => {
+    if (!hasActiveFilter) return null; // null = no filter active, show all normally
+    const ids = new Set<string>();
+    const query = searchText.toLowerCase().trim();
+    for (const c of controls) {
+      const matchesSearch = !query || c.controlId.toLowerCase().includes(query) || c.title.toLowerCase().includes(query);
+      const matchesCriticality = criticalityFilter === 'all' || c.criticality === criticalityFilter;
+      const matchesStatus = statusFilter === 'all' || c.reviewStatus === statusFilter;
+      if (matchesSearch && matchesCriticality && matchesStatus) ids.add(c.id);
+    }
+    return ids;
+  }, [controls, searchText, criticalityFilter, statusFilter, hasActiveFilter]);
+
+  const matchingCategoryIds = useMemo(() => {
+    if (!matchingControlIds) return null;
+    const ids = new Set<string>();
+    for (const cat of (tree.children || [])) {
+      const hasMatch = (cat.children || []).some(ctrl => matchingControlIds.has(ctrl.id));
+      if (hasMatch) ids.add(cat.id);
+    }
+    return ids;
+  }, [matchingControlIds, tree]);
+
+  const clearFilters = useCallback(() => {
+    setSearchText('');
+    setCriticalityFilter('all');
+    setStatusFilter('all');
+  }, []);
 
   // Zoom & Pan state
   const [zoom, setZoom] = useState(1);
