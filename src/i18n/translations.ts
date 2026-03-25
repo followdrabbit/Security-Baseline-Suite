@@ -40,6 +40,13 @@ const translations = {
         minutesAgo: 'min ago',
         hoursAgo: 'h ago',
       },
+      trends: {
+        title: 'Trends Overview',
+        controls: 'Controls',
+        confidence: 'Confidence',
+        projects: 'Projects',
+        last7Days: 'Last 7 days',
+      },
     },
     project: {
       new: 'New Baseline Project',
@@ -350,6 +357,13 @@ const translations = {
         minutesAgo: 'min atrás',
         hoursAgo: 'h atrás',
       },
+      trends: {
+        title: 'Visão de Tendências',
+        controls: 'Controles',
+        confidence: 'Confiança',
+        projects: 'Projetos',
+        last7Days: 'Últimos 7 dias',
+      },
     },
     project: {
       new: 'Novo Projeto de Baseline',
@@ -659,6 +673,13 @@ const translations = {
         justNow: 'Ahora',
         minutesAgo: 'min atrás',
         hoursAgo: 'h atrás',
+      },
+      trends: {
+        title: 'Resumen de Tendencias',
+        controls: 'Controles',
+        confidence: 'Confianza',
+        projects: 'Proyectos',
+        last7Days: 'Últimos 7 días',
       },
     },
     project: {
