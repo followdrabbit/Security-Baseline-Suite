@@ -364,6 +364,56 @@ const Dashboard: React.FC = () => {
     ];
   }, [filteredControls]);
 
+  // Confidence evolution across baseline versions
+  const confidenceEvolutionData = useMemo(() => {
+    const relevantVersions = selectedProjectId === 'all'
+      ? baselineVersions
+      : baselineVersions.filter(v => v.project_id === selectedProjectId);
+
+    // Group by project, then flatten with version labels
+    const byProject = new Map<string, typeof relevantVersions>();
+    for (const v of relevantVersions) {
+      const arr = byProject.get(v.project_id) || [];
+      arr.push(v);
+      byProject.set(v.project_id, arr);
+    }
+
+    // If single project, show per-version confidence
+    if (selectedProjectId !== 'all' || byProject.size <= 1) {
+      return relevantVersions.map(v => {
+        const snapshot = Array.isArray(v.controls_snapshot) ? v.controls_snapshot as any[] : [];
+        const avgConf = snapshot.length > 0
+          ? Math.round(snapshot.reduce((s, c) => s + (Number(c.confidence_score || c.confidenceScore) || 0), 0) / snapshot.length * 100)
+          : 0;
+        const projectName = projects.find(p => p.id === v.project_id)?.name || 'Project';
+        return {
+          label: `v${v.version}`,
+          confidence: avgConf,
+          controls: v.control_count,
+          project: projectName,
+          date: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        };
+      });
+    }
+
+    // Multiple projects: show latest version per project
+    return Array.from(byProject.entries()).map(([projectId, versions]) => {
+      const latest = versions[versions.length - 1];
+      const snapshot = Array.isArray(latest.controls_snapshot) ? latest.controls_snapshot as any[] : [];
+      const avgConf = snapshot.length > 0
+        ? Math.round(snapshot.reduce((s, c) => s + (Number(c.confidence_score || c.confidenceScore) || 0), 0) / snapshot.length * 100)
+        : 0;
+      const projectName = projects.find(p => p.id === projectId)?.name || 'Project';
+      return {
+        label: projectName.length > 18 ? projectName.slice(0, 18) + '…' : projectName,
+        confidence: avgConf,
+        controls: latest.control_count,
+        project: projectName,
+        date: new Date(latest.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      };
+    });
+  }, [baselineVersions, selectedProjectId, projects]);
+
   const kpis = [
     { label: t.dashboard.totalProjects, value: String(filteredProjects.length), icon: Layers, change: filteredProjects.length > 0 ? `+${filteredProjects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
