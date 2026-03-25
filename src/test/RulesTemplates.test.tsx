@@ -83,7 +83,7 @@ describe('RulesTemplates', () => {
       expect(screen.getByText(/Writing Standards/i)).toBeInTheDocument();
       expect(screen.getByText(/Deduplication/i)).toBeInTheDocument();
       expect(screen.getByText(/Criticality/i)).toBeInTheDocument();
-      expect(screen.getByText(/Frameworks/i)).toBeInTheDocument();
+      expect(screen.getByText(/Framework Mappings/i)).toBeInTheDocument();
       expect(screen.getByText(/Threat Modeling/i)).toBeInTheDocument();
     });
   });
