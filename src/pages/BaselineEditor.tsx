@@ -314,7 +314,7 @@ const BaselineEditor: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">{t.editor.allBaselines}</SelectItem>
             {projects.map((p: any) => (
-              <SelectItem key={p.id} value={p.id}>{p.technology}</SelectItem>
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
