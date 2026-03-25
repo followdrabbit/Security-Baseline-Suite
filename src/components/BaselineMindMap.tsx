@@ -238,6 +238,16 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           <button onClick={() => setZoom(z => Math.max(0.3, z - 0.2))} className="px-2 py-1 text-xs font-mono rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">−</button>
           <span className="text-[10px] text-muted-foreground font-mono w-12 text-center">{Math.round(zoom * 100)}%</span>
           <button onClick={resetView} className="px-2 py-1 text-[10px] rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">Reset</button>
+          <span className="mx-1 h-4 w-px bg-border" />
+          <button
+            onClick={() => {
+              const allCatIds = categories.map(c => c.id);
+              setCollapsedCategories(prev => prev.size === allCatIds.length ? new Set() : new Set(allCatIds));
+            }}
+            className="px-2 py-1 text-[10px] rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+          >
+            {collapsedCategories.size === categories.length ? 'Expand All' : 'Collapse All'}
+          </button>
           <span className="text-[10px] text-muted-foreground ml-2">Scroll to zoom · Drag to pan</span>
           <div className="ml-auto">
             <button onClick={exportToPng} className="flex items-center gap-1.5 px-3 py-1 text-[10px] rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium">
