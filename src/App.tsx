@@ -19,6 +19,7 @@ import HistoryPage from "@/pages/HistoryPage";
 import ExportImport from "@/pages/ExportImport";
 import Settings from "@/pages/Settings";
 import AIIntegrations from "@/pages/AIIntegrations";
+import Teams from "@/pages/Teams";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -46,6 +47,7 @@ const App = () => (
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/export-import" element={<ExportImport />} />
                   <Route path="/ai-integrations" element={<AIIntegrations />} />
+                  <Route path="/teams" element={<Teams />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />

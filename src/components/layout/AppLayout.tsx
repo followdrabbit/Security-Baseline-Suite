@@ -6,6 +6,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Sun, Moon, Monitor, Globe } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import NotificationBell from '@/components/NotificationBell';
 import type { Locale, ThemeMode } from '@/types';
 
 const AppLayout: React.FC = () => {
@@ -55,6 +56,7 @@ const AppLayout: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <NotificationBell />
               {/* Theme toggle */}
               <Select value={theme} onValueChange={(v) => setTheme(v as ThemeMode)}>
                 <SelectTrigger className="h-8 w-8 p-0 border-0 bg-transparent justify-center [&>svg:last-child]:hidden">

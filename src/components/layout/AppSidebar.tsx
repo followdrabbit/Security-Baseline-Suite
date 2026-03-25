@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User,
+  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User, Users,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useI18n } from '@/contexts/I18nContext';
@@ -55,6 +55,7 @@ const AppSidebar: React.FC = () => {
     { title: t.nav.history, url: '/history', icon: History },
     { title: t.nav.exportImport, url: '/export-import', icon: ArrowUpDown },
     { title: (t.nav as any).aiIntegrations || 'AI Integrations', url: '/ai-integrations', icon: Brain },
+    { title: 'Teams', url: '/teams', icon: Users },
   ];
 
   const renderItem = (item: { title: string; url: string; icon: React.ElementType }) => (
