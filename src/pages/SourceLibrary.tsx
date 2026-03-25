@@ -164,6 +164,40 @@ const SourceLibrary: React.FC = () => {
     },
   });
 
+  const handleAddUrl = async () => {
+    if (!urlInput.trim() || !selectedProjectId) return;
+    setUrlLoading(true);
+
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-url`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${currentSession?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: urlInput.trim(), projectId: selectedProjectId }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process URL');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+      toast.success(`URL processada com sucesso: ${result.source?.name || urlInput}`);
+      setUrlInput('');
+      setUrlDialogOpen(false);
+    } catch (err: any) {
+      toast.error(`Falha ao processar URL: ${err.message}`);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   return (
     <div
       className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6"
