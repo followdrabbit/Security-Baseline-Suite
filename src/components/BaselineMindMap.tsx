@@ -186,11 +186,28 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
     <div className="relative w-full">
       {/* SVG Mind Map */}
       <div className="bg-card border border-border rounded-lg shadow-premium overflow-hidden">
-        <div className="overflow-auto" style={{ maxHeight: '70vh' }}>
+        {/* Zoom controls */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/30">
+          <button onClick={() => setZoom(z => Math.min(3, z + 0.2))} className="px-2 py-1 text-xs font-mono rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">+</button>
+          <button onClick={() => setZoom(z => Math.max(0.3, z - 0.2))} className="px-2 py-1 text-xs font-mono rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">−</button>
+          <span className="text-[10px] text-muted-foreground font-mono w-12 text-center">{Math.round(zoom * 100)}%</span>
+          <button onClick={resetView} className="px-2 py-1 text-[10px] rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">Reset</button>
+          <span className="text-[10px] text-muted-foreground ml-2">Scroll to zoom · Drag to pan</span>
+        </div>
+        <div
+          ref={svgContainerRef}
+          className="overflow-hidden select-none"
+          style={{ maxHeight: '70vh', cursor: isPanning ? 'grabbing' : 'grab' }}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-            className="w-full min-w-[700px]"
-            style={{ minHeight: '500px' }}
+            className="w-full"
+            style={{ minHeight: '500px', transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, transformOrigin: 'center center' }}
           >
             {/* Connections: root → categories */}
             {categoryPositions.map(cat => (
