@@ -145,7 +145,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
         {/* SVG canvas */}
         <div
           ref={svgContainerRef}
-          className="overflow-hidden select-none"
+          className="overflow-hidden select-none relative"
           style={{ maxHeight: '70vh', cursor: isPanning ? 'grabbing' : 'grab' }}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
