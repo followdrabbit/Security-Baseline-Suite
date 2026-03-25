@@ -657,7 +657,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="space-y-3">
                 {reviewStatusData.map((item) => {
-                  const pct = controls.length > 0 ? Math.round((item.value / controls.length) * 100) : 0;
+                  const pct = filteredControls.length > 0 ? Math.round((item.value / filteredControls.length) * 100) : 0;
                   return (
                     <div key={item.name} className="flex items-center gap-3">
                       <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
