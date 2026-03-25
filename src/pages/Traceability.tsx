@@ -7,9 +7,9 @@ import { getFrameworkPrefix, FRAMEWORK_COLORS } from '@/components/traceability/
 import FrameworkRadarChart from '@/components/traceability/FrameworkRadarChart';
 import FrameworkFilterBar from '@/components/traceability/FrameworkFilterBar';
 import TraceabilityControlCard from '@/components/traceability/TraceabilityControlCard';
-import { exportToCSV, exportToPDF } from '@/components/traceability/exportUtils';
+import { exportToCSV, exportToPDF, exportToJSON } from '@/components/traceability/exportUtils';
 import { Button } from '@/components/ui/button';
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText, Braces } from 'lucide-react';
 
 const Traceability: React.FC = () => {
   const { t } = useI18n();
@@ -70,6 +70,15 @@ const Traceability: React.FC = () => {
             >
               <Download className="h-3.5 w-3.5" />
               CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={() => exportToJSON(filteredControls, selectedFramework ? `traceability-${selectedFramework}` : 'traceability-all')}
+            >
+              <Braces className="h-3.5 w-3.5" />
+              JSON
             </Button>
             <Button
               variant="outline"
