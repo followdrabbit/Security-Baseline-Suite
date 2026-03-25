@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { mockControls } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
+import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,11 +15,17 @@ import type { ControlItem } from '@/types';
 
 const BaselineEditor: React.FC = () => {
   const { t } = useI18n();
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [controls, setControls] = useState<ControlItem[]>(mockControls);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filtered = controls.filter(c => {
     if (search && !c.title.toLowerCase().includes(search.toLowerCase()) && !c.controlId.toLowerCase().includes(search.toLowerCase())) return false;
@@ -86,7 +93,9 @@ const BaselineEditor: React.FC = () => {
 
       {/* Controls list */}
       <div className="space-y-3">
-        {filtered.length === 0 ? (
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => <ControlCardSkeleton key={i} />)
+        ) : filtered.length === 0 ? (
           <div className="bg-card border border-border rounded-lg p-12 text-center shadow-premium">
             <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm font-medium text-muted-foreground">{t.editor.noControls}</p>
