@@ -167,6 +167,36 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+// --- STRIDE threat distribution data ---
+const STRIDE_COLORS: Record<StrideCategory, string> = {
+  spoofing: '#8b5cf6',
+  tampering: '#f59e0b',
+  repudiation: '#6366f1',
+  information_disclosure: '#ef4444',
+  denial_of_service: '#ec4899',
+  elevation_of_privilege: '#14b8a6',
+};
+
+const STRIDE_ORDER: StrideCategory[] = ['spoofing', 'tampering', 'repudiation', 'information_disclosure', 'denial_of_service', 'elevation_of_privilege'];
+
+function computeStrideData(t: any) {
+  const counts: Record<StrideCategory, number> = {
+    spoofing: 0, tampering: 0, repudiation: 0,
+    information_disclosure: 0, denial_of_service: 0, elevation_of_privilege: 0,
+  };
+  for (const ctrl of mockControls) {
+    for (const ts of ctrl.threatScenarios) {
+      counts[ts.strideCategory]++;
+    }
+  }
+  return STRIDE_ORDER.map(cat => ({
+    category: cat,
+    label: (t.dashboard.stride as any)?.[cat] ?? cat.replace(/_/g, ' '),
+    count: counts[cat],
+    color: STRIDE_COLORS[cat],
+  }));
+}
+
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const { toast } = useToast();
