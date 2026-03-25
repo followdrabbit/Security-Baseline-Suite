@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell } from 'recharts';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import type { StrideCategory } from '@/types';
 
@@ -323,6 +323,20 @@ const Dashboard: React.FC = () => {
 
   const strideData = useMemo(() => computeStrideData(t, controls), [t, controls]);
 
+  const reviewStatusData = useMemo(() => {
+    const counts = { approved: 0, pending: 0, rejected: 0 };
+    for (const c of controls) {
+      const s = c.review_status as keyof typeof counts;
+      if (counts[s] !== undefined) counts[s]++;
+      else counts.pending++;
+    }
+    return [
+      { name: 'Approved', value: counts.approved, color: '#10b981' },
+      { name: 'Pending', value: counts.pending, color: '#f59e0b' },
+      { name: 'Rejected', value: counts.rejected, color: '#ef4444' },
+    ];
+  }, [controls]);
+
   const kpis = [
     { label: t.dashboard.totalProjects, value: String(projects.length), icon: Layers, change: projects.length > 0 ? `+${projects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
@@ -574,7 +588,64 @@ const Dashboard: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Two-column layout: Projects + Activity */}
+      {/* Review Status Breakdown */}
+      {!loading && controls.length > 0 && (
+        <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.4 }}>
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <h3 className="text-sm font-display font-semibold text-foreground mb-4">Review Status Breakdown</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-center">
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reviewStatusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={3}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {reviewStatusData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
+                            <p className="font-semibold text-foreground">{d.name}</p>
+                            <p className="text-muted-foreground">{d.value} controls ({controls.length > 0 ? Math.round((d.value / controls.length) * 100) : 0}%)</p>
+                          </div>
+                        );
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-3">
+                {reviewStatusData.map((item) => {
+                  const pct = controls.length > 0 ? Math.round((item.value / controls.length) * 100) : 0;
+                  return (
+                    <div key={item.name} className="flex items-center gap-3">
+                      <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm text-foreground font-medium w-20">{item.name}</span>
+                      <div className="flex-1 h-2 bg-muted/50 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: item.color }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground tabular-nums w-16 text-right">{item.value} ({pct}%)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
         {/* Recent Projects */}
         {loading ? (
