@@ -14,7 +14,250 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_provider_configs: {
+        Row: {
+          api_key_encrypted: string | null
+          connection_status: string
+          created_at: string
+          enabled: boolean
+          extra_config: Json | null
+          id: string
+          is_default: boolean
+          provider_id: string
+          selected_model: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          connection_status?: string
+          created_at?: string
+          enabled?: boolean
+          extra_config?: Json | null
+          id?: string
+          is_default?: boolean
+          provider_id: string
+          selected_model: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          connection_status?: string
+          created_at?: string
+          enabled?: boolean
+          extra_config?: Json | null
+          id?: string
+          is_default?: boolean
+          provider_id?: string
+          selected_model?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      controls: {
+        Row: {
+          applicability: string | null
+          automation: string | null
+          category: string | null
+          confidence_score: number | null
+          control_id: string
+          created_at: string
+          criticality: string
+          default_behavior_limitations: string | null
+          description: string | null
+          framework_mappings: string[] | null
+          id: string
+          project_id: string
+          references: string[] | null
+          review_status: string
+          reviewer_notes: string | null
+          security_risk: string | null
+          source_traceability: Json | null
+          threat_scenarios: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+          version: number | null
+        }
+        Insert: {
+          applicability?: string | null
+          automation?: string | null
+          category?: string | null
+          confidence_score?: number | null
+          control_id: string
+          created_at?: string
+          criticality?: string
+          default_behavior_limitations?: string | null
+          description?: string | null
+          framework_mappings?: string[] | null
+          id?: string
+          project_id: string
+          references?: string[] | null
+          review_status?: string
+          reviewer_notes?: string | null
+          security_risk?: string | null
+          source_traceability?: Json | null
+          threat_scenarios?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+          version?: number | null
+        }
+        Update: {
+          applicability?: string | null
+          automation?: string | null
+          category?: string | null
+          confidence_score?: number | null
+          control_id?: string
+          created_at?: string
+          criticality?: string
+          default_behavior_limitations?: string | null
+          description?: string | null
+          framework_mappings?: string[] | null
+          id?: string
+          project_id?: string
+          references?: string[] | null
+          review_status?: string
+          reviewer_notes?: string | null
+          security_risk?: string | null
+          source_traceability?: Json | null
+          threat_scenarios?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "controls_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          avg_confidence: number | null
+          category: string | null
+          control_count: number | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          output_language: string | null
+          source_count: number | null
+          status: string
+          tags: string[] | null
+          technology: string
+          updated_at: string
+          user_id: string
+          vendor: string | null
+          version: string | null
+        }
+        Insert: {
+          avg_confidence?: number | null
+          category?: string | null
+          control_count?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          output_language?: string | null
+          source_count?: number | null
+          status?: string
+          tags?: string[] | null
+          technology: string
+          updated_at?: string
+          user_id: string
+          vendor?: string | null
+          version?: string | null
+        }
+        Update: {
+          avg_confidence?: number | null
+          category?: string | null
+          control_count?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          output_language?: string | null
+          source_count?: number | null
+          status?: string
+          tags?: string[] | null
+          technology?: string
+          updated_at?: string
+          user_id?: string
+          vendor?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
+      sources: {
+        Row: {
+          added_at: string
+          confidence: number | null
+          extracted_content: string | null
+          file_name: string | null
+          file_type: string | null
+          id: string
+          name: string
+          origin: string | null
+          preview: string | null
+          project_id: string
+          status: string
+          tags: string[] | null
+          type: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          confidence?: number | null
+          extracted_content?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          id?: string
+          name: string
+          origin?: string | null
+          preview?: string | null
+          project_id: string
+          status?: string
+          tags?: string[] | null
+          type?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          confidence?: number | null
+          extracted_content?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          id?: string
+          name?: string
+          origin?: string | null
+          preview?: string | null
+          project_id?: string
+          status?: string
+          tags?: string[] | null
+          type?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
