@@ -568,6 +568,16 @@ const translations = {
       approveAllTitle: 'Aprovar Todos Revisados',
       approveAllDesc: 'Isso aprovará todos os controles marcados como revisados. Esta ação não pode ser facilmente desfeita.',
     },
+    toasts: {
+      approved: 'Controle Aprovado',
+      approvedDesc: 'foi aprovado com sucesso.',
+      rejected: 'Controle Rejeitado',
+      rejectedDesc: 'foi rejeitado.',
+      approvedAll: 'Todos os Controles Aprovados',
+      approvedAllDesc: 'Todos os controles revisados foram aprovados com sucesso.',
+      restored: 'Versão Restaurada',
+      restoredDesc: 'O baseline foi restaurado para a versão',
+    },
     common: {
       save: 'Salvar',
       cancel: 'Cancelar',
