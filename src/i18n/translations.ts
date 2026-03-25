@@ -54,6 +54,8 @@ const translations = {
         showApproved: 'Approved',
         showPending: 'Pending',
         showRejected: 'Rejected',
+        exportPng: 'Export as PNG',
+        exportCsv: 'Export as CSV',
       },
     },
     project: {
