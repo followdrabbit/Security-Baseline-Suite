@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -6,11 +6,13 @@ import { mockProjects } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
-import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare } from 'lucide-react';
+import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
