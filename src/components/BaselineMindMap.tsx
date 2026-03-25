@@ -468,12 +468,14 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             {categoryPositions.map((cat, i) => {
               const catColor = CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%';
               const isHovered = hoveredNode === cat.id;
+              const isCatDimmed = matchingCategoryIds !== null && !matchingCategoryIds.has(cat.id);
               return (
                 <g
                   key={cat.id}
                   onMouseEnter={() => setHoveredNode(cat.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                   className="cursor-default"
+                  style={{ opacity: isCatDimmed ? 0.2 : 1 }}
                 >
                   <motion.rect
                     initial={{ width: 0, height: 0, opacity: 0 }}
