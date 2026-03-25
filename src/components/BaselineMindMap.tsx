@@ -475,7 +475,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
         {/* Mini-map overlay - visible when zoomed */}
         {zoom > 1 && (
           <div
-            className="absolute bottom-14 right-3 border border-border rounded-md bg-card/90 backdrop-blur-sm shadow-lg overflow-hidden cursor-pointer"
+            className="absolute bottom-[52px] right-3 border border-border rounded-md bg-card/90 backdrop-blur-sm shadow-lg overflow-hidden cursor-pointer z-10"
             style={{ width: 160, height: 160 * (svgHeight / svgWidth) }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
