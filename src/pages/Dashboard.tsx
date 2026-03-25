@@ -300,16 +300,33 @@ const Dashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.controls}</h3>
-              <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
-                {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setControlsPeriod(p)}
-                    className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${controlsPeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+                  {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setControlsPeriod(p)}
+                      className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${controlsPeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
+                    </button>
+                  ))}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[160px]">
+                    <DropdownMenuItem onClick={() => exportChartAsPng(controlsChartRef, `controls-trend-${controlsPeriod}`)}>
+                      <Image className="h-3.5 w-3.5 mr-2" />{t.dashboard.trends.exportPng}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportChartAsCsv(trendDataMap[controlsPeriod], ['day', 'approved', 'pending', 'rejected'], `controls-trend-${controlsPeriod}`)}>
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />{t.dashboard.trends.exportCsv}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             {/* Series toggles */}
