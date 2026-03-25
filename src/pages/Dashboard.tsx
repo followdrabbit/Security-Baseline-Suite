@@ -184,14 +184,16 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
 
 const STRIDE_ORDER: StrideCategory[] = ['spoofing', 'tampering', 'repudiation', 'information_disclosure', 'denial_of_service', 'elevation_of_privilege'];
 
-function computeStrideData(t: any) {
+function computeStrideData(t: any, controls: any[]) {
   const counts: Record<StrideCategory, number> = {
     spoofing: 0, tampering: 0, repudiation: 0,
     information_disclosure: 0, denial_of_service: 0, elevation_of_privilege: 0,
   };
-  for (const ctrl of mockControls) {
-    for (const ts of ctrl.threatScenarios) {
-      counts[ts.strideCategory]++;
+  for (const ctrl of controls) {
+    const scenarios = Array.isArray(ctrl.threat_scenarios) ? ctrl.threat_scenarios : (Array.isArray(ctrl.threatScenarios) ? ctrl.threatScenarios : []);
+    for (const ts of scenarios) {
+      const cat = (ts.strideCategory || ts.stride_category) as StrideCategory;
+      if (cat && counts[cat] !== undefined) counts[cat]++;
     }
   }
   return STRIDE_ORDER.map(cat => ({
