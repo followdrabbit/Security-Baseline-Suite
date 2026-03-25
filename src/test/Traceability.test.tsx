@@ -141,11 +141,14 @@ describe('Traceability', () => {
     vi.useRealTimers();
 
     // Click SOC to activate filter
-    await userEvent.click(screen.getByText('SOC').closest('button')!);
+    const allSoc = screen.getAllByText('SOC');
+    await userEvent.click(allSoc[0].closest('button')!);
     expect(screen.getByText(/Filtering by/i)).toBeInTheDocument();
 
-    // Click SOC again to deselect — re-query after DOM update
-    await userEvent.click(screen.getByText('SOC').closest('button')!);
+    // Click SOC legend button again to deselect
+    const socButtons = screen.getAllByText('SOC');
+    const legendBtn = socButtons.find(el => el.closest('button')?.classList.contains('rounded-lg'));
+    await userEvent.click(legendBtn!.closest('button')!);
     expect(screen.queryByText(/Filtering by/i)).not.toBeInTheDocument();
   });
 
