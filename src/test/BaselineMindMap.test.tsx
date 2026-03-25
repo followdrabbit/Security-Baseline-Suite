@@ -151,15 +151,14 @@ describe('BaselineMindMap integration', () => {
     expect(screen.getByText('NIST-1')).toBeInTheDocument();
   });
 
-  it('clicking the same control again closes the detail panel', () => {
+  it('clicking the close button dismisses the detail panel', () => {
     renderMindMap();
     const ctrlNode = screen.getByLabelText(/Control S3-SEC-001/);
     fireEvent.click(ctrlNode);
-    expect(screen.getByText('Block Public Access')).toBeInTheDocument();
+    expect(screen.getByText('Test description')).toBeInTheDocument();
 
-    fireEvent.click(ctrlNode);
-    // The detail panel title should no longer be present (description "Block Public Access" 
-    // also appears in the SVG text, so check for the close button being gone)
+    // Close via the ✕ button
+    fireEvent.click(screen.getByText('✕'));
     expect(screen.queryByText('Test description')).not.toBeInTheDocument();
   });
 
