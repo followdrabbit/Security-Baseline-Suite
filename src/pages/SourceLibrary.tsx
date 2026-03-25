@@ -1,48 +1,194 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockSources } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { TableSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Upload, Link2, FileText, Globe, X, Sparkles } from 'lucide-react';
+import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
+const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 
 const SourceLibrary: React.FC = () => {
   const { t } = useI18n();
-  const [loading, setLoading] = useState(true);
+  const { user, session } = useAuth();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
+  // For now, use first project or allow "no project" scenario
+  const { data: projects } = useQuery({
+    queryKey: ['projects', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('projects').select('id, name').order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  const filtered = mockSources.filter(s => {
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  // Auto-select first project
+  React.useEffect(() => {
+    if (projects?.length && !selectedProjectId) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectId]);
+
+  // Fetch sources from DB
+  const { data: sources = [], isLoading } = useQuery({
+    queryKey: ['sources', user?.id, selectedProjectId],
+    queryFn: async () => {
+      let query = supabase.from('sources').select('*').order('added_at', { ascending: false });
+      if (selectedProjectId) {
+        query = query.eq('project_id', selectedProjectId);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const filtered = sources.filter((s: any) => {
     if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== 'all' && s.status !== statusFilter) return false;
     if (typeFilter !== 'all' && s.type !== typeFilter) return false;
     return true;
   });
 
-  const previewSource = previewId ? mockSources.find(s => s.id === previewId) : null;
+  const previewSource = previewId ? sources.find((s: any) => s.id === previewId) : null;
 
   const toggleSelect = (id: string) => {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  // Upload mutation
+  const uploadFile = async (file: File) => {
+    if (!selectedProjectId) {
+      toast.error('Selecione um projeto primeiro');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('projectId', selectedProjectId);
+
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${currentSession?.access_token}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Upload failed');
+    }
+
+    return response.json();
+  };
+
+  const handleFiles = async (files: FileList | File[]) => {
+    setUploading(true);
+    const fileArray = Array.from(files);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const file of fileArray) {
+      try {
+        await uploadFile(file);
+        successCount++;
+      } catch (err: any) {
+        failCount++;
+        toast.error(`Falha ao enviar ${file.name}: ${err.message}`);
+      }
+    }
+
+    setUploading(false);
+    queryClient.invalidateQueries({ queryKey: ['sources'] });
+
+    if (successCount > 0) {
+      toast.success(`${successCount} arquivo(s) enviado(s) com sucesso`);
+    }
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  }, [selectedProjectId]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => setIsDragging(false), []);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('sources').delete().in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+      setSelected([]);
+      toast.success('Fontes removidas');
+    },
+  });
+
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div
+      className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
       <div>
         <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.sources.title}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t.sources.subtitle}</p>
       </div>
+
+      {/* Drag overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-primary/10 backdrop-blur-sm flex items-center justify-center"
+          >
+            <div className="bg-card border-2 border-dashed border-primary rounded-2xl p-12 text-center">
+              <Upload className="h-12 w-12 text-primary mx-auto mb-3" />
+              <p className="text-lg font-semibold text-foreground">{t.sources.dragDrop}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t.sources.dragDropSub}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Actions bar */}
       <div className="flex flex-wrap items-center gap-3">
@@ -50,6 +196,18 @@ const SourceLibrary: React.FC = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder={t.sources.search} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
+
+        {projects && projects.length > 1 && (
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Projeto" /></SelectTrigger>
+            <SelectContent>
+              {projects.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[150px]"><SelectValue placeholder={t.sources.allStatuses} /></SelectTrigger>
           <SelectContent>
@@ -72,30 +230,61 @@ const SourceLibrary: React.FC = () => {
         </Select>
         <div className="flex gap-2 ml-auto">
           <Button variant="outline" size="sm"><Link2 className="h-4 w-4 mr-1.5" />{t.sources.addUrl}</Button>
-          <Button variant="outline" size="sm"><Upload className="h-4 w-4 mr-1.5" />{t.sources.uploadDoc}</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || !selectedProjectId}
+          >
+            {uploading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Upload className="h-4 w-4 mr-1.5" />}
+            {t.sources.uploadDoc}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_TYPES}
+            className="hidden"
+            onChange={e => e.target.files && handleFiles(e.target.files)}
+          />
         </div>
       </div>
+
+      {!selectedProjectId && projects?.length === 0 && (
+        <div className="p-6 bg-muted/30 border border-border rounded-lg text-center">
+          <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm font-medium text-muted-foreground">Crie um projeto primeiro para começar a adicionar fontes.</p>
+        </div>
+      )}
 
       {selected.length > 0 && (
         <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm">
           <span className="text-primary font-medium">{selected.length} {t.sources.selected}</span>
-          <Button variant="destructive" size="sm"><X className="h-3 w-3 mr-1" />{t.sources.remove}</Button>
+          <Button variant="destructive" size="sm" onClick={() => deleteMutation.mutate(selected)}>
+            <X className="h-3 w-3 mr-1" />{t.sources.remove}
+          </Button>
         </div>
       )}
 
       <div className="flex gap-6">
         {/* Table */}
-        {loading ? (
+        {isLoading ? (
           <div className="flex-1">
             <TableSkeleton rows={8} columns={6} />
           </div>
         ) : (
           <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden shadow-premium">
             {filtered.length === 0 ? (
-              <div className="p-12 text-center">
+              <div
+                className="p-12 text-center cursor-pointer hover:bg-muted/10 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">{t.sources.noSources}</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">{t.sources.noSourcesDesc}</p>
+                {selectedProjectId && (
+                  <p className="text-xs text-primary mt-3">{t.sources.dragDrop}</p>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -111,7 +300,7 @@ const SourceLibrary: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((source) => (
+                    {filtered.map((source: any) => (
                       <tr
                         key={source.id}
                         className={`border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer ${previewId === source.id ? 'bg-primary/5' : ''}`}
@@ -169,15 +358,17 @@ const SourceLibrary: React.FC = () => {
               </div>
               <div>
                 <span className="text-muted-foreground">{t.sources.confidence}</span>
-                <div className="mt-1"><ConfidenceScore score={previewSource.confidence} size="md" /></div>
+                <div className="mt-1"><ConfidenceScore score={previewSource.confidence ?? 0} size="md" /></div>
               </div>
-              <div>
-                <span className="text-muted-foreground">{t.sources.preview}</span>
-                <p className="text-foreground/80 mt-0.5 leading-relaxed">{previewSource.preview}</p>
-              </div>
-              {previewSource.tags.length > 0 && (
+              {previewSource.preview && (
+                <div>
+                  <span className="text-muted-foreground">{t.sources.preview}</span>
+                  <p className="text-foreground/80 mt-0.5 leading-relaxed">{previewSource.preview}</p>
+                </div>
+              )}
+              {previewSource.tags && previewSource.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
-                  {previewSource.tags.map(tag => (
+                  {previewSource.tags.map((tag: string) => (
                     <span key={tag} className="px-2 py-0.5 bg-muted rounded-full text-[10px] text-muted-foreground">{tag}</span>
                   ))}
                 </div>
