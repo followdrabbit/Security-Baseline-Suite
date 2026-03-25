@@ -267,7 +267,14 @@ const SourceLibrary: React.FC = () => {
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
-          <Button variant="outline" size="sm"><Link2 className="h-4 w-4 mr-1.5" />{t.sources.addUrl}</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setUrlDialogOpen(true)}
+            disabled={!selectedProjectId}
+          >
+            <Link2 className="h-4 w-4 mr-1.5" />{t.sources.addUrl}
+          </Button>
           <Button
             variant="outline"
             size="sm"
