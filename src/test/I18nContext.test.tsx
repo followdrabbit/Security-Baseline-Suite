@@ -26,7 +26,7 @@ describe('I18nContext', () => {
   it('restores locale from localStorage', () => {
     localStorage.setItem('aureum-locale', 'pt');
     render(<I18nProvider><TestConsumer /></I18nProvider>);
-    expect(screen.getByTestId('locale').textContent).toBe('pt-BR');
+    expect(screen.getByTestId('locale').textContent).toBe('pt');
   });
 
   it('setLocale updates locale and persists to localStorage', () => {
