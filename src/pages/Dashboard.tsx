@@ -336,7 +336,7 @@ const Dashboard: React.FC = () => {
       {/* Welcome */}
       <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }}>
         <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
-          {t.dashboard.welcome}, <span className="gold-gradient-text">Helena</span>
+          {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
       </motion.div>
