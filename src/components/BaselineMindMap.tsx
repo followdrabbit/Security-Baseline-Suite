@@ -11,6 +11,7 @@ import MindMapRootNode from './mindmap/MindMapRootNode';
 import MindMapLegend from './mindmap/MindMapLegend';
 import MindMapMiniMap from './mindmap/MindMapMiniMap';
 import MindMapDetailPanel from './mindmap/MindMapDetailPanel';
+import MindMapTooltip from './mindmap/MindMapTooltip';
 
 interface Props {
   technologyName: string;
@@ -144,7 +145,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
         {/* SVG canvas */}
         <div
           ref={svgContainerRef}
-          className="overflow-hidden select-none"
+          className="overflow-hidden select-none relative"
           style={{ maxHeight: '70vh', cursor: isPanning ? 'grabbing' : 'grab' }}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
@@ -237,6 +238,24 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             {/* Root node */}
             <MindMapRootNode cx={centerX} cy={centerY} label={technologyName} controlCount={totalControls} />
           </svg>
+
+          {/* Hover tooltip */}
+          {hoveredNode && !hoveredNode.startsWith('cat-') && (() => {
+            const pos = visibleControls.find(({ ctrl }) => ctrl.id === hoveredNode);
+            if (!pos) return null;
+            return (
+              <MindMapTooltip
+                ctrl={pos.ctrl}
+                x={pos.x}
+                y={pos.y}
+                svgWidth={svgWidth}
+                svgHeight={svgHeight}
+                zoom={zoom}
+                pan={pan}
+                containerRef={svgContainerRef}
+              />
+            );
+          })()}
         </div>
 
         {/* Mini-map */}
