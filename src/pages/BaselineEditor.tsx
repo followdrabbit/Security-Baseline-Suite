@@ -6,12 +6,13 @@ import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem } from '@/types';
 
@@ -35,6 +36,7 @@ const BaselineEditor: React.FC = () => {
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
+  const [viewMode, setViewMode] = useState<'list' | 'mindmap'>('list');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [controls, setControls] = useState<ControlItem[]>(mockControls);
@@ -174,14 +176,47 @@ const BaselineEditor: React.FC = () => {
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
-          <Button variant="outline" size="sm" onClick={expandAll}><Eye className="h-3.5 w-3.5 mr-1" />{t.editor.expandAll}</Button>
-          <Button variant="outline" size="sm" onClick={collapseAll}>{t.editor.collapseAll}</Button>
+          {/* View mode toggle */}
+          <div className="flex items-center bg-muted/50 rounded-md p-0.5">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="List View"
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('mindmap')}
+              className={`p-1.5 rounded transition-all ${viewMode === 'mindmap' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Mind Map"
+            >
+              <Network className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {viewMode === 'list' && (
+            <>
+              <Button variant="outline" size="sm" onClick={expandAll}><Eye className="h-3.5 w-3.5 mr-1" />{t.editor.expandAll}</Button>
+              <Button variant="outline" size="sm" onClick={collapseAll}>{t.editor.collapseAll}</Button>
+            </>
+          )}
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">{filtered.length} {t.common.items}</p>
 
-      {/* Controls grouped by category */}
+      {/* Mind Map View */}
+      {viewMode === 'mindmap' && !loading && filtered.length > 0 && (
+        <BaselineMindMap
+          technologyName={selectedProjectObj?.technology || t.editor.allBaselines}
+          controls={filtered}
+          categoryLabels={Object.fromEntries(
+            Object.entries(CATEGORY_LABELS).map(([k, v]) => [k, v[lang]])
+          )}
+        />
+      )}
+
+      {/* Controls grouped by category (List View) */}
+      {viewMode === 'list' && (
       <div className="space-y-6">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => <ControlCardSkeleton key={i} />)
@@ -245,6 +280,7 @@ const BaselineEditor: React.FC = () => {
           })
         )}
       </div>
+      )}
 
       <ConfirmationModal
         open={confirmModal.open}
