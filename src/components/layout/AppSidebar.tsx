@@ -81,7 +81,7 @@ const AppSidebar: React.FC = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="p-2 space-y-1">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -95,6 +95,7 @@ const AppSidebar: React.FC = () => {
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <UserFooter collapsed={collapsed} />
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
