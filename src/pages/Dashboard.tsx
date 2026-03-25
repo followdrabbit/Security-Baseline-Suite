@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
-import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle, Filter } from 'lucide-react';
+import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle, Filter, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -312,6 +312,8 @@ const Dashboard: React.FC = () => {
     toast({ title: '📄 CSV Exported', description: filename });
   }, [toast]);
 
+
+
   // Compute KPIs from real data
   const totalThreats = useMemo(() => {
     let count = 0;
@@ -355,6 +357,28 @@ const Dashboard: React.FC = () => {
     { label: t.dashboard.avgConfidence, value: `${avgConfidence}%`, icon: TrendingUp, change: avgConfidence > 0 ? `${avgConfidence}%` : '0%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
     { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: totalThreats > 0 ? `+${totalThreats}` : '0', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
+
+  const exportDashboardPdf = useCallback(() => {
+    const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const projectLabel = selectedProjectId === 'all' ? 'All Projects' : filteredProjects[0]?.name || 'Project';
+    let html = `<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1a1a2e;padding:40px}h1{font-size:22px;margin-bottom:4px}.subtitle{font-size:12px;color:#666;margin-bottom:28px}.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}.kpi{border:1px solid #e2e8f0;border-radius:8px;padding:16px;text-align:center}.kpi-value{font-size:24px;font-weight:700;color:#6d28d9}.kpi-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}.section{border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:16px;page-break-inside:avoid}.section-title{font-size:14px;font-weight:600;margin-bottom:12px}table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;padding:8px;border-bottom:2px solid #e2e8f0;color:#666;text-transform:uppercase;font-size:9px;letter-spacing:.5px}td{padding:8px;border-bottom:1px solid #f1f5f9}.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}.bar-label{font-size:11px;width:80px;font-weight:500}.bar-track{flex:1;height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden}.bar-fill{height:100%;border-radius:5px}.bar-value{font-size:10px;color:#666;width:60px;text-align:right}.stride-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stride-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #f1f5f9;border-radius:6px}.stride-dot{width:10px;height:10px;border-radius:50%}.stride-name{font-size:11px}.stride-count{font-size:14px;font-weight:700;margin-left:auto}@media print{body{padding:20px}.section{break-inside:avoid}}</style></head><body>`;
+    html += `<h1>Dashboard Report — ${projectLabel}</h1><p class="subtitle">Generated on ${now} · ${filteredProjects.length} project(s) · ${filteredControls.length} controls</p>`;
+    html += `<div class="kpi-grid">`;
+    for (const kpi of kpis) html += `<div class="kpi"><div class="kpi-value">${kpi.value}</div><div class="kpi-label">${kpi.label}</div></div>`;
+    html += `</div><div class="section"><div class="section-title">Review Status Breakdown</div>`;
+    for (const item of reviewStatusData) {
+      const pct = filteredControls.length > 0 ? Math.round((item.value / filteredControls.length) * 100) : 0;
+      html += `<div class="bar-row"><span class="bar-label">${item.name}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${item.color}"></div></div><span class="bar-value">${item.value} (${pct}%)</span></div>`;
+    }
+    html += `</div><div class="section"><div class="section-title">Threat Distribution by STRIDE</div><div class="stride-grid">`;
+    for (const s of strideData) html += `<div class="stride-item"><span class="stride-dot" style="background:${s.color}"></span><span class="stride-name">${s.label}</span><span class="stride-count">${s.count}</span></div>`;
+    html += `</div></div><div class="section"><div class="section-title">Projects</div><table><thead><tr><th>Name</th><th>Technology</th><th>Status</th><th>Controls</th><th>Confidence</th><th>Updated</th></tr></thead><tbody>`;
+    for (const p of filteredProjects) html += `<tr><td style="font-weight:500">${p.name}</td><td>${p.technology}</td><td>${p.status}</td><td>${p.control_count || 0}</td><td>${p.avg_confidence ? `${p.avg_confidence}%` : '—'}</td><td>${new Date(p.updated_at).toLocaleDateString()}</td></tr>`;
+    html += `</tbody></table></div></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.onload = () => w.print(); }
+    toast({ title: '📄 PDF Export', description: 'Print dialog opened with dashboard report' });
+  }, [filteredProjects, filteredControls, kpis, reviewStatusData, strideData, selectedProjectId, toast]);
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
@@ -413,12 +437,15 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Quick actions */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <Button asChild className="gold-gradient text-primary-foreground hover:opacity-90 transition-opacity">
           <Link to="/new-project"><Plus className="h-4 w-4 mr-2" />{t.dashboard.createBaseline}</Link>
         </Button>
         <Button variant="outline" asChild>
           <Link to="/export-import"><Download className="h-4 w-4 mr-2" />{t.dashboard.importProject}</Link>
+        </Button>
+        <Button variant="outline" onClick={exportDashboardPdf}>
+          <FileText className="h-4 w-4 mr-2" />Export PDF
         </Button>
       </div>
 
