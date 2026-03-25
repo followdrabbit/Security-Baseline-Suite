@@ -285,7 +285,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             ))}
 
             {/* Category → control connections */}
-            {controlPositions.map(({ ctrl, x, y, parentX, parentY, catColor }) => (
+            {controlPositions.filter(({ ctrl }) => !collapsedCategories.has(`cat-${ctrl.category}`)).map(({ ctrl, x, y, parentX, parentY, catColor }) => (
               <motion.path
                 key={`line-${ctrl.id}`}
                 initial={{ pathLength: 0, opacity: 0 }}
@@ -299,7 +299,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             ))}
 
             {/* Control nodes */}
-            {controlPositions.map(({ ctrl, x, y, catColor }) => (
+            {controlPositions.filter(({ ctrl }) => !collapsedCategories.has(`cat-${ctrl.category}`)).map(({ ctrl, x, y, catColor }) => (
               <MindMapControlNode
                 key={ctrl.id}
                 ctrl={ctrl}
@@ -321,12 +321,14 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
               const catColor = CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%';
               const isHovered = hoveredNode === cat.id;
               const isCatDimmed = matchingCategoryIds !== null && !matchingCategoryIds.has(cat.id);
+              const isCollapsed = collapsedCategories.has(cat.id);
               return (
                 <g
                   key={cat.id}
                   onMouseEnter={() => setHoveredNode(cat.id)}
                   onMouseLeave={() => setHoveredNode(null)}
-                  className="cursor-default"
+                  onClick={() => toggleCategory(cat.id)}
+                  className="cursor-pointer"
                   style={{ opacity: isCatDimmed ? 0.2 : 1 }}
                 >
                   <motion.rect
@@ -336,9 +338,10 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                     x={cat.x - (isHovered ? 70 : 65)}
                     y={cat.y - (isHovered ? 18 : 16)}
                     rx={6}
-                    fill={`hsla(${catColor}, 0.2)`}
+                    fill={`hsla(${catColor}, ${isCollapsed ? 0.35 : 0.2})`}
                     stroke={`hsl(${catColor})`}
-                    strokeWidth={1.5}
+                    strokeWidth={isCollapsed ? 2 : 1.5}
+                    strokeDasharray={isCollapsed ? '4 2' : 'none'}
                   />
                   <motion.text
                     initial={{ opacity: 0 }}
@@ -350,7 +353,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                     className="text-[9px] font-semibold select-none pointer-events-none"
                     fill={`hsl(${catColor})`}
                   >
-                    {cat.label}
+                    {isCollapsed ? '▸ ' : ''}{cat.label}
                   </motion.text>
                   <text
                     x={cat.x} y={cat.y + 10}
@@ -358,7 +361,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                     className="text-[7px] select-none pointer-events-none"
                     fill="hsl(var(--muted-foreground))"
                   >
-                    {(cat.children || []).length} controls
+                    {(cat.children || []).length} controls {isCollapsed ? '(collapsed)' : ''}
                   </text>
                 </g>
               );
