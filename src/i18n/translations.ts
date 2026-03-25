@@ -674,6 +674,13 @@ const translations = {
         minutesAgo: 'min atrás',
         hoursAgo: 'h atrás',
       },
+      trends: {
+        title: 'Resumen de Tendencias',
+        controls: 'Controles',
+        confidence: 'Confianza',
+        projects: 'Proyectos',
+        last7Days: 'Últimos 7 días',
+      },
     },
     project: {
       new: 'Nuevo Proyecto de Baseline',
