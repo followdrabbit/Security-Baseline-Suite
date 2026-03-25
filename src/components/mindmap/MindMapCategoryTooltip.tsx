@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CategoryPosition } from './types';
+import { calcTooltipPosition, tooltipStyle } from './useTooltipPosition';
 
 interface Props {
   cat: CategoryPosition | null;
@@ -42,24 +43,16 @@ const statusLabel: Record<string, string> = {
 const MindMapCategoryTooltip: React.FC<Props> = ({
   cat, x, y, svgWidth, svgHeight, zoom, pan, containerRef,
 }) => {
-  if (!cat || !containerRef.current) return null;
+  if (!cat) return null;
 
-  const container = containerRef.current;
-  const rect = container.getBoundingClientRect();
-  const svgDisplayWidth = rect.width;
-  const svgDisplayHeight = Math.min(rect.height, container.clientHeight);
-
-  const scaleX = svgDisplayWidth / svgWidth;
-  const scaleY = svgDisplayHeight / svgHeight;
-  const scale = Math.min(scaleX, scaleY);
-
-  const pixelX = (x * scale * zoom) + pan.x + (svgDisplayWidth - svgWidth * scale) / 2;
-  const pixelY = (y * scale * zoom) + pan.y + (svgDisplayHeight - svgHeight * scale) / 2;
+  const pos = calcTooltipPosition({
+    svgX: x, svgY: y, svgWidth, svgHeight, zoom, pan, containerRef, offsetY: 24,
+  });
+  if (!pos) return null;
 
   const children = cat.children || [];
   const totalControls = children.length;
 
-  // Criticality distribution
   const critCounts: Record<string, number> = {};
   const statusCounts: Record<string, number> = {};
   let confidenceSum = 0;
@@ -82,19 +75,14 @@ const MindMapCategoryTooltip: React.FC<Props> = ({
     <AnimatePresence>
       <motion.div
         key={cat.id}
-        initial={{ opacity: 0, y: 4, scale: 0.95 }}
+        initial={{ opacity: 0, y: pos.alignY === 'above' ? 4 : -4, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+        exit={{ opacity: 0, y: pos.alignY === 'above' ? 4 : -4, scale: 0.95 }}
         transition={{ duration: 0.15 }}
         className="absolute z-50 pointer-events-none"
-        style={{
-          left: pixelX,
-          top: pixelY - 24,
-          transform: 'translate(-50%, -100%)',
-        }}
+        style={tooltipStyle(pos)}
       >
         <div className="bg-popover border border-border rounded-lg shadow-lg px-3 py-2.5 max-w-[240px] text-left">
-          {/* Header */}
           <div className="flex items-center gap-1.5 mb-1.5">
             <span className="text-[10px] font-semibold text-primary">{cat.label}</span>
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
@@ -102,7 +90,6 @@ const MindMapCategoryTooltip: React.FC<Props> = ({
             </span>
           </div>
 
-          {/* Criticality distribution */}
           <div className="mb-1.5">
             <p className="text-[9px] text-muted-foreground mb-1">Criticality:</p>
             <div className="flex flex-wrap gap-1">
@@ -119,14 +106,12 @@ const MindMapCategoryTooltip: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Status summary */}
           <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
             {Object.entries(statusCounts).map(([st, count]) => (
               <span key={st}>{count} {statusLabel[st] || st}</span>
             ))}
           </div>
 
-          {/* Average confidence */}
           {avgConfidence != null && (
             <div className="mt-1 text-[9px] text-muted-foreground">
               Avg. confidence: {avgConfidence}%
