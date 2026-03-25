@@ -40,6 +40,13 @@ const translations = {
         minutesAgo: 'min ago',
         hoursAgo: 'h ago',
       },
+      trends: {
+        title: 'Trends Overview',
+        controls: 'Controls',
+        confidence: 'Confidence',
+        projects: 'Projects',
+        last7Days: 'Last 7 days',
+      },
     },
     project: {
       new: 'New Baseline Project',
