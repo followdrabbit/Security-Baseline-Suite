@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { Download, Search, X } from 'lucide-react';
 import type { ControlItem } from '@/types';
 
 interface MindMapNode {
@@ -41,6 +41,34 @@ interface Props {
 const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLabels }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedControl, setSelectedControl] = useState<ControlItem | null>(null);
+
+  // Filter state
+  const [searchText, setSearchText] = useState('');
+  const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const hasActiveFilter = searchText.trim() !== '' || criticalityFilter !== 'all' || statusFilter !== 'all';
+
+  const matchingControlIds = useMemo(() => {
+    if (!hasActiveFilter) return null; // null = no filter active, show all normally
+    const ids = new Set<string>();
+    const query = searchText.toLowerCase().trim();
+    for (const c of controls) {
+      const matchesSearch = !query || c.controlId.toLowerCase().includes(query) || c.title.toLowerCase().includes(query);
+      const matchesCriticality = criticalityFilter === 'all' || c.criticality === criticalityFilter;
+      const matchesStatus = statusFilter === 'all' || c.reviewStatus === statusFilter;
+      if (matchesSearch && matchesCriticality && matchesStatus) ids.add(c.id);
+    }
+    return ids;
+  }, [controls, searchText, criticalityFilter, statusFilter, hasActiveFilter]);
+
+  // matchingCategoryIds is defined after tree (below)
+
+  const clearFilters = useCallback(() => {
+    setSearchText('');
+    setCriticalityFilter('all');
+    setStatusFilter('all');
+  }, []);
 
   // Zoom & Pan state
   const [zoom, setZoom] = useState(1);
@@ -111,6 +139,16 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
 
   const categories = tree.children || [];
   const totalControls = controls.length;
+
+  const matchingCategoryIds = useMemo(() => {
+    if (!matchingControlIds) return null;
+    const ids = new Set<string>();
+    for (const cat of categories) {
+      const hasMatch = (cat.children || []).some(ctrl => matchingControlIds.has(ctrl.id));
+      if (hasMatch) ids.add(cat.id);
+    }
+    return ids;
+  }, [matchingControlIds, categories]);
 
   // Layout calculations
   const svgWidth = 900;
@@ -265,6 +303,54 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             </button>
           </div>
         </div>
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/20 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              placeholder="Search controls..."
+              className="pl-7 pr-2 py-1 text-[11px] rounded bg-accent text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none w-40 transition-colors"
+            />
+          </div>
+          <select
+            value={criticalityFilter}
+            onChange={e => setCriticalityFilter(e.target.value)}
+            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors"
+          >
+            <option value="all">All Criticality</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="informational">Informational</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors"
+          >
+            <option value="all">All Status</option>
+            <option value="approved">Approved</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+            <option value="adjusted">Adjusted</option>
+          </select>
+          {hasActiveFilter && (
+            <>
+              <button onClick={clearFilters} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
+                <X className="w-3 h-3" />
+                Clear
+              </button>
+              <span className="text-[10px] text-muted-foreground ml-1">
+                {matchingControlIds?.size ?? 0} of {totalControls} controls
+              </span>
+            </>
+          )}
+        </div>
         <div
           ref={svgContainerRef}
           className="overflow-hidden select-none"
@@ -317,23 +403,26 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
               const isHovered = hoveredNode === ctrl.id;
               const isSelected = selectedControl?.id === ctrl.id;
               const critColor = CRITICALITY_RING[ctrl.criticality || 'medium'] || 'hsl(var(--muted-foreground))';
+              const isDimmed = matchingControlIds !== null && !matchingControlIds.has(ctrl.id);
+              const isHighlighted = matchingControlIds !== null && matchingControlIds.has(ctrl.id);
               return (
                 <g
                   key={ctrl.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer transition-opacity"
+                  style={{ opacity: isDimmed ? 0.15 : 1 }}
                   onMouseEnter={() => setHoveredNode(ctrl.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                   onClick={() => handleControlClick(ctrl.id)}
                 >
                   <motion.circle
                     initial={{ r: 0, opacity: 0 }}
-                    animate={{ r: isHovered || isSelected ? 22 : 18, opacity: 1 }}
+                    animate={{ r: isHovered || isSelected ? 22 : (isHighlighted ? 20 : 18), opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.6 }}
                     cx={x}
                     cy={y}
                     fill={`hsla(${catColor}, 0.15)`}
-                    stroke={isSelected ? critColor : `hsl(${catColor})`}
-                    strokeWidth={isSelected ? 2.5 : 1.5}
+                    stroke={isSelected ? critColor : isHighlighted ? critColor : `hsl(${catColor})`}
+                    strokeWidth={isSelected ? 2.5 : isHighlighted ? 2 : 1.5}
                   />
                   {/* Criticality ring */}
                   <motion.circle
@@ -379,12 +468,14 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             {categoryPositions.map((cat, i) => {
               const catColor = CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%';
               const isHovered = hoveredNode === cat.id;
+              const isCatDimmed = matchingCategoryIds !== null && !matchingCategoryIds.has(cat.id);
               return (
                 <g
                   key={cat.id}
                   onMouseEnter={() => setHoveredNode(cat.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                   className="cursor-default"
+                  style={{ opacity: isCatDimmed ? 0.2 : 1 }}
                 >
                   <motion.rect
                     initial={{ width: 0, height: 0, opacity: 0 }}
