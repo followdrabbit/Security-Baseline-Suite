@@ -647,7 +647,7 @@ const Dashboard: React.FC = () => {
                         return (
                           <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
                             <p className="font-semibold text-foreground">{d.name}</p>
-                            <p className="text-muted-foreground">{d.value} controls ({controls.length > 0 ? Math.round((d.value / controls.length) * 100) : 0}%)</p>
+                            <p className="text-muted-foreground">{d.value} controls ({filteredControls.length > 0 ? Math.round((d.value / filteredControls.length) * 100) : 0}%)</p>
                           </div>
                         );
                       }}
