@@ -77,11 +77,12 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
 
   // Layout calculations
   const svgWidth = 900;
-  const svgHeight = Math.max(500, categories.length * 120);
-  const centerX = svgWidth / 2;
-  const centerY = svgHeight / 2;
+  const padding = 60;
   const categoryRadius = 180;
   const controlRadius = 320;
+  const svgHeight = Math.max(500, (controlRadius + padding) * 2);
+  const centerX = svgWidth / 2;
+  const centerY = svgHeight / 2;
 
   // Distribute categories evenly in a circle
   const categoryPositions = useMemo(() => {
