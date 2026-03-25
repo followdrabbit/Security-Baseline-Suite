@@ -7,6 +7,9 @@ import { getFrameworkPrefix, FRAMEWORK_COLORS } from '@/components/traceability/
 import FrameworkRadarChart from '@/components/traceability/FrameworkRadarChart';
 import FrameworkFilterBar from '@/components/traceability/FrameworkFilterBar';
 import TraceabilityControlCard from '@/components/traceability/TraceabilityControlCard';
+import { exportToCSV, exportToPDF } from '@/components/traceability/exportUtils';
+import { Button } from '@/components/ui/button';
+import { Download, FileText } from 'lucide-react';
 
 const Traceability: React.FC = () => {
   const { t } = useI18n();
@@ -50,11 +53,35 @@ const Traceability: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.traceabilityPage.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-          {t.traceabilityPage.subtitle} <InfoTooltip content={t.tooltips.traceability} />
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.traceabilityPage.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+            {t.traceabilityPage.subtitle} <InfoTooltip content={t.tooltips.traceability} />
+          </p>
+        </div>
+        {!loading && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={() => exportToCSV(filteredControls, selectedFramework ? `traceability-${selectedFramework}` : 'traceability-all')}
+            >
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1.5"
+              onClick={() => exportToPDF(filteredControls, selectedFramework)}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              PDF
+            </Button>
+          </div>
+        )}
       </div>
 
       {!loading && (
