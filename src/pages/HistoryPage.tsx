@@ -77,6 +77,18 @@ const History: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        open={restoreModal.open}
+        onOpenChange={(open) => setRestoreModal(prev => ({ ...prev, open }))}
+        variant="restore"
+        title={t.confirmModal.restoreTitle}
+        description={t.confirmModal.restoreDesc}
+        itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
+        confirmLabel={t.history.restore}
+        cancelLabel={t.common.cancel}
+        onConfirm={() => setRestoreModal({ open: false })}
+      />
     </div>
   );
 };
