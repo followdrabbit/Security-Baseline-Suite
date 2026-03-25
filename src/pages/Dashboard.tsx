@@ -245,6 +245,16 @@ const Dashboard: React.FC = () => {
 
   const loading = projectsLoading || controlsLoading;
 
+  const filteredControls = useMemo(() => {
+    if (selectedProjectId === 'all') return controls;
+    return controls.filter(c => c.project_id === selectedProjectId);
+  }, [controls, selectedProjectId]);
+
+  const filteredProjects = useMemo(() => {
+    if (selectedProjectId === 'all') return projects;
+    return projects.filter(p => p.id === selectedProjectId);
+  }, [projects, selectedProjectId]);
+
   const userName = useMemo(() => {
     if (!user) return '';
     return user.user_metadata?.full_name || user.email?.split('@')[0] || '';
