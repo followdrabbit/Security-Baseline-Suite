@@ -22,6 +22,12 @@ const BaselineEditor: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [controls, setControls] = useState<ControlItem[]>(mockControls);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    variant: 'approve' | 'reject' | 'restore' | 'approveAll';
+    controlId?: string;
+    controlLabel?: string;
+  }>({ open: false, variant: 'approve' });
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1300);
