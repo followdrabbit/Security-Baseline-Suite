@@ -7,8 +7,8 @@ const TestConsumer = () => {
   return (
     <div>
       <span data-testid="locale">{locale}</span>
-      <span data-testid="sample-text">{t.dashboard.title}</span>
-      <button onClick={() => setLocale('pt-BR')}>PT</button>
+      <span data-testid="sample-text">{t.dashboard.welcome}</span>
+      <button onClick={() => setLocale('pt')}>PT</button>
       <button onClick={() => setLocale('es')}>ES</button>
       <button onClick={() => setLocale('en')}>EN</button>
     </div>
@@ -24,7 +24,7 @@ describe('I18nContext', () => {
   });
 
   it('restores locale from localStorage', () => {
-    localStorage.setItem('aureum-locale', 'pt-BR');
+    localStorage.setItem('aureum-locale', 'pt');
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     expect(screen.getByTestId('locale').textContent).toBe('pt-BR');
   });
@@ -32,8 +32,8 @@ describe('I18nContext', () => {
   it('setLocale updates locale and persists to localStorage', () => {
     render(<I18nProvider><TestConsumer /></I18nProvider>);
     act(() => screen.getByText('PT').click());
-    expect(screen.getByTestId('locale').textContent).toBe('pt-BR');
-    expect(localStorage.getItem('aureum-locale')).toBe('pt-BR');
+    expect(screen.getByTestId('locale').textContent).toBe('pt');
+    expect(localStorage.getItem('aureum-locale')).toBe('pt');
   });
 
   it('provides translated strings for each locale', () => {
