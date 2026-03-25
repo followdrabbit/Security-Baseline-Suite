@@ -78,7 +78,7 @@ const BaselineEditor: React.FC = () => {
           <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t.editor.subtitle}</p>
         </div>
-        <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90">
+        <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => requestConfirm('approveAll')}>
           <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
         </Button>
       </div>
