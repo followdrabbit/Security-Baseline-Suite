@@ -1,101 +1,139 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockVersions } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-react';
 
-const mockDiffData: Record<string, DiffEntry[]> = {
-  '2-3': [
-    {
-      controlId: 'S3-SEC-007', title: 'Enable S3 Object Lock for Compliance',
-      changeType: 'added', criticality: 'high',
-    },
-    {
-      controlId: 'S3-SEC-008', title: 'Configure S3 Intelligent-Tiering with Encryption',
-      changeType: 'added', criticality: 'medium',
-    },
-    {
-      controlId: 'S3-SEC-006', title: 'Implement Least Privilege IAM Policies for S3',
-      changeType: 'modified', criticality: 'critical',
-      fieldChanges: [
-        { field: 'Description', before: 'Apply the principle of least privilege to all IAM policies granting access to S3 resources.', after: 'Apply the principle of least privilege to all IAM policies granting access to S3 resources. Include cross-account access controls and service control policies (SCPs).' },
-        { field: 'Criticality', before: 'High', after: 'Critical' },
-        { field: 'Review Status', before: 'Reviewed', after: 'Approved' },
-      ],
-    },
-    {
-      controlId: 'S3-SEC-002', title: 'Enable Default Encryption with SSE-KMS',
-      changeType: 'modified', criticality: 'critical',
-      fieldChanges: [
-        { field: 'Automation', before: 'AWS Config Rule: s3-default-encryption-kms.', after: 'AWS Config Rule: s3-default-encryption-kms. AWS Organizations SCP to enforce KMS key rotation. Terraform module available.' },
-      ],
-    },
-  ],
-  '1-2': [
-    {
-      controlId: 'S3-SEC-001', title: 'Enable S3 Block Public Access at Account Level',
-      changeType: 'modified', criticality: 'critical',
-      fieldChanges: [
-        { field: 'Version', before: '1', after: '2' },
-        { field: 'Review Status', before: 'Pending', after: 'Approved' },
-        { field: 'Reviewer Notes', before: '', after: 'Validated against AWS documentation. Critical control.' },
-      ],
-    },
-    {
-      controlId: 'S3-SEC-005', title: 'Enable S3 Object Versioning',
-      changeType: 'modified', criticality: 'medium',
-      fieldChanges: [
-        { field: 'Version', before: '1', after: '2' },
-        { field: 'Review Status', before: 'Pending', after: 'Approved' },
-        { field: 'Reviewer Notes', before: '', after: 'Consider lifecycle rules for version management.' },
-      ],
-    },
-    {
-      controlId: 'S3-TMP-001', title: 'Require MFA Delete on S3 Buckets',
-      changeType: 'removed', criticality: 'medium',
-    },
-    {
-      controlId: 'S3-TMP-002', title: 'Enable CloudTrail for S3 Data Events',
-      changeType: 'removed', criticality: 'high',
-    },
-    {
-      controlId: 'S3-TMP-003', title: 'Restrict S3 Access via VPC Endpoint',
-      changeType: 'removed', criticality: 'low',
-    },
-    {
-      controlId: 'S3-SEC-003', title: 'Enable S3 Server Access Logging',
-      changeType: 'modified', criticality: 'high',
-      fieldChanges: [
-        { field: 'Criticality', before: 'Medium', after: 'High' },
-      ],
-    },
-  ],
-};
+interface BaselineVersion {
+  id: string;
+  project_id: string;
+  version: number;
+  control_count: number;
+  controls_snapshot: any[];
+  changes_summary: string;
+  status: string;
+  created_at: string;
+}
 
 const History: React.FC = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
     open: false, fromVersion: 0, toVersion: 0, entries: [],
   });
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: projects = [] } = useQuery({
+    queryKey: ['history-projects', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, technology')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
 
-  const openDiff = (fromVersion: number, toVersion: number) => {
-    const key = `${fromVersion}-${toVersion}`;
-    const entries = mockDiffData[key] || [];
-    setDiffModal({ open: true, fromVersion, toVersion, entries });
+  const { data: versions = [], isLoading: loading } = useQuery({
+    queryKey: ['baseline-versions', user?.id, selectedProjectId],
+    queryFn: async () => {
+      if (!user || !selectedProjectId) return [];
+      const { data, error } = await supabase
+        .from('baseline_versions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('project_id', selectedProjectId)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return (data || []) as BaselineVersion[];
+    },
+    enabled: !!user && !!selectedProjectId,
+  });
+
+  // Auto-select first project
+  React.useEffect(() => {
+    if (projects.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectId]);
+
+  const buildDiff = (fromVersion: BaselineVersion, toVersion: BaselineVersion): DiffEntry[] => {
+    const fromControls = (fromVersion.controls_snapshot || []) as any[];
+    const toControls = (toVersion.controls_snapshot || []) as any[];
+
+    const fromMap = new Map(fromControls.map(c => [c.control_id, c]));
+    const toMap = new Map(toControls.map(c => [c.control_id, c]));
+
+    const entries: DiffEntry[] = [];
+
+    // Added controls (in "to" but not in "from")
+    for (const [id, c] of toMap) {
+      if (!fromMap.has(id)) {
+        entries.push({
+          controlId: c.control_id,
+          title: c.title,
+          changeType: 'added',
+          criticality: c.criticality,
+        });
+      }
+    }
+
+    // Removed controls (in "from" but not in "to")
+    for (const [id, c] of fromMap) {
+      if (!toMap.has(id)) {
+        entries.push({
+          controlId: c.control_id,
+          title: c.title,
+          changeType: 'removed',
+          criticality: c.criticality,
+        });
+      }
+    }
+
+    // Modified controls
+    for (const [id, toC] of toMap) {
+      const fromC = fromMap.get(id);
+      if (!fromC) continue;
+      const fieldChanges: { field: string; before: string; after: string }[] = [];
+      if (fromC.title !== toC.title) fieldChanges.push({ field: 'Title', before: fromC.title, after: toC.title });
+      if (fromC.description !== toC.description) fieldChanges.push({ field: 'Description', before: fromC.description || '', after: toC.description || '' });
+      if (fromC.criticality !== toC.criticality) fieldChanges.push({ field: 'Criticality', before: fromC.criticality, after: toC.criticality });
+      if (fromC.review_status !== toC.review_status) fieldChanges.push({ field: 'Review Status', before: fromC.review_status, after: toC.review_status });
+      if (fieldChanges.length > 0) {
+        entries.push({
+          controlId: toC.control_id,
+          title: toC.title,
+          changeType: 'modified',
+          criticality: toC.criticality,
+          fieldChanges,
+        });
+      }
+    }
+
+    return entries;
+  };
+
+  const openDiff = (fromIdx: number) => {
+    if (fromIdx <= 0 || fromIdx >= versions.length) return;
+    const toVer = versions[0]; // current
+    const fromVer = versions[fromIdx];
+    const entries = buildDiff(fromVer, toVer);
+    setDiffModal({ open: true, fromVersion: fromVer.version, toVersion: toVer.version, entries });
   };
 
   return (
@@ -105,13 +143,35 @@ const History: React.FC = () => {
         <p className="text-sm text-muted-foreground mt-1">{t.history.subtitle}</p>
       </div>
 
+      {/* Project selector */}
+      <div className="max-w-md">
+        <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">Project</label>
+        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="Select a project" />
+          </SelectTrigger>
+          <SelectContent>
+            {projects.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name} — {p.technology}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="relative">
         <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border" />
         <div className="space-y-6">
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => <TimelineEntrySkeleton key={i} />)
+          ) : versions.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground ml-14">
+              <HistoryIcon className="h-8 w-8 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No version history yet. Generate controls in the AI Workspace to create the first version.</p>
+            </div>
           ) : (
-            mockVersions.map((ver, i) => (
+            versions.map((ver, i) => (
               <motion.div
                 key={ver.id}
                 initial={{ opacity: 0, x: -12 }}
@@ -133,18 +193,17 @@ const History: React.FC = () => {
                       {i === 0 && <span className="text-[10px] px-2 py-0.5 gold-gradient text-primary-foreground rounded-full font-medium">{t.history.current}</span>}
                       <StatusBadge status={ver.status} type="project" />
                     </div>
-                    <span className="text-xs text-muted-foreground">{new Date(ver.createdAt).toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(ver.created_at).toLocaleString()}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-3">{ver.changesSummary}</p>
+                  <p className="text-xs text-muted-foreground mb-3">{ver.changes_summary}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{t.history.author}: <span className="text-foreground font-medium">{ver.author}</span></span>
-                      <span>{ver.controlCount} controls</span>
+                      <span>{ver.control_count} controls</span>
                     </div>
                     <div className="flex gap-2">
                       {i > 0 && (
                         <>
-                          <Button variant="outline" size="sm" onClick={() => openDiff(ver.version, mockVersions[0].version)}>
+                          <Button variant="outline" size="sm" onClick={() => openDiff(i)}>
                             <GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, version: String(ver.version) })}>
@@ -170,10 +229,10 @@ const History: React.FC = () => {
         itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
         confirmLabel={t.history.restore}
         cancelLabel={t.common.cancel}
-         onConfirm={() => {
-           toast({ title: `🔄 ${t.toasts.restored}`, description: `${t.toasts.restoredDesc} ${restoreModal.version}.` });
-           setRestoreModal({ open: false });
-         }}
+        onConfirm={() => {
+          toast({ title: `🔄 ${t.toasts.restored}`, description: `${t.toasts.restoredDesc} ${restoreModal.version}.` });
+          setRestoreModal({ open: false });
+        }}
       />
 
       <VersionDiffModal
