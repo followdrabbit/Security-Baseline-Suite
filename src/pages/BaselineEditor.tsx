@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import type { ControlItem } from '@/types';
 
 const BaselineEditor: React.FC = () => {
   const { t } = useI18n();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
@@ -65,8 +67,15 @@ const BaselineEditor: React.FC = () => {
   const handleConfirm = () => {
     if (confirmModal.variant === 'approveAll') {
       setControls(prev => prev.map(c => c.reviewStatus === 'reviewed' ? { ...c, reviewStatus: 'approved' } : c));
+      toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
     } else if (confirmModal.controlId) {
-      updateStatus(confirmModal.controlId, confirmModal.variant === 'approve' ? 'approved' : 'rejected');
+      const isApprove = confirmModal.variant === 'approve';
+      updateStatus(confirmModal.controlId, isApprove ? 'approved' : 'rejected');
+      const label = confirmModal.controlLabel || confirmModal.controlId;
+      toast({
+        title: isApprove ? `✅ ${t.toasts.approved}` : `❌ ${t.toasts.rejected}`,
+        description: `${label} ${isApprove ? t.toasts.approvedDesc : t.toasts.rejectedDesc}`,
+      });
     }
     setConfirmModal(prev => ({ ...prev, open: false }));
   };

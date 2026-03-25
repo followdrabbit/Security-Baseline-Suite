@@ -7,6 +7,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-react';
 
 const mockDiffData: Record<string, DiffEntry[]> = {
@@ -79,6 +80,7 @@ const mockDiffData: Record<string, DiffEntry[]> = {
 
 const History: React.FC = () => {
   const { t } = useI18n();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
@@ -168,7 +170,10 @@ const History: React.FC = () => {
         itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
         confirmLabel={t.history.restore}
         cancelLabel={t.common.cancel}
-        onConfirm={() => setRestoreModal({ open: false })}
+         onConfirm={() => {
+           toast({ title: `🔄 ${t.toasts.restored}`, description: `${t.toasts.restoredDesc} ${restoreModal.version}.` });
+           setRestoreModal({ open: false });
+         }}
       />
 
       <VersionDiffModal
