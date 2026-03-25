@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { SettingsSectionSkeleton } from '@/components/skeletons/SkeletonPremium';
@@ -9,8 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import InfoTooltip from '@/components/InfoTooltip';
 import { useToast } from '@/hooks/use-toast';
+import { aiConfigService } from '@/services/aiService';
+import { supabase } from '@/integrations/supabase/client';
 import {
-  Brain, Key, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Zap, RefreshCw, Sparkles,
+  Brain, Key, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Zap, RefreshCw, Sparkles, LogIn,
 } from 'lucide-react';
 
 interface AIProvider {
@@ -23,10 +25,22 @@ interface AIProvider {
   apiKeyLabel: string;
   apiKeyPlaceholder: string;
   docsUrl: string;
-  color: string;
+  requiresApiKey: boolean;
 }
 
 const AI_PROVIDERS: AIProvider[] = [
+  {
+    id: 'lovable_ai',
+    name: 'Lovable AI',
+    description: 'IA integrada — Sem necessidade de API key externa. Powered by Gemini & GPT.',
+    icon: '💎',
+    models: ['gemini-3-flash (padrão)', 'gemini-2.5-pro', 'gpt-5'],
+    defaultModel: 'gemini-3-flash (padrão)',
+    apiKeyLabel: '',
+    apiKeyPlaceholder: '',
+    docsUrl: 'https://docs.lovable.dev/features/ai',
+    requiresApiKey: false,
+  },
   {
     id: 'openai',
     name: 'OpenAI',
@@ -37,7 +51,7 @@ const AI_PROVIDERS: AIProvider[] = [
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'sk-...',
     docsUrl: 'https://platform.openai.com/api-keys',
-    color: 'hsl(var(--success))',
+    requiresApiKey: true,
   },
   {
     id: 'anthropic',
@@ -49,7 +63,7 @@ const AI_PROVIDERS: AIProvider[] = [
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'sk-ant-...',
     docsUrl: 'https://console.anthropic.com/settings/keys',
-    color: 'hsl(var(--info))',
+    requiresApiKey: true,
   },
   {
     id: 'google',
@@ -61,7 +75,7 @@ const AI_PROVIDERS: AIProvider[] = [
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'AIza...',
     docsUrl: 'https://aistudio.google.com/apikey',
-    color: 'hsl(var(--primary))',
+    requiresApiKey: true,
   },
   {
     id: 'azure_openai',
@@ -73,7 +87,7 @@ const AI_PROVIDERS: AIProvider[] = [
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'Sua Azure OpenAI API key...',
     docsUrl: 'https://portal.azure.com',
-    color: 'hsl(var(--warning))',
+    requiresApiKey: true,
   },
   {
     id: 'mistral',
@@ -85,7 +99,7 @@ const AI_PROVIDERS: AIProvider[] = [
     apiKeyLabel: 'API Key',
     apiKeyPlaceholder: 'Sua Mistral API key...',
     docsUrl: 'https://console.mistral.ai/api-keys',
-    color: 'hsl(var(--destructive))',
+    requiresApiKey: true,
   },
 ];
 
@@ -101,25 +115,85 @@ const AIIntegrations: React.FC = () => {
   const { t } = useI18n();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [configs, setConfigs] = useState<Record<string, ProviderConfig>>(() => {
     const initial: Record<string, ProviderConfig> = {};
     AI_PROVIDERS.forEach(p => {
       initial[p.id] = {
-        enabled: false,
+        enabled: p.id === 'lovable_ai',
         apiKey: '',
         selectedModel: p.defaultModel,
-        connectionStatus: 'idle',
-        isDefault: false,
+        connectionStatus: p.id === 'lovable_ai' ? 'connected' : 'idle',
+        isDefault: p.id === 'lovable_ai',
       };
     });
     return initial;
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 900);
-    return () => clearTimeout(timer);
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        await loadConfigs();
+      }
+      setLoading(false);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      if (session?.user) loadConfigs();
+    });
+    return () => subscription.unsubscribe();
   }, []);
+
+  const loadConfigs = useCallback(async () => {
+    try {
+      const saved = await aiConfigService.getAll();
+      if (saved.length > 0) {
+        setConfigs(prev => {
+          const updated = { ...prev };
+          saved.forEach(s => {
+            if (updated[s.provider_id]) {
+              updated[s.provider_id] = {
+                enabled: s.enabled,
+                apiKey: s.api_key_encrypted || '',
+                selectedModel: s.selected_model,
+                connectionStatus: s.api_key_encrypted ? 'connected' : 'idle',
+                isDefault: s.is_default,
+              };
+            }
+          });
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load AI configs:', err);
+    }
+  }, []);
+
+  const saveConfig = async (providerId: string, config: ProviderConfig) => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await aiConfigService.upsert({
+        provider_id: providerId,
+        enabled: config.enabled,
+        api_key_encrypted: config.apiKey,
+        selected_model: config.selectedModel,
+        is_default: config.isDefault,
+      });
+      toast({ title: '✅ Configuração salva', description: 'Configuração persistida com sucesso' });
+    } catch (err) {
+      console.error('Save error:', err);
+      toast({ title: '❌ Erro ao salvar', description: 'Não foi possível salvar a configuração', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const updateConfig = (providerId: string, updates: Partial<ProviderConfig>) => {
     setConfigs(prev => ({
@@ -128,7 +202,7 @@ const AIIntegrations: React.FC = () => {
     }));
   };
 
-  const setAsDefault = (providerId: string) => {
+  const setAsDefault = async (providerId: string) => {
     setConfigs(prev => {
       const updated = { ...prev };
       Object.keys(updated).forEach(id => {
@@ -136,31 +210,38 @@ const AIIntegrations: React.FC = () => {
       });
       return updated;
     });
+    if (user) {
+      try {
+        await aiConfigService.setDefault(providerId);
+      } catch (err) {
+        console.error('Error setting default:', err);
+      }
+    }
     const provider = AI_PROVIDERS.find(p => p.id === providerId);
     toast({
       title: `⭐ ${provider?.name}`,
-      description: (t as any).aiIntegrations?.setAsDefaultSuccess || `${provider?.name} definido como provedor padrão`,
+      description: `${provider?.name} definido como provedor padrão`,
     });
   };
 
   const testConnection = async (providerId: string) => {
     updateConfig(providerId, { connectionStatus: 'testing' });
-    // Simulate API key validation
-    await new Promise(resolve => setTimeout(resolve, 2000));
     const config = configs[providerId];
-    if (config.apiKey.length > 10) {
-      updateConfig(providerId, { connectionStatus: 'connected' });
-      toast({
-        title: '✅ ' + ((t as any).aiIntegrations?.connectionSuccess || 'Conexão bem-sucedida'),
-        description: (t as any).aiIntegrations?.connectionSuccessDesc || 'API key validada com sucesso',
-      });
-    } else {
+    const provider = AI_PROVIDERS.find(p => p.id === providerId);
+
+    try {
+      const success = await aiConfigService.testConnection(providerId, config.apiKey, config.selectedModel);
+      updateConfig(providerId, { connectionStatus: success ? 'connected' : 'failed' });
+
+      if (success) {
+        toast({ title: '✅ Conexão bem-sucedida', description: 'API key validada com sucesso' });
+        await saveConfig(providerId, { ...config, connectionStatus: 'connected' });
+      } else {
+        toast({ title: '❌ Falha na conexão', description: 'Verifique sua API key e tente novamente', variant: 'destructive' });
+      }
+    } catch {
       updateConfig(providerId, { connectionStatus: 'failed' });
-      toast({
-        title: '❌ ' + ((t as any).aiIntegrations?.connectionFailed || 'Falha na conexão'),
-        description: (t as any).aiIntegrations?.connectionFailedDesc || 'Verifique sua API key e tente novamente',
-        variant: 'destructive',
-      });
+      toast({ title: '❌ Falha na conexão', description: 'Erro ao testar conexão', variant: 'destructive' });
     }
   };
 
@@ -171,8 +252,19 @@ const AIIntegrations: React.FC = () => {
   const enabledCount = Object.values(configs).filter(c => c.enabled).length;
   const connectedCount = Object.values(configs).filter(c => c.connectionStatus === 'connected').length;
   const defaultProvider = Object.entries(configs).find(([_, c]) => c.isDefault);
-
   const tAI = (t as any).aiIntegrations || {};
+
+  if (!user && !loading) {
+    return (
+      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+        <div className="bg-card border border-border rounded-lg p-8 text-center space-y-4 shadow-premium">
+          <LogIn className="h-12 w-12 text-primary/50 mx-auto" />
+          <h2 className="text-xl font-display font-semibold text-foreground">Faça login para configurar</h2>
+          <p className="text-sm text-muted-foreground">Você precisa estar autenticado para configurar os provedores de IA e persistir suas configurações.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
@@ -185,7 +277,6 @@ const AIIntegrations: React.FC = () => {
         </p>
       </div>
 
-      {/* Status cards */}
       {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-card border border-border rounded-lg p-4 shadow-premium">
@@ -209,16 +300,15 @@ const AIIntegrations: React.FC = () => {
               <span className="text-xs text-muted-foreground">{tAI.defaultProvider || 'Provedor Padrão'}</span>
             </div>
             <span className="text-sm font-medium text-foreground">
-              {defaultProvider ? AI_PROVIDERS.find(p => p.id === defaultProvider[0])?.name : (tAI.noneSelected || 'Nenhum selecionado')}
+              {defaultProvider ? AI_PROVIDERS.find(p => p.id === defaultProvider[0])?.name : 'Nenhum selecionado'}
             </span>
           </div>
         </div>
       )}
 
-      {/* Provider cards */}
       <div className="space-y-4">
         {loading ? (
-          Array.from({ length: 5 }).map((_, i) => <SettingsSectionSkeleton key={i} />)
+          Array.from({ length: 6 }).map((_, i) => <SettingsSectionSkeleton key={i} />)
         ) : (
           AI_PROVIDERS.map((provider, i) => {
             const config = configs[provider.id];
@@ -232,7 +322,6 @@ const AIIntegrations: React.FC = () => {
                   config.enabled ? 'border-primary/30 ring-1 ring-primary/10' : 'border-border'
                 }`}
               >
-                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{provider.icon}</span>
@@ -240,21 +329,20 @@ const AIIntegrations: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-foreground">{provider.name}</span>
                         {config.isDefault && (
-                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-                            {tAI.default || 'Padrão'}
-                          </Badge>
+                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Padrão</Badge>
                         )}
                         {config.connectionStatus === 'connected' && (
                           <Badge variant="outline" className="text-[10px] border-success/30 text-success">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            {tAI.connected || 'Conectado'}
+                            <CheckCircle2 className="h-3 w-3 mr-1" />Conectado
                           </Badge>
                         )}
                         {config.connectionStatus === 'failed' && (
                           <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            {tAI.failed || 'Falhou'}
+                            <XCircle className="h-3 w-3 mr-1" />Falhou
                           </Badge>
+                        )}
+                        {!provider.requiresApiKey && (
+                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Integrado</Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{provider.description}</p>
@@ -262,11 +350,13 @@ const AIIntegrations: React.FC = () => {
                   </div>
                   <Switch
                     checked={config.enabled}
-                    onCheckedChange={(checked) => updateConfig(provider.id, { enabled: checked })}
+                    onCheckedChange={(checked) => {
+                      updateConfig(provider.id, { enabled: checked });
+                      if (user) saveConfig(provider.id, { ...config, enabled: checked });
+                    }}
                   />
                 </div>
 
-                {/* Config when enabled */}
                 {config.enabled && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
@@ -274,60 +364,70 @@ const AIIntegrations: React.FC = () => {
                     transition={{ duration: 0.2 }}
                     className="space-y-4 pt-4 border-t border-border"
                   >
-                    {/* API Key */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                        <Key className="h-3 w-3 text-primary/70" />
-                        {provider.apiKeyLabel}
-                        <InfoTooltip content={tAI.apiKeyTooltip || 'Sua chave de API é armazenada localmente e nunca enviada para terceiros'} />
-                      </label>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Input
-                            type={showKeys[provider.id] ? 'text' : 'password'}
-                            placeholder={provider.apiKeyPlaceholder}
-                            value={config.apiKey}
-                            onChange={e => updateConfig(provider.id, { apiKey: e.target.value, connectionStatus: 'idle' })}
-                            className="pr-10"
-                          />
-                          <button
-                            onClick={() => toggleShowKey(provider.id)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    {provider.requiresApiKey && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                          <Key className="h-3 w-3 text-primary/70" />
+                          {provider.apiKeyLabel}
+                          <InfoTooltip content="Sua chave de API é armazenada de forma segura no banco de dados e nunca exposta no frontend" />
+                        </label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Input
+                              type={showKeys[provider.id] ? 'text' : 'password'}
+                              placeholder={provider.apiKeyPlaceholder}
+                              value={config.apiKey}
+                              onChange={e => updateConfig(provider.id, { apiKey: e.target.value, connectionStatus: 'idle' })}
+                              className="pr-10"
+                            />
+                            <button
+                              onClick={() => toggleShowKey(provider.id)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              {showKeys[provider.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!config.apiKey || config.connectionStatus === 'testing'}
+                            onClick={() => testConnection(provider.id)}
                           >
-                            {showKeys[provider.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                          </button>
+                            {config.connectionStatus === 'testing' ? (
+                              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Testando...</>
+                            ) : (
+                              <><RefreshCw className="h-3.5 w-3.5 mr-1.5" />Testar</>
+                            )}
+                          </Button>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={!config.apiKey || config.connectionStatus === 'testing'}
-                          onClick={() => testConnection(provider.id)}
+                        <a
+                          href={provider.docsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-primary/70 hover:text-primary transition-colors"
                         >
-                          {config.connectionStatus === 'testing' ? (
-                            <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{tAI.testing || 'Testando...'}</>
-                          ) : (
-                            <><RefreshCw className="h-3.5 w-3.5 mr-1.5" />{tAI.testConnection || 'Testar'}</>
-                          )}
-                        </Button>
+                          Obter API Key →
+                        </a>
                       </div>
-                      <a
-                        href={provider.docsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-primary/70 hover:text-primary transition-colors"
-                      >
-                        {tAI.getApiKey || 'Obter API Key →'}
-                      </a>
-                    </div>
+                    )}
 
-                    {/* Model selection */}
+                    {!provider.requiresApiKey && (
+                      <div className="bg-success/5 border border-success/20 rounded-md p-3">
+                        <p className="text-xs text-success flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Pronto para uso — Nenhuma API key necessária. IA integrada ao Lovable Cloud.
+                        </p>
+                      </div>
+                    )}
+
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-foreground">
-                        {tAI.model || 'Modelo'}
-                      </label>
+                      <label className="text-xs font-medium text-foreground">Modelo</label>
                       <Select
                         value={config.selectedModel}
-                        onValueChange={v => updateConfig(provider.id, { selectedModel: v })}
+                        onValueChange={v => {
+                          updateConfig(provider.id, { selectedModel: v });
+                          if (user) saveConfig(provider.id, { ...config, selectedModel: v });
+                        }}
                       >
                         <SelectTrigger className="w-full max-w-xs">
                           <SelectValue />
@@ -340,7 +440,6 @@ const AIIntegrations: React.FC = () => {
                       </Select>
                     </div>
 
-                    {/* Azure-specific: endpoint */}
                     {provider.id === 'azure_openai' && (
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-foreground">Endpoint URL</label>
@@ -348,17 +447,16 @@ const AIIntegrations: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Set as default */}
                     <div className="flex items-center justify-between pt-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={config.connectionStatus !== 'connected'}
+                        disabled={provider.requiresApiKey && config.connectionStatus !== 'connected'}
                         onClick={() => setAsDefault(provider.id)}
                         className={config.isDefault ? 'border-primary/30 text-primary' : ''}
                       >
                         <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                        {config.isDefault ? (tAI.isDefault || 'Provedor Padrão') : (tAI.setAsDefault || 'Definir como Padrão')}
+                        {config.isDefault ? 'Provedor Padrão' : 'Definir como Padrão'}
                       </Button>
                     </div>
                   </motion.div>
@@ -369,17 +467,14 @@ const AIIntegrations: React.FC = () => {
         )}
       </div>
 
-      {/* Usage note */}
       {!loading && (
         <div className="bg-muted/30 border border-border rounded-lg p-4">
           <div className="flex items-start gap-3">
             <Brain className="h-5 w-5 text-primary/70 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-xs font-medium text-foreground">
-                {tAI.howItWorksTitle || 'Como funciona'}
-              </p>
+              <p className="text-xs font-medium text-foreground">Como funciona</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {tAI.howItWorksDesc || 'O sistema utiliza o provedor de IA configurado para: (1) Extrair informações relevantes dos documentos e URLs fornecidos como fonte; (2) Gerar controles de segurança com modelagem de ameaças STRIDE; (3) Cada controle gerado recebe o status "Pendente" e aguarda revisão humana antes de ser aprovado. Configure pelo menos um provedor para ativar o pipeline de IA.'}
+                O sistema utiliza o provedor de IA configurado (Lovable AI por padrão, ou seu próprio provedor) para: (1) Extrair informações relevantes dos documentos e URLs fornecidos como fonte; (2) Gerar controles de segurança com modelagem de ameaças STRIDE; (3) Cada controle gerado recebe o status "Pendente" e aguarda revisão humana antes de ser aprovado. As configurações são salvas de forma segura no banco de dados.
               </p>
             </div>
           </div>
