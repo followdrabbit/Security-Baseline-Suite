@@ -106,14 +106,71 @@ const MindMapCategoryTooltip: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-            {Object.entries(statusCounts).map(([st, count]) => (
-              <span key={st}>{count} {statusLabel[st] || st}</span>
-            ))}
-          </div>
+          {/* Status progress bar */}
+          {totalControls > 0 && (() => {
+            const approved = statusCounts['approved'] || 0;
+            const reviewed = statusCounts['reviewed'] || 0;
+            const pending = statusCounts['pending'] || 0;
+            const rejected = statusCounts['rejected'] || 0;
+            const adjusted = statusCounts['adjusted'] || 0;
+            return (
+              <div className="mb-1.5">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[9px] text-muted-foreground">Review progress</span>
+                  <span className="text-[9px] font-medium text-primary">
+                    {Math.round(((approved + reviewed) / totalControls) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-muted/50 overflow-hidden flex">
+                  {approved > 0 && (
+                    <div
+                      className="h-full bg-emerald-500"
+                      style={{ width: `${(approved / totalControls) * 100}%` }}
+                      title={`${approved} Approved`}
+                    />
+                  )}
+                  {reviewed > 0 && (
+                    <div
+                      className="h-full bg-blue-500"
+                      style={{ width: `${(reviewed / totalControls) * 100}%` }}
+                      title={`${reviewed} Reviewed`}
+                    />
+                  )}
+                  {adjusted > 0 && (
+                    <div
+                      className="h-full bg-yellow-500"
+                      style={{ width: `${(adjusted / totalControls) * 100}%` }}
+                      title={`${adjusted} Adjusted`}
+                    />
+                  )}
+                  {pending > 0 && (
+                    <div
+                      className="h-full bg-muted-foreground/30"
+                      style={{ width: `${(pending / totalControls) * 100}%` }}
+                      title={`${pending} Pending`}
+                    />
+                  )}
+                  {rejected > 0 && (
+                    <div
+                      className="h-full bg-destructive"
+                      style={{ width: `${(rejected / totalControls) * 100}%` }}
+                      title={`${rejected} Rejected`}
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                  {approved > 0 && <span className="text-[8px] text-emerald-400">■ {approved} Approved</span>}
+                  {reviewed > 0 && <span className="text-[8px] text-blue-400">■ {reviewed} Reviewed</span>}
+                  {adjusted > 0 && <span className="text-[8px] text-yellow-400">■ {adjusted} Adjusted</span>}
+                  {pending > 0 && <span className="text-[8px] text-muted-foreground">■ {pending} Pending</span>}
+                  {rejected > 0 && <span className="text-[8px] text-destructive">■ {rejected} Rejected</span>}
+                </div>
+              </div>
+            );
+          })()}
 
           {avgConfidence != null && (
-            <div className="mt-1 text-[9px] text-muted-foreground">
+            <div className="text-[9px] text-muted-foreground">
               Avg. confidence: {avgConfidence}%
             </div>
           )}
