@@ -248,13 +248,40 @@ const Dashboard: React.FC = () => {
         >
           {/* Controls Evolution */}
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.controls}</h3>
-              <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">{t.dashboard.trends.last7Days}</span>
+              <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+                {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setControlsPeriod(p)}
+                    className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${controlsPeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Series toggles */}
+            <div className="flex items-center gap-3 mb-3">
+              {([
+                { key: 'approved' as const, color: '#10b981', label: t.dashboard.trends.showApproved },
+                { key: 'pending' as const, color: '#f59e0b', label: t.dashboard.trends.showPending },
+                { key: 'rejected' as const, color: '#ef4444', label: t.dashboard.trends.showRejected },
+              ]).map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => toggleSeries(s.key)}
+                  className={`flex items-center gap-1.5 text-[10px] font-medium transition-all ${visibleSeries[s.key] ? 'text-foreground' : 'text-muted-foreground/40'}`}
+                >
+                  <span className="inline-block w-2 h-2 rounded-full shrink-0 transition-opacity" style={{ backgroundColor: s.color, opacity: visibleSeries[s.key] ? 1 : 0.25 }} />
+                  {s.label}
+                </button>
+              ))}
             </div>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <AreaChart data={trendDataMap[controlsPeriod]} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradApproved" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
@@ -270,12 +297,12 @@ const Dashboard: React.FC = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} interval={controlsPeriod === '90d' ? 13 : controlsPeriod === '30d' ? 4 : 0} />
                   <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="approved" name="Approved" stroke="#10b981" strokeWidth={2} fill="url(#gradApproved)" dot={false} />
-                  <Area type="monotone" dataKey="pending" name="Pending" stroke="#f59e0b" strokeWidth={1.5} fill="url(#gradPending)" dot={false} />
-                  <Area type="monotone" dataKey="rejected" name="Rejected" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={false} />
+                  {visibleSeries.approved && <Area type="monotone" dataKey="approved" name={t.dashboard.trends.showApproved} stroke="#10b981" strokeWidth={2} fill="url(#gradApproved)" dot={false} />}
+                  {visibleSeries.pending && <Area type="monotone" dataKey="pending" name={t.dashboard.trends.showPending} stroke="#f59e0b" strokeWidth={1.5} fill="url(#gradPending)" dot={false} />}
+                  {visibleSeries.rejected && <Area type="monotone" dataKey="rejected" name={t.dashboard.trends.showRejected} stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={false} />}
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -285,16 +312,26 @@ const Dashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.confidence}</h3>
-              <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">{t.dashboard.trends.last7Days}</span>
+              <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+                {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setConfidencePeriod(p)}
+                    className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${confidencePeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <LineChart data={trendDataMap[confidencePeriod]} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[80, 95]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} interval={confidencePeriod === '90d' ? 13 : confidencePeriod === '30d' ? 4 : 0} />
+                  <YAxis domain={[78, 96]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="confidence" name="Confidence" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 }} activeDot={{ r: 5, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }} />
+                  <Line type="monotone" dataKey="confidence" name={t.dashboard.trends.confidence} stroke="hsl(var(--primary))" strokeWidth={2.5} dot={confidencePeriod === '7d' ? { r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 } : false} activeDot={{ r: 5, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
