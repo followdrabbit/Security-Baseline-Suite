@@ -176,14 +176,47 @@ const BaselineEditor: React.FC = () => {
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
-          <Button variant="outline" size="sm" onClick={expandAll}><Eye className="h-3.5 w-3.5 mr-1" />{t.editor.expandAll}</Button>
-          <Button variant="outline" size="sm" onClick={collapseAll}>{t.editor.collapseAll}</Button>
+          {/* View mode toggle */}
+          <div className="flex items-center bg-muted/50 rounded-md p-0.5">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded transition-all ${viewMode === 'list' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="List View"
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('mindmap')}
+              className={`p-1.5 rounded transition-all ${viewMode === 'mindmap' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Mind Map"
+            >
+              <Network className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {viewMode === 'list' && (
+            <>
+              <Button variant="outline" size="sm" onClick={expandAll}><Eye className="h-3.5 w-3.5 mr-1" />{t.editor.expandAll}</Button>
+              <Button variant="outline" size="sm" onClick={collapseAll}>{t.editor.collapseAll}</Button>
+            </>
+          )}
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">{filtered.length} {t.common.items}</p>
 
-      {/* Controls grouped by category */}
+      {/* Mind Map View */}
+      {viewMode === 'mindmap' && !loading && filtered.length > 0 && (
+        <BaselineMindMap
+          technologyName={selectedProjectObj?.technology || t.editor.allBaselines}
+          controls={filtered}
+          categoryLabels={Object.fromEntries(
+            Object.entries(CATEGORY_LABELS).map(([k, v]) => [k, v[lang]])
+          )}
+        />
+      )}
+
+      {/* Controls grouped by category (List View) */}
+      {viewMode === 'list' && (
       <div className="space-y-6">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => <ControlCardSkeleton key={i} />)
