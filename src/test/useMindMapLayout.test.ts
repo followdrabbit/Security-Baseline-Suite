@@ -87,8 +87,8 @@ describe('useMindMapLayout', () => {
       expect(typeof pos.angle).toBe('number');
     }
 
-    // Positions should be distinct
-    expect(positions[0].x).not.toBeCloseTo(positions[1].x, 0);
+    // With 2 categories, they should be at opposite ends vertically
+    expect(positions[0].y).not.toBeCloseTo(positions[1].y, 0);
   });
 
   it('generates control positions linked to parent categories', () => {
