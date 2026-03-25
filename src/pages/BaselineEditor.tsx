@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockControls, mockProjects } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -14,7 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ControlItem, StrideCategory, ThreatLikelihood } from '@/types';
+import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
+import type { Json } from '@/integrations/supabase/types';
 
 const CATEGORY_LABELS: Record<string, { en: string; pt: string; es: string }> = {
   identity: { en: 'Identity & Access', pt: 'Identidade e Acesso', es: 'Identidad y Acceso' },
@@ -28,10 +31,56 @@ const CATEGORY_LABELS: Record<string, { en: string; pt: string; es: string }> = 
 
 const CATEGORY_ORDER = ['identity', 'encryption', 'network', 'logging', 'storage', 'runtime', 'cicd'];
 
+function mapDbControlToControlItem(row: any): ControlItem {
+  const threats = (Array.isArray(row.threat_scenarios) ? row.threat_scenarios : []) as any[];
+  const traces = (Array.isArray(row.source_traceability) ? row.source_traceability : []) as any[];
+
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    controlId: row.control_id,
+    title: row.title,
+    description: row.description || '',
+    applicability: row.applicability || '',
+    securityRisk: row.security_risk || '',
+    criticality: (row.criticality || 'medium') as Criticality,
+    defaultBehaviorLimitations: row.default_behavior_limitations || '',
+    automation: row.automation || '',
+    references: row.references || [],
+    frameworkMappings: row.framework_mappings || [],
+    threatScenarios: threats.map((t: any, i: number) => ({
+      id: t.id || `threat-${i}`,
+      threatName: t.threatName || '',
+      strideCategory: (t.strideCategory || 'tampering') as StrideCategory,
+      attackVector: t.attackVector || '',
+      threatAgent: t.threatAgent || '',
+      preconditions: t.preconditions || '',
+      impact: t.impact || '',
+      likelihood: (t.likelihood || 'medium') as ThreatLikelihood,
+      mitigations: t.mitigations || [],
+      residualRisk: t.residualRisk || '',
+    })),
+    sourceTraceability: traces.map((s: any) => ({
+      sourceId: s.sourceId || s.sourceName || '',
+      sourceName: s.sourceName || '',
+      excerpt: s.excerpt || '',
+      sourceType: s.sourceType === 'document' ? 'document' : 'url',
+      confidence: s.confidence || 0,
+    })),
+    confidenceScore: Number(row.confidence_score) || 0,
+    reviewStatus: (row.review_status || 'pending') as ReviewStatus,
+    reviewerNotes: row.reviewer_notes || '',
+    version: row.version || 1,
+    category: row.category || 'other',
+  };
+}
+
 const BaselineEditor: React.FC = () => {
   const { t, locale } = useI18n();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -45,7 +94,6 @@ const BaselineEditor: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'mindmap'>('list');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
-  const [controls, setControls] = useState<ControlItem[]>(mockControls);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
     variant: 'approve' | 'reject' | 'restore' | 'approveAll';
@@ -53,10 +101,86 @@ const BaselineEditor: React.FC = () => {
     controlLabel?: string;
   }>({ open: false, variant: 'approve' });
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1300);
-    return () => clearTimeout(timer);
-  }, []);
+  // Fetch projects with controls
+  const { data: projects = [] } = useQuery({
+    queryKey: ['baseline-projects', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, technology, status, control_count')
+        .gt('control_count', 0)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch controls
+  const { data: controls = [], isLoading: loading } = useQuery({
+    queryKey: ['baseline-controls', user?.id, selectedProject],
+    queryFn: async () => {
+      let query = supabase
+        .from('controls')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (selectedProject !== 'all') {
+        query = query.eq('project_id', selectedProject);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).map(mapDbControlToControlItem);
+    },
+    enabled: !!user,
+  });
+
+  // Update review status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from('controls')
+        .update({ review_status: status })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baseline-controls'] });
+    },
+  });
+
+  // Bulk approve mutation
+  const bulkApproveMutation = useMutation({
+    mutationFn: async () => {
+      const reviewedIds = controls
+        .filter(c => c.reviewStatus === 'reviewed')
+        .map(c => c.id);
+      if (reviewedIds.length === 0) return;
+
+      for (const id of reviewedIds) {
+        const { error } = await supabase
+          .from('controls')
+          .update({ review_status: 'approved' })
+          .eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baseline-controls'] });
+    },
+  });
+
+  // Update reviewer notes mutation
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const { error } = await supabase
+        .from('controls')
+        .update({ reviewer_notes: notes })
+        .eq('id', id);
+      if (error) throw error;
+    },
+  });
 
   const filtered = useMemo(() => controls.filter(c => {
     if (selectedProject !== 'all' && c.projectId !== selectedProject) return false;
@@ -101,7 +225,7 @@ const BaselineEditor: React.FC = () => {
   const collapseAll = () => { setExpandedIds([]); setCollapsedCategories([]); };
 
   const updateStatus = (id: string, status: ControlItem['reviewStatus']) => {
-    setControls(prev => prev.map(c => c.id === id ? { ...c, reviewStatus: status } : c));
+    updateStatusMutation.mutate({ id, status });
   };
 
   const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll', controlId?: string) => {
@@ -116,7 +240,7 @@ const BaselineEditor: React.FC = () => {
 
   const handleConfirm = () => {
     if (confirmModal.variant === 'approveAll') {
-      setControls(prev => prev.map(c => c.reviewStatus === 'reviewed' ? { ...c, reviewStatus: 'approved' } : c));
+      bulkApproveMutation.mutate();
       toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
     } else if (confirmModal.controlId) {
       const isApprove = confirmModal.variant === 'approve';
@@ -130,7 +254,7 @@ const BaselineEditor: React.FC = () => {
     setConfirmModal(prev => ({ ...prev, open: false }));
   };
 
-  const selectedProjectObj = mockProjects.find(p => p.id === selectedProject);
+  const selectedProjectObj = projects.find((p: any) => p.id === selectedProject);
   const lang = locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en';
 
   return (
@@ -140,7 +264,7 @@ const BaselineEditor: React.FC = () => {
           <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {selectedProjectObj
-              ? `${filtered.length} ${t.editor.controlsIn} ${selectedProjectObj.technology}`
+              ? `${filtered.length} ${t.editor.controlsIn} ${(selectedProjectObj as any).technology}`
               : t.editor.subtitle}
           </p>
         </div>
@@ -189,7 +313,7 @@ const BaselineEditor: React.FC = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.editor.allBaselines}</SelectItem>
-            {mockProjects.filter(p => p.controlCount > 0).map(p => (
+            {projects.map((p: any) => (
               <SelectItem key={p.id} value={p.id}>{p.technology}</SelectItem>
             ))}
           </SelectContent>
@@ -248,7 +372,6 @@ const BaselineEditor: React.FC = () => {
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
-          {/* View mode toggle */}
           <div className="flex items-center bg-muted/50 rounded-md p-0.5">
             <button
               onClick={() => setViewMode('list')}
@@ -279,7 +402,7 @@ const BaselineEditor: React.FC = () => {
       {/* Mind Map View */}
       {viewMode === 'mindmap' && !loading && filtered.length > 0 && (
         <BaselineMindMap
-          technologyName={selectedProjectObj?.technology || t.editor.allBaselines}
+          technologyName={(selectedProjectObj as any)?.technology || t.editor.allBaselines}
           controls={filtered}
           categoryLabels={Object.fromEntries(
             Object.entries(CATEGORY_LABELS).map(([k, v]) => [k, v[lang]])
@@ -304,7 +427,6 @@ const BaselineEditor: React.FC = () => {
             const catLabel = CATEGORY_LABELS[category]?.[lang] || category;
             return (
               <div key={category}>
-                {/* Category header */}
                 <button
                   onClick={() => toggleCategory(category)}
                   className="flex items-center gap-2 mb-3 group w-full text-left"
@@ -341,6 +463,7 @@ const BaselineEditor: React.FC = () => {
                           onReject={() => requestConfirm('reject', control.id)}
                           onAdjust={() => updateStatus(control.id, 'adjusted')}
                           onMarkReviewed={() => updateStatus(control.id, 'reviewed')}
+                          onSaveNotes={(notes) => updateNotesMutation.mutate({ id: control.id, notes })}
                           t={t}
                         />
                       ))}
@@ -378,11 +501,12 @@ interface ControlCardProps {
   onReject: () => void;
   onAdjust: () => void;
   onMarkReviewed: () => void;
+  onSaveNotes: (notes: string) => void;
   t: any;
 }
 
 const ControlCard: React.FC<ControlCardProps> = ({
-  control, isExpanded, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, t,
+  control, isExpanded, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, onSaveNotes, t,
 }) => (
   <motion.div layout className="bg-card border border-border rounded-lg shadow-premium overflow-hidden">
     <button
@@ -439,8 +563,8 @@ const ControlCard: React.FC<ControlCardProps> = ({
                     {t.editor.traceability} <InfoTooltip content={t.tooltips.traceability} />
                   </label>
                   <div className="space-y-2">
-                    {control.sourceTraceability.map((st) => (
-                      <div key={st.sourceId} className="bg-muted/30 rounded p-2.5 text-xs border border-border/50">
+                    {control.sourceTraceability.map((st, i) => (
+                      <div key={st.sourceId || i} className="bg-muted/30 rounded p-2.5 text-xs border border-border/50">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-foreground">{st.sourceName}</span>
                           <ConfidenceScore score={st.confidence} />
@@ -531,7 +655,17 @@ const ControlCard: React.FC<ControlCardProps> = ({
 
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
-              <Textarea placeholder={t.editor.notesPlaceholder} defaultValue={control.reviewerNotes} rows={2} className="text-sm" />
+              <Textarea
+                placeholder={t.editor.notesPlaceholder}
+                defaultValue={control.reviewerNotes}
+                rows={2}
+                className="text-sm"
+                onBlur={(e) => {
+                  if (e.target.value !== control.reviewerNotes) {
+                    onSaveNotes(e.target.value);
+                  }
+                }}
+              />
             </div>
 
             <div className="flex gap-2 pt-2 border-t border-border/50">
