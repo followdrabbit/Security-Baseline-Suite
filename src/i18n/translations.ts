@@ -816,6 +816,8 @@ const translations = {
       aggressive: 'Agresivo',
       saveTemplate: 'Guardar Plantilla',
       loadTemplate: 'Cargar Plantilla',
+      threatModeling: 'Modelado de Amenazas',
+      threatModelingRules: 'Reglas de Modelado de Amenazas',
     },
     workspace: {
       title: 'Workspace de Procesamiento IA',
