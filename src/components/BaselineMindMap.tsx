@@ -62,15 +62,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
     return ids;
   }, [controls, searchText, criticalityFilter, statusFilter, hasActiveFilter]);
 
-  const matchingCategoryIds = useMemo(() => {
-    if (!matchingControlIds) return null;
-    const ids = new Set<string>();
-    for (const cat of (tree.children || [])) {
-      const hasMatch = (cat.children || []).some(ctrl => matchingControlIds.has(ctrl.id));
-      if (hasMatch) ids.add(cat.id);
-    }
-    return ids;
-  }, [matchingControlIds, tree]);
+  // matchingCategoryIds is defined after tree (below)
 
   const clearFilters = useCallback(() => {
     setSearchText('');
