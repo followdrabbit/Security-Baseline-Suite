@@ -315,28 +315,28 @@ const Dashboard: React.FC = () => {
   // Compute KPIs from real data
   const totalThreats = useMemo(() => {
     let count = 0;
-    for (const c of controls) {
+    for (const c of filteredControls) {
       const scenarios = Array.isArray(c.threat_scenarios) ? c.threat_scenarios : [];
       count += scenarios.length;
     }
     return count;
-  }, [controls]);
+  }, [filteredControls]);
 
   const avgConfidence = useMemo(() => {
-    if (controls.length === 0) return 0;
-    const sum = controls.reduce((acc, c) => acc + (Number(c.confidence_score) || 0), 0);
-    return Math.round(sum / controls.length);
-  }, [controls]);
+    if (filteredControls.length === 0) return 0;
+    const sum = filteredControls.reduce((acc, c) => acc + (Number(c.confidence_score) || 0), 0);
+    return Math.round(sum / filteredControls.length);
+  }, [filteredControls]);
 
   const approvedBaselines = useMemo(() => {
-    return projects.filter(p => p.status === 'approved' || p.status === 'in_progress').length;
-  }, [projects]);
+    return filteredProjects.filter(p => p.status === 'approved' || p.status === 'in_progress').length;
+  }, [filteredProjects]);
 
-  const strideData = useMemo(() => computeStrideData(t, controls), [t, controls]);
+  const strideData = useMemo(() => computeStrideData(t, filteredControls), [t, filteredControls]);
 
   const reviewStatusData = useMemo(() => {
     const counts = { approved: 0, pending: 0, rejected: 0 };
-    for (const c of controls) {
+    for (const c of filteredControls) {
       const s = c.review_status as keyof typeof counts;
       if (counts[s] !== undefined) counts[s]++;
       else counts.pending++;
@@ -346,12 +346,12 @@ const Dashboard: React.FC = () => {
       { name: 'Pending', value: counts.pending, color: '#f59e0b' },
       { name: 'Rejected', value: counts.rejected, color: '#ef4444' },
     ];
-  }, [controls]);
+  }, [filteredControls]);
 
   const kpis = [
-    { label: t.dashboard.totalProjects, value: String(projects.length), icon: Layers, change: projects.length > 0 ? `+${projects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
+    { label: t.dashboard.totalProjects, value: String(filteredProjects.length), icon: Layers, change: filteredProjects.length > 0 ? `+${filteredProjects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
-    { label: t.dashboard.controlsGenerated, value: String(controls.length), icon: BarChart3, change: controls.length > 0 ? `+${controls.length}` : '0', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
+    { label: t.dashboard.controlsGenerated, value: String(filteredControls.length), icon: BarChart3, change: filteredControls.length > 0 ? `+${filteredControls.length}` : '0', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
     { label: t.dashboard.avgConfidence, value: `${avgConfidence}%`, icon: TrendingUp, change: avgConfidence > 0 ? `${avgConfidence}%` : '0%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
     { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: totalThreats > 0 ? `+${totalThreats}` : '0', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
