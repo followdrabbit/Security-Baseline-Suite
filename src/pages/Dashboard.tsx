@@ -291,12 +291,12 @@ const Dashboard: React.FC = () => {
 
       {/* KPIs with sparklines */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <KPICardSkeleton key={i} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map(i => <KPICardSkeleton key={i} />)}
         </div>
       ) : (
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
           initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         >
           {kpis.map((kpi) => (
