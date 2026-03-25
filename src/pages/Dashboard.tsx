@@ -359,11 +359,29 @@ const Dashboard: React.FC = () => {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Welcome */}
-      <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }}>
-        <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
-          {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+      <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
+            {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+        </div>
+        {!loading && projects.length > 1 && (
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
+            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="bg-transparent text-sm text-foreground border-none outline-none cursor-pointer appearance-none pr-6"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0 center' }}
+            >
+              <option value="all">All Projects</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </motion.div>
 
       {/* KPIs with sparklines */}
