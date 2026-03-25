@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem } from '@/types';
 
@@ -377,6 +377,82 @@ const ControlCard: React.FC<ControlCardProps> = ({
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Threat Modeling Section */}
+              {control.threatScenarios && control.threatScenarios.length > 0 ? (
+                <div className="lg:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-2">
+                    <Crosshair className="h-3.5 w-3.5 text-destructive/70" />
+                    {t.editor.threatModeling}
+                    <InfoTooltip content={(t.tooltips as Record<string, string>).threatModeling || ''} />
+                    <span className="ml-auto text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-semibold">
+                      {control.threatScenarios.length} {control.threatScenarios.length === 1 ? 'threat' : 'threats'}
+                    </span>
+                  </label>
+                  <div className="space-y-3">
+                    {control.threatScenarios.map((threat) => (
+                      <div key={threat.id} className="bg-muted/20 rounded-lg border border-border/50 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border-b border-border/30">
+                          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                          <span className="text-xs font-semibold text-foreground flex-1">{threat.threatName}</span>
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            threat.likelihood === 'very_high' || threat.likelihood === 'high'
+                              ? 'bg-destructive/10 text-destructive'
+                              : threat.likelihood === 'medium'
+                              ? 'bg-warning/10 text-warning'
+                              : 'bg-success/10 text-success'
+                          }`}>
+                            {threat.likelihood.replace('_', ' ')}
+                          </span>
+                          <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded bg-accent text-accent-foreground">
+                            {threat.strideCategory.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="font-medium text-muted-foreground block mb-0.5">{t.editor.attackVector}</span>
+                            <p className="text-foreground/80">{threat.attackVector}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground block mb-0.5">{t.editor.threatAgent}</span>
+                            <p className="text-foreground/80">{threat.threatAgent}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground block mb-0.5">{t.editor.preconditions}</span>
+                            <p className="text-foreground/80">{threat.preconditions}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground block mb-0.5">{t.editor.impact}</span>
+                            <p className="text-foreground/80">{threat.impact}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground block mb-0.5">{t.editor.mitigations}</span>
+                            <ul className="space-y-0.5">
+                              {threat.mitigations.map((m, i) => (
+                                <li key={i} className="text-foreground/80 flex items-start gap-1.5">
+                                  <Zap className="h-3 w-3 mt-0.5 text-primary/60 shrink-0" />{m}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground block mb-0.5">{t.editor.residualRisk}</span>
+                            <p className="text-foreground/80">{threat.residualRisk}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="lg:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <Crosshair className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    {t.editor.threatModeling}
+                  </label>
+                  <p className="text-xs text-muted-foreground/60 italic">{t.editor.noThreats}</p>
                 </div>
               )}
             </div>
