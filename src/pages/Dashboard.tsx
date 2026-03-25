@@ -525,7 +525,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.stride.title}</h3>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {t.dashboard.stride.totalThreats}: {computeStrideData(t).reduce((sum, d) => sum + d.count, 0)}
+                  {t.dashboard.stride.totalThreats}: {totalThreats}
                 </p>
               </div>
               <p className="text-[10px] text-muted-foreground/60 italic">Click a category to filter in Baseline Editor</p>
@@ -534,7 +534,7 @@ const Dashboard: React.FC = () => {
               {/* Bar Chart */}
               <div className="h-[220px] cursor-pointer">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={computeStrideData(t)} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                  <BarChart data={strideData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
                     <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={110} />
@@ -551,7 +551,7 @@ const Dashboard: React.FC = () => {
                       }}
                     />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18} className="cursor-pointer" onClick={(data: any) => { if (data?.category) handleStrideClick(data.category); }}>
-                      {computeStrideData(t).map((entry) => (
+                      {strideData.map((entry) => (
                         <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} className="cursor-pointer hover:opacity-80 transition-opacity" />
                       ))}
                     </Bar>
@@ -561,9 +561,9 @@ const Dashboard: React.FC = () => {
               {/* Radar Chart */}
               <div className="h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={computeStrideData(t)} cx="50%" cy="50%" outerRadius="70%">
+                  <RadarChart data={strideData} cx="50%" cy="50%" outerRadius="70%">
                     <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
-                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', cursor: 'pointer' }} onClick={(e: any) => { const strideData = computeStrideData(t); const match = strideData.find(d => d.label === e?.value); if (match) handleStrideClick(match.category); }} />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', cursor: 'pointer' }} onClick={(e: any) => { const match = strideData.find(d => d.label === e?.value); if (match) handleStrideClick(match.category); }} />
                     <PolarRadiusAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} />
                     <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))', cursor: 'pointer' }} activeDot={{ r: 6, fill: 'hsl(var(--primary))', cursor: 'pointer', onClick: (e: any, payload: any) => { if (payload?.payload?.category) handleStrideClick(payload.payload.category); } }} />
                   </RadarChart>
@@ -603,14 +603,14 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockProjects.map((proj) => (
+                    {projects.map((proj) => (
                       <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
-                        <td className="py-3 px-4"><StatusBadge status={proj.status} type="project" /></td>
-                        <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.controlCount}</td>
-                        <td className="py-3 px-4">{proj.avgConfidence > 0 ? <ConfidenceScore score={proj.avgConfidence} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
-                        <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updatedAt).toLocaleDateString()}</td>
+                        <td className="py-3 px-4"><StatusBadge status={proj.status as any} type="project" /></td>
+                        <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.control_count || 0}</td>
+                        <td className="py-3 px-4">{(proj.avg_confidence || 0) > 0 ? <ConfidenceScore score={proj.avg_confidence || 0} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
+                        <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updated_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
