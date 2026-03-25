@@ -470,10 +470,11 @@ const Dashboard: React.FC = () => {
                   {t.dashboard.stride.totalThreats}: {computeStrideData(t).reduce((sum, d) => sum + d.count, 0)}
                 </p>
               </div>
+              <p className="text-[10px] text-muted-foreground/60 italic">Click a category to filter in Baseline Editor</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Bar Chart */}
-              <div className="h-[220px]">
+              <div className="h-[220px] cursor-pointer">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={computeStrideData(t)} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
@@ -491,9 +492,9 @@ const Dashboard: React.FC = () => {
                         );
                       }}
                     />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18} className="cursor-pointer" onClick={(data: any) => { if (data?.category) handleStrideClick(data.category); }}>
                       {computeStrideData(t).map((entry) => (
-                        <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} />
+                        <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} className="cursor-pointer hover:opacity-80 transition-opacity" />
                       ))}
                     </Bar>
                   </BarChart>
