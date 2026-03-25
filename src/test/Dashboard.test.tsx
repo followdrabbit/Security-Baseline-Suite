@@ -121,4 +121,22 @@ describe('Dashboard', () => {
     expect(screen.getByText('+47')).toBeInTheDocument();
     expect(screen.getByText('+3%')).toBeInTheDocument();
   });
+
+  it('renders Active Threats KPI card', () => {
+    renderDashboard();
+    act(() => vi.advanceTimersByTime(1600));
+
+    expect(screen.getByText('Active Threats')).toBeInTheDocument();
+    expect(screen.getByText('25')).toBeInTheDocument();
+    expect(screen.getByText('+4')).toBeInTheDocument();
+  });
+
+  it('renders STRIDE threat distribution chart section', () => {
+    renderDashboard();
+    act(() => vi.advanceTimersByTime(1600));
+
+    expect(screen.getByText('Threat Distribution by STRIDE')).toBeInTheDocument();
+    expect(screen.getByText(/Total Threats: 25/)).toBeInTheDocument();
+    expect(screen.getByText(/Click a category to filter/i)).toBeInTheDocument();
+  });
 });
