@@ -168,14 +168,62 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
+  const controlsChartRef = useRef<HTMLDivElement>(null);
+  const confidenceChartRef = useRef<HTMLDivElement>(null);
 
   const toggleSeries = (key: 'approved' | 'pending' | 'rejected') => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const exportChartAsPng = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
+    const container = ref.current;
+    if (!container) return;
+    const svg = container.querySelector('svg.recharts-surface') as SVGSVGElement | null;
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const { width, height } = svg.getBoundingClientRect();
+    const canvas = document.createElement('canvas');
+    const scale = 2;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(scale, scale);
+    // Draw background
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+    ctx.fillStyle = bg ? `hsl(${bg})` : '#1a1a2e';
+    ctx.fillRect(0, 0, width, height);
+    const img = new window.Image();
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.download = `${filename}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      toast({ title: '📊 PNG Exported', description: filename });
+    };
+    img.src = url;
+  }, [toast]);
+
+  const exportChartAsCsv = useCallback((data: typeof trendData7d, columns: string[], filename: string) => {
+    const header = columns.join(',');
+    const rows = data.map(row => columns.map(c => (row as any)[c] ?? '').join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.download = `${filename}.csv`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast({ title: '📄 CSV Exported', description: filename });
+  }, [toast]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
