@@ -454,6 +454,62 @@ const Dashboard: React.FC = () => {
         </motion.div>
       )}
 
+      {/* STRIDE Threat Distribution */}
+      {!loading && (
+        <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.35 }}>
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.stride.title}</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {t.dashboard.stride.totalThreats}: {computeStrideData(t).reduce((sum, d) => sum + d.count, 0)}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Bar Chart */}
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={computeStrideData(t)} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={110} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
+                            <p className="font-semibold text-foreground">{d.label}</p>
+                            <p className="text-muted-foreground">{d.count} threats</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
+                      {computeStrideData(t).map((entry) => (
+                        <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Radar Chart */}
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={computeStrideData(t)} cx="50%" cy="50%" outerRadius="70%">
+                    <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} />
+                    <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Two-column layout: Projects + Activity */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
         {/* Recent Projects */}
