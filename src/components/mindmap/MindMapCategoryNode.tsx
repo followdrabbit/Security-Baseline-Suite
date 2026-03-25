@@ -19,14 +19,29 @@ const MindMapCategoryNode: React.FC<Props> = ({
   onMouseEnter, onMouseLeave, onClick,
 }) => {
   const catColor = CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%';
+  const childCount = (cat.children || []).length;
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
 
   return (
     <g
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      onFocus={onMouseEnter}
+      onBlur={onMouseLeave}
       className="cursor-pointer"
       style={{ opacity: isDimmed ? 0.2 : 1 }}
+      role="button"
+      tabIndex={isDimmed ? -1 : 0}
+      aria-label={`Category ${cat.label}, ${childCount} controls, ${isCollapsed ? 'collapsed' : 'expanded'}. Press Enter to ${isCollapsed ? 'expand' : 'collapse'}.`}
+      aria-expanded={!isCollapsed}
     >
       <motion.rect
         initial={{ width: 0, height: 0, opacity: 0 }}
@@ -49,6 +64,7 @@ const MindMapCategoryNode: React.FC<Props> = ({
         dominantBaseline="middle"
         className="text-[9px] font-semibold select-none pointer-events-none"
         fill={`hsl(${catColor})`}
+        aria-hidden="true"
       >
         {isCollapsed ? '▸ ' : ''}{cat.label}
       </motion.text>
@@ -57,8 +73,9 @@ const MindMapCategoryNode: React.FC<Props> = ({
         textAnchor="middle"
         className="text-[7px] select-none pointer-events-none"
         fill="hsl(var(--muted-foreground))"
+        aria-hidden="true"
       >
-        {(cat.children || []).length} controls {isCollapsed ? '(collapsed)' : ''}
+        {childCount} controls {isCollapsed ? '(collapsed)' : ''}
       </text>
     </g>
   );

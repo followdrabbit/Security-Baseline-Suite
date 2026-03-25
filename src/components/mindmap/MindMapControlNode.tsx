@@ -27,6 +27,16 @@ const reviewStatusIcon = (status: string) => {
   }
 };
 
+const reviewStatusLabel = (status: string) => {
+  switch (status) {
+    case 'approved': return 'Approved';
+    case 'rejected': return 'Rejected';
+    case 'reviewed': return 'Reviewed';
+    case 'adjusted': return 'Adjusted';
+    default: return 'Pending';
+  }
+};
+
 const MindMapControlNode: React.FC<Props> = ({
   ctrl, x, y, catColor,
   isHovered, isSelected, isDimmed, isHighlighted,
@@ -34,14 +44,39 @@ const MindMapControlNode: React.FC<Props> = ({
 }) => {
   const critColor = CRITICALITY_RING[ctrl.criticality || 'medium'] || 'hsl(var(--muted-foreground))';
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <g
       className="cursor-pointer transition-opacity"
       style={{ opacity: isDimmed ? 0.15 : 1 }}
+      role="button"
+      tabIndex={isDimmed ? -1 : 0}
+      aria-label={`Control ${ctrl.label}: ${ctrl.sublabel || ''}, ${ctrl.criticality || 'medium'} criticality, ${reviewStatusLabel(ctrl.reviewStatus || '')}`}
+      aria-pressed={isSelected}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      onFocus={onMouseEnter}
+      onBlur={onMouseLeave}
     >
+      {/* Focus ring */}
+      <circle
+        cx={x}
+        cy={y}
+        r={26}
+        fill="none"
+        stroke="hsl(var(--ring))"
+        strokeWidth={2}
+        opacity={0}
+        className="focus-ring"
+      />
       {/* Pulse ring for highlighted nodes */}
       {isHighlighted && !isSelected && (
         <motion.circle
@@ -85,6 +120,7 @@ const MindMapControlNode: React.FC<Props> = ({
         dominantBaseline="middle"
         className="text-[9px] font-bold select-none pointer-events-none"
         fill={critColor}
+        aria-hidden="true"
       >
         {reviewStatusIcon(ctrl.reviewStatus || '')}
       </text>
@@ -97,6 +133,7 @@ const MindMapControlNode: React.FC<Props> = ({
         textAnchor="middle"
         className="text-[8px] font-mono select-none pointer-events-none"
         fill="hsl(var(--muted-foreground))"
+        aria-hidden="true"
       >
         {ctrl.label}
       </motion.text>
