@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { mockVersions } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-react';
