@@ -140,12 +140,12 @@ describe('Traceability', () => {
     act(() => vi.advanceTimersByTime(1500));
     vi.useRealTimers();
 
-    const socButton = screen.getByText('SOC').closest('button')!;
-    await userEvent.click(socButton);
+    // Click SOC to activate filter
+    await userEvent.click(screen.getByText('SOC').closest('button')!);
     expect(screen.getByText(/Filtering by/i)).toBeInTheDocument();
 
-    // Click SOC again to deselect
-    await userEvent.click(socButton);
+    // Click SOC again to deselect — re-query after DOM update
+    await userEvent.click(screen.getByText('SOC').closest('button')!);
     expect(screen.queryByText(/Filtering by/i)).not.toBeInTheDocument();
   });
 
