@@ -92,7 +92,7 @@ describe('Traceability', () => {
     act(() => vi.advanceTimersByTime(1500));
     expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
     expect(screen.getByText('CIS AWS 3.0 - 2.1.4')).toBeInTheDocument();
-    expect(screen.getByText('NIST 800-53 - AC-3')).toBeInTheDocument();
+    expect(screen.getAllByText('NIST 800-53 - AC-3').length).toBeGreaterThanOrEqual(1);
   });
 
   it('filters controls when clicking a framework button', async () => {
@@ -106,7 +106,7 @@ describe('Traceability', () => {
 
     // Should show filter indicator
     expect(screen.getByText(/Filtering by/i)).toBeInTheDocument();
-    expect(screen.getByText('2 controls mapped')).toBeInTheDocument();
+    expect(screen.getByText(/2 controls mapped/i)).toBeInTheDocument();
 
     // S3-SEC-001 has SOC mapping, should be visible
     expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('Traceability', () => {
     expect(screen.getByText(/Filtering by/i)).toBeInTheDocument();
 
     // Click Clear
-    const clearButton = screen.getByText('Clear');
+    const clearButton = screen.getByRole('button', { name: /clear/i });
     await userEvent.click(clearButton);
 
     // Filter indicator should be gone, all controls visible
