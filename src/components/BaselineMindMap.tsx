@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Download } from 'lucide-react';
 import type { ControlItem } from '@/types';
 import { CATEGORY_COLORS, CRITICALITY_RING } from './mindmap/types';
@@ -303,36 +303,49 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             ))}
 
             {/* Category → control connections */}
-            {controlPositions.filter(({ ctrl }) => !collapsedCategories.has(`cat-${ctrl.category}`)).map(({ ctrl, x, y, parentX, parentY, catColor }) => (
-              <motion.path
-                key={`line-${ctrl.id}`}
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.25 }}
-                transition={{ duration: 0.4, delay: 0.5 }}
-                d={`M ${parentX} ${parentY} Q ${(parentX + x) / 2} ${(parentY + y) / 2 + (y > parentY ? 15 : -15)} ${x} ${y}`}
-                fill="none"
-                stroke={`hsl(${catColor})`}
-                strokeWidth={1.2}
-              />
-            ))}
+            <AnimatePresence>
+              {controlPositions.filter(({ ctrl }) => !collapsedCategories.has(`cat-${ctrl.category}`)).map(({ ctrl, x, y, parentX, parentY, catColor }) => (
+                <motion.path
+                  key={`line-${ctrl.id}`}
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.25 }}
+                  exit={{ pathLength: 0, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  d={`M ${parentX} ${parentY} Q ${(parentX + x) / 2} ${(parentY + y) / 2 + (y > parentY ? 15 : -15)} ${x} ${y}`}
+                  fill="none"
+                  stroke={`hsl(${catColor})`}
+                  strokeWidth={1.2}
+                />
+              ))}
+            </AnimatePresence>
 
             {/* Control nodes */}
-            {controlPositions.filter(({ ctrl }) => !collapsedCategories.has(`cat-${ctrl.category}`)).map(({ ctrl, x, y, catColor }) => (
-              <MindMapControlNode
-                key={ctrl.id}
-                ctrl={ctrl}
-                x={x}
-                y={y}
-                catColor={catColor}
-                isHovered={hoveredNode === ctrl.id}
-                isSelected={selectedControl?.id === ctrl.id}
-                isDimmed={matchingControlIds !== null && !matchingControlIds.has(ctrl.id)}
-                isHighlighted={matchingControlIds !== null && matchingControlIds.has(ctrl.id)}
-                onMouseEnter={() => setHoveredNode(ctrl.id)}
-                onMouseLeave={() => setHoveredNode(null)}
-                onClick={() => handleControlClick(ctrl.id)}
-              />
-            ))}
+            <AnimatePresence>
+              {controlPositions.filter(({ ctrl }) => !collapsedCategories.has(`cat-${ctrl.category}`)).map(({ ctrl, x, y, catColor }) => (
+                <motion.g
+                  key={ctrl.id}
+                  initial={{ opacity: 0, scale: 0.3 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.3 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  style={{ transformOrigin: `${x}px ${y}px` }}
+                >
+                  <MindMapControlNode
+                    ctrl={ctrl}
+                    x={x}
+                    y={y}
+                    catColor={catColor}
+                    isHovered={hoveredNode === ctrl.id}
+                    isSelected={selectedControl?.id === ctrl.id}
+                    isDimmed={matchingControlIds !== null && !matchingControlIds.has(ctrl.id)}
+                    isHighlighted={matchingControlIds !== null && matchingControlIds.has(ctrl.id)}
+                    onMouseEnter={() => setHoveredNode(ctrl.id)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    onClick={() => handleControlClick(ctrl.id)}
+                  />
+                </motion.g>
+              ))}
+            </AnimatePresence>
 
             {/* Category nodes */}
             {categoryPositions.map((cat, i) => {
