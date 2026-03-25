@@ -703,7 +703,7 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {projects.map((proj) => (
+                    {filteredProjects.map((proj) => (
                       <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
