@@ -17,6 +17,7 @@ import type { ControlItem } from '@/types';
 
 const BaselineEditor: React.FC = () => {
   const { t } = useI18n();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
