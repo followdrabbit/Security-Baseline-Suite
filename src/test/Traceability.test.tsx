@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Traceability from '@/pages/Traceability';
 import { I18nProvider } from '@/contexts/I18nContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Mock framer-motion
 vi.mock('framer-motion', async () => {
@@ -39,7 +40,9 @@ const renderTraceability = () =>
   render(
     <MemoryRouter>
       <I18nProvider>
-        <Traceability />
+        <TooltipProvider>
+          <Traceability />
+        </TooltipProvider>
       </I18nProvider>
     </MemoryRouter>
   );
