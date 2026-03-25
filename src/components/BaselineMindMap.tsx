@@ -19,6 +19,14 @@ interface Props {
 const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLabels }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedControl, setSelectedControl] = useState<ControlItem | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const toggleCategory = useCallback((catId: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId); else next.add(catId);
+      return next;
+    });
+  }, []);
 
   // Filter state
   const [searchText, setSearchText] = useState('');
