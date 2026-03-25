@@ -122,6 +122,27 @@ export const exportToPDF = (controls: ControlItem[], selectedFramework: string |
   }
 };
 
+export const exportToJSON = (controls: ControlItem[], filename = 'traceability-export') => {
+  const data = controls.map(c => ({
+    controlId: c.controlId,
+    title: c.title,
+    description: c.description,
+    criticality: c.criticality,
+    confidenceScore: c.confidenceScore,
+    reviewStatus: c.reviewStatus,
+    frameworkMappings: c.frameworkMappings,
+    sourceTraceability: c.sourceTraceability.map(s => ({
+      sourceName: s.sourceName,
+      sourceType: s.sourceType,
+      confidence: s.confidence,
+      excerpt: s.excerpt,
+    })),
+  }));
+
+  const json = JSON.stringify(data, null, 2);
+  downloadFile(json, `${filename}.json`, 'application/json');
+};
+
 const downloadFile = (content: string, filename: string, mimeType: string) => {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
