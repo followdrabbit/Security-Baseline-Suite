@@ -208,7 +208,7 @@ const History: React.FC = () => {
                           <Button variant="outline" size="sm" onClick={() => openDiff(i)}>
                             <GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, version: String(ver.version) })}>
+                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, versionId: ver.id, version: String(ver.version) })}>
                             <RotateCcw className="h-3.5 w-3.5 mr-1" />{t.history.restore}
                           </Button>
                         </>
