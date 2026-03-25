@@ -207,13 +207,47 @@ function computeStrideData(t: any, controls: any[]) {
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real projects
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ['dashboard-projects', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch real controls
+  const { data: controls = [], isLoading: controlsLoading } = useQuery({
+    queryKey: ['dashboard-controls', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('controls')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const loading = projectsLoading || controlsLoading;
+
+  const userName = useMemo(() => {
+    if (!user) return '';
+    return user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+  }, [user]);
 
   const handleStrideClick = useCallback((category: string) => {
     navigate(`/editor?stride=${category}`);
@@ -236,7 +270,6 @@ const Dashboard: React.FC = () => {
     canvas.height = height * scale;
     const ctx = canvas.getContext('2d')!;
     ctx.scale(scale, scale);
-    // Draw background
     const bg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
     ctx.fillStyle = bg ? `hsl(${bg})` : '#1a1a2e';
     ctx.fillRect(0, 0, width, height);
@@ -268,19 +301,34 @@ const Dashboard: React.FC = () => {
     toast({ title: '📄 CSV Exported', description: filename });
   }, [toast]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Compute KPIs from real data
+  const totalThreats = useMemo(() => {
+    let count = 0;
+    for (const c of controls) {
+      const scenarios = Array.isArray(c.threat_scenarios) ? c.threat_scenarios : [];
+      count += scenarios.length;
+    }
+    return count;
+  }, [controls]);
 
-  const totalThreats = mockControls.reduce((sum, c) => sum + c.threatScenarios.length, 0);
+  const avgConfidence = useMemo(() => {
+    if (controls.length === 0) return 0;
+    const sum = controls.reduce((acc, c) => acc + (Number(c.confidence_score) || 0), 0);
+    return Math.round(sum / controls.length);
+  }, [controls]);
+
+  const approvedBaselines = useMemo(() => {
+    return projects.filter(p => p.status === 'approved' || p.status === 'in_progress').length;
+  }, [projects]);
+
+  const strideData = useMemo(() => computeStrideData(t, controls), [t, controls]);
 
   const kpis = [
-    { label: t.dashboard.totalProjects, value: '5', icon: Layers, change: '+2', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
-    { label: t.dashboard.activeBaselines, value: '3', icon: Shield, change: '+1', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
-    { label: t.dashboard.controlsGenerated, value: '181', icon: BarChart3, change: '+47', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
-    { label: t.dashboard.avgConfidence, value: '91%', icon: TrendingUp, change: '+3%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
-    { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: '+4', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
+    { label: t.dashboard.totalProjects, value: String(projects.length), icon: Layers, change: projects.length > 0 ? `+${projects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
+    { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
+    { label: t.dashboard.controlsGenerated, value: String(controls.length), icon: BarChart3, change: controls.length > 0 ? `+${controls.length}` : '0', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
+    { label: t.dashboard.avgConfidence, value: `${avgConfidence}%`, icon: TrendingUp, change: avgConfidence > 0 ? `${avgConfidence}%` : '0%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
+    { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: totalThreats > 0 ? `+${totalThreats}` : '0', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
 
   return (
