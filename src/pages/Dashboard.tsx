@@ -437,12 +437,15 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Quick actions */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap">
         <Button asChild className="gold-gradient text-primary-foreground hover:opacity-90 transition-opacity">
           <Link to="/new-project"><Plus className="h-4 w-4 mr-2" />{t.dashboard.createBaseline}</Link>
         </Button>
         <Button variant="outline" asChild>
           <Link to="/export-import"><Download className="h-4 w-4 mr-2" />{t.dashboard.importProject}</Link>
+        </Button>
+        <Button variant="outline" onClick={exportDashboardPdf}>
+          <FileText className="h-4 w-4 mr-2" />Export PDF
         </Button>
       </div>
 
