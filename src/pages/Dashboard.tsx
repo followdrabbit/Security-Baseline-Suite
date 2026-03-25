@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
-import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle } from 'lucide-react';
+import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -212,6 +212,7 @@ const Dashboard: React.FC = () => {
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
 
@@ -243,6 +244,16 @@ const Dashboard: React.FC = () => {
   });
 
   const loading = projectsLoading || controlsLoading;
+
+  const filteredControls = useMemo(() => {
+    if (selectedProjectId === 'all') return controls;
+    return controls.filter(c => c.project_id === selectedProjectId);
+  }, [controls, selectedProjectId]);
+
+  const filteredProjects = useMemo(() => {
+    if (selectedProjectId === 'all') return projects;
+    return projects.filter(p => p.id === selectedProjectId);
+  }, [projects, selectedProjectId]);
 
   const userName = useMemo(() => {
     if (!user) return '';
@@ -304,28 +315,28 @@ const Dashboard: React.FC = () => {
   // Compute KPIs from real data
   const totalThreats = useMemo(() => {
     let count = 0;
-    for (const c of controls) {
+    for (const c of filteredControls) {
       const scenarios = Array.isArray(c.threat_scenarios) ? c.threat_scenarios : [];
       count += scenarios.length;
     }
     return count;
-  }, [controls]);
+  }, [filteredControls]);
 
   const avgConfidence = useMemo(() => {
-    if (controls.length === 0) return 0;
-    const sum = controls.reduce((acc, c) => acc + (Number(c.confidence_score) || 0), 0);
-    return Math.round(sum / controls.length);
-  }, [controls]);
+    if (filteredControls.length === 0) return 0;
+    const sum = filteredControls.reduce((acc, c) => acc + (Number(c.confidence_score) || 0), 0);
+    return Math.round(sum / filteredControls.length);
+  }, [filteredControls]);
 
   const approvedBaselines = useMemo(() => {
-    return projects.filter(p => p.status === 'approved' || p.status === 'in_progress').length;
-  }, [projects]);
+    return filteredProjects.filter(p => p.status === 'approved' || p.status === 'in_progress').length;
+  }, [filteredProjects]);
 
-  const strideData = useMemo(() => computeStrideData(t, controls), [t, controls]);
+  const strideData = useMemo(() => computeStrideData(t, filteredControls), [t, filteredControls]);
 
   const reviewStatusData = useMemo(() => {
     const counts = { approved: 0, pending: 0, rejected: 0 };
-    for (const c of controls) {
+    for (const c of filteredControls) {
       const s = c.review_status as keyof typeof counts;
       if (counts[s] !== undefined) counts[s]++;
       else counts.pending++;
@@ -335,12 +346,12 @@ const Dashboard: React.FC = () => {
       { name: 'Pending', value: counts.pending, color: '#f59e0b' },
       { name: 'Rejected', value: counts.rejected, color: '#ef4444' },
     ];
-  }, [controls]);
+  }, [filteredControls]);
 
   const kpis = [
-    { label: t.dashboard.totalProjects, value: String(projects.length), icon: Layers, change: projects.length > 0 ? `+${projects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
+    { label: t.dashboard.totalProjects, value: String(filteredProjects.length), icon: Layers, change: filteredProjects.length > 0 ? `+${filteredProjects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
-    { label: t.dashboard.controlsGenerated, value: String(controls.length), icon: BarChart3, change: controls.length > 0 ? `+${controls.length}` : '0', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
+    { label: t.dashboard.controlsGenerated, value: String(filteredControls.length), icon: BarChart3, change: filteredControls.length > 0 ? `+${filteredControls.length}` : '0', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
     { label: t.dashboard.avgConfidence, value: `${avgConfidence}%`, icon: TrendingUp, change: avgConfidence > 0 ? `${avgConfidence}%` : '0%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
     { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: totalThreats > 0 ? `+${totalThreats}` : '0', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
@@ -348,11 +359,29 @@ const Dashboard: React.FC = () => {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Welcome */}
-      <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }}>
-        <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
-          {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+      <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
+            {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+        </div>
+        {!loading && projects.length > 1 && (
+          <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
+            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="bg-transparent text-sm text-foreground border-none outline-none cursor-pointer appearance-none pr-6"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0 center' }}
+            >
+              <option value="all">All Projects</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </motion.div>
 
       {/* KPIs with sparklines */}
@@ -589,7 +618,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Review Status Breakdown */}
-      {!loading && controls.length > 0 && (
+      {!loading && filteredControls.length > 0 && (
         <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.4 }}>
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
             <h3 className="text-sm font-display font-semibold text-foreground mb-4">Review Status Breakdown</h3>
@@ -618,7 +647,7 @@ const Dashboard: React.FC = () => {
                         return (
                           <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
                             <p className="font-semibold text-foreground">{d.name}</p>
-                            <p className="text-muted-foreground">{d.value} controls ({controls.length > 0 ? Math.round((d.value / controls.length) * 100) : 0}%)</p>
+                            <p className="text-muted-foreground">{d.value} controls ({filteredControls.length > 0 ? Math.round((d.value / filteredControls.length) * 100) : 0}%)</p>
                           </div>
                         );
                       }}
@@ -628,7 +657,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="space-y-3">
                 {reviewStatusData.map((item) => {
-                  const pct = controls.length > 0 ? Math.round((item.value / controls.length) * 100) : 0;
+                  const pct = filteredControls.length > 0 ? Math.round((item.value / filteredControls.length) * 100) : 0;
                   return (
                     <div key={item.name} className="flex items-center gap-3">
                       <span className="inline-block w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
@@ -674,7 +703,7 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {projects.map((proj) => (
+                    {filteredProjects.map((proj) => (
                       <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
