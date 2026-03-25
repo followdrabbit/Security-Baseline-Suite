@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Locale } from '@/types';
 
 const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
 
 const NewProject: React.FC = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '', technology: '', vendor: '', version: '', category: '', outputLanguage: 'en' as Locale, notes: '', tags: '',
   });
