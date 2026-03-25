@@ -122,41 +122,22 @@ const MindMapCategoryTooltip: React.FC<Props> = ({
                   </span>
                 </div>
                 <div className="w-full h-1.5 rounded-full bg-muted/50 overflow-hidden flex">
-                  {approved > 0 && (
-                    <div
-                      className="h-full bg-emerald-500"
-                      style={{ width: `${(approved / totalControls) * 100}%` }}
-                      title={`${approved} Approved`}
+                  {[
+                    { count: approved, cls: 'bg-emerald-500', label: 'Approved' },
+                    { count: reviewed, cls: 'bg-blue-500', label: 'Reviewed' },
+                    { count: adjusted, cls: 'bg-yellow-500', label: 'Adjusted' },
+                    { count: pending, cls: 'bg-muted-foreground/30', label: 'Pending' },
+                    { count: rejected, cls: 'bg-destructive', label: 'Rejected' },
+                  ].filter(s => s.count > 0).map((s, i) => (
+                    <motion.div
+                      key={s.label}
+                      className={`h-full ${s.cls}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(s.count / totalControls) * 100}%` }}
+                      transition={{ duration: 0.4, delay: 0.1 + i * 0.08, ease: 'easeOut' }}
+                      title={`${s.count} ${s.label}`}
                     />
-                  )}
-                  {reviewed > 0 && (
-                    <div
-                      className="h-full bg-blue-500"
-                      style={{ width: `${(reviewed / totalControls) * 100}%` }}
-                      title={`${reviewed} Reviewed`}
-                    />
-                  )}
-                  {adjusted > 0 && (
-                    <div
-                      className="h-full bg-yellow-500"
-                      style={{ width: `${(adjusted / totalControls) * 100}%` }}
-                      title={`${adjusted} Adjusted`}
-                    />
-                  )}
-                  {pending > 0 && (
-                    <div
-                      className="h-full bg-muted-foreground/30"
-                      style={{ width: `${(pending / totalControls) * 100}%` }}
-                      title={`${pending} Pending`}
-                    />
-                  )}
-                  {rejected > 0 && (
-                    <div
-                      className="h-full bg-destructive"
-                      style={{ width: `${(rejected / totalControls) * 100}%` }}
-                      title={`${rejected} Rejected`}
-                    />
-                  )}
+                  ))}
                 </div>
                 <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
                   {approved > 0 && <span className="text-[8px] text-emerald-400">■ {approved} Approved</span>}
