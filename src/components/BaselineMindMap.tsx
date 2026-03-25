@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Download } from 'lucide-react';
 import type { ControlItem } from '@/types';
 import { CATEGORY_COLORS, CRITICALITY_RING } from './mindmap/types';
