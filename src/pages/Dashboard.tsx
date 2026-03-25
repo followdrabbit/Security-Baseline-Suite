@@ -243,6 +243,20 @@ const Dashboard: React.FC = () => {
     enabled: !!user,
   });
 
+  // Fetch baseline versions for confidence evolution
+  const { data: baselineVersions = [], isLoading: versionsLoading } = useQuery({
+    queryKey: ['dashboard-versions', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('baseline_versions')
+        .select('*')
+        .order('version', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const loading = projectsLoading || controlsLoading;
 
   const filteredControls = useMemo(() => {
@@ -349,6 +363,56 @@ const Dashboard: React.FC = () => {
       { name: 'Rejected', value: counts.rejected, color: '#ef4444' },
     ];
   }, [filteredControls]);
+
+  // Confidence evolution across baseline versions
+  const confidenceEvolutionData = useMemo(() => {
+    const relevantVersions = selectedProjectId === 'all'
+      ? baselineVersions
+      : baselineVersions.filter(v => v.project_id === selectedProjectId);
+
+    // Group by project, then flatten with version labels
+    const byProject = new Map<string, typeof relevantVersions>();
+    for (const v of relevantVersions) {
+      const arr = byProject.get(v.project_id) || [];
+      arr.push(v);
+      byProject.set(v.project_id, arr);
+    }
+
+    // If single project, show per-version confidence
+    if (selectedProjectId !== 'all' || byProject.size <= 1) {
+      return relevantVersions.map(v => {
+        const snapshot = Array.isArray(v.controls_snapshot) ? v.controls_snapshot as any[] : [];
+        const avgConf = snapshot.length > 0
+          ? Math.round(snapshot.reduce((s, c) => s + (Number(c.confidence_score || c.confidenceScore) || 0), 0) / snapshot.length * 100)
+          : 0;
+        const projectName = projects.find(p => p.id === v.project_id)?.name || 'Project';
+        return {
+          label: `v${v.version}`,
+          confidence: avgConf,
+          controls: v.control_count,
+          project: projectName,
+          date: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        };
+      });
+    }
+
+    // Multiple projects: show latest version per project
+    return Array.from(byProject.entries()).map(([projectId, versions]) => {
+      const latest = versions[versions.length - 1];
+      const snapshot = Array.isArray(latest.controls_snapshot) ? latest.controls_snapshot as any[] : [];
+      const avgConf = snapshot.length > 0
+        ? Math.round(snapshot.reduce((s, c) => s + (Number(c.confidence_score || c.confidenceScore) || 0), 0) / snapshot.length * 100)
+        : 0;
+      const projectName = projects.find(p => p.id === projectId)?.name || 'Project';
+      return {
+        label: projectName.length > 18 ? projectName.slice(0, 18) + '…' : projectName,
+        confidence: avgConf,
+        controls: latest.control_count,
+        project: projectName,
+        date: new Date(latest.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      };
+    });
+  }, [baselineVersions, selectedProjectId, projects]);
 
   const kpis = [
     { label: t.dashboard.totalProjects, value: String(filteredProjects.length), icon: Layers, change: filteredProjects.length > 0 ? `+${filteredProjects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
@@ -696,6 +760,66 @@ const Dashboard: React.FC = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Confidence Evolution Across Baseline Versions */}
+      {!loading && confidenceEvolutionData.length > 0 && (
+        <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.45 }}>
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-display font-semibold text-foreground">Confidence Evolution Across Versions</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {selectedProjectId === 'all' ? 'Latest version per project' : 'Average confidence per baseline version'}
+                  {' · '}{confidenceEvolutionData.length} data points
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-6 items-center">
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={confidenceEvolutionData} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gradConfEvo" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
+                            <p className="font-semibold text-foreground">{d.project}</p>
+                            <p className="text-muted-foreground">{d.label} · {d.date}</p>
+                            <p className="text-primary font-semibold mt-1">{d.confidence}% confidence</p>
+                            <p className="text-muted-foreground">{d.controls} controls</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="confidence" fill="url(#gradConfEvo)" radius={[4, 4, 0, 0]} barSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-3">
+                {confidenceEvolutionData.map((d, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-primary font-semibold w-8">{d.label}</span>
+                    <div className="flex-1 h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${d.confidence}%` }} />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground tabular-nums w-10 text-right">{d.confidence}%</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
