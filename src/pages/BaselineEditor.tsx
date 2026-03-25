@@ -149,6 +149,37 @@ const BaselineEditor: React.FC = () => {
         </Button>
       </div>
 
+      {/* STRIDE filter breadcrumb from Dashboard */}
+      {strideFromUrl && strideFilter !== 'all' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-primary/20 bg-primary/5"
+        >
+          <ArrowLeft className="h-4 w-4 text-primary/60" />
+          <div className="flex items-center gap-2 flex-1">
+            <Target className="h-4 w-4 text-destructive" />
+            <span className="text-sm font-medium text-foreground">
+              {t.editor.strideFilterActive}:
+            </span>
+            <span className="text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+              {strideFilter.replace(/_/g, ' ')}
+            </span>
+            <span className="text-xs text-muted-foreground">({t.editor.fromDashboard})</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setStrideFilter('all')}
+          >
+            <X className="h-3.5 w-3.5 mr-1" />
+            {t.editor.clearFilter}
+          </Button>
+        </motion.div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={selectedProject} onValueChange={setSelectedProject}>
