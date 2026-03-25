@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { mockPipeline } from '@/data/mockData';
 import type { PipelineStep, PipelineStageStatus } from '@/types';
+import { PipelineStepSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, RotateCcw, CheckCircle2, Circle, Loader2, XCircle, Sparkles } from 'lucide-react';
 
@@ -15,12 +16,18 @@ const statusIcon: Record<PipelineStageStatus, React.ReactNode> = {
 
 const AIWorkspace: React.FC = () => {
   const { t } = useI18n();
+  const [loading, setLoading] = useState(true);
   const [pipeline, setPipeline] = useState<PipelineStep[]>(mockPipeline);
   const [isRunning, setIsRunning] = useState(true);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1100);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Simulate progress
   useEffect(() => {
-    if (!isRunning) return;
+    if (!isRunning || loading) return;
     const interval = setInterval(() => {
       setPipeline(prev => prev.map(step => {
         if (step.status === 'running' && step.progress < 100) {
@@ -34,7 +41,7 @@ const AIWorkspace: React.FC = () => {
       }));
     }, 800);
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, loading]);
 
   const completedCount = pipeline.filter(s => s.status === 'completed').length;
   const totalSteps = pipeline.length;
@@ -55,69 +62,88 @@ const AIWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Overall progress */}
-      <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Pipeline Progress</span>
-          </div>
-          <span className="text-xs text-muted-foreground tabular-nums">{completedCount} / {totalSteps}</span>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full gold-gradient rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${overallProgress}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-      </div>
-
-      {/* Pipeline stages */}
-      <div className="space-y-3">
-        {pipeline.map((step, i) => {
-          const stageLabel = (t.workspace.stages as Record<string, string>)[step.stage] || step.stage;
-          return (
-            <motion.div
-              key={step.stage}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className={`bg-card border rounded-lg p-4 shadow-premium transition-all ${
-                step.status === 'running' ? 'border-primary/30 ring-1 ring-primary/10' :
-                step.status === 'completed' ? 'border-success/20' :
-                step.status === 'failed' ? 'border-destructive/20' : 'border-border'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  {statusIcon[step.status]}
-                  <span className="text-sm font-medium text-foreground">{stageLabel}</span>
-                </div>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {step.status === 'running' && `${Math.round(step.progress)}%`}
-                  {step.status === 'completed' && '100%'}
-                </span>
+      {loading ? (
+        <div className="space-y-3">
+          {/* Overall progress skeleton */}
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 rounded bg-muted/60 animate-pulse" />
+                <div className="h-4 w-32 rounded bg-muted/60 animate-pulse" />
               </div>
-              {(step.status === 'running' || step.status === 'completed') && (
-                <div className="h-1 bg-muted rounded-full overflow-hidden mb-2">
-                  <motion.div
-                    className={`h-full rounded-full ${step.status === 'completed' ? 'bg-success' : 'gold-gradient'}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${step.progress}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">{step.message}</p>
-              {step.itemsProcessed !== undefined && step.itemsTotal !== undefined && (
-                <p className="text-[11px] text-muted-foreground/60 mt-1 tabular-nums">{step.itemsProcessed} / {step.itemsTotal} {t.common.items}</p>
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
+              <div className="h-3 w-10 rounded bg-muted/60 animate-pulse" />
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted/60 animate-pulse" />
+          </div>
+          {Array.from({ length: 9 }).map((_, i) => <PipelineStepSkeleton key={i} />)}
+        </div>
+      ) : (
+        <>
+          {/* Overall progress */}
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Pipeline Progress</span>
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">{completedCount} / {totalSteps}</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full gold-gradient rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${overallProgress}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+          </div>
+
+          {/* Pipeline stages */}
+          <div className="space-y-3">
+            {pipeline.map((step, i) => {
+              const stageLabel = (t.workspace.stages as Record<string, string>)[step.stage] || step.stage;
+              return (
+                <motion.div
+                  key={step.stage}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className={`bg-card border rounded-lg p-4 shadow-premium transition-all ${
+                    step.status === 'running' ? 'border-primary/30 ring-1 ring-primary/10' :
+                    step.status === 'completed' ? 'border-success/20' :
+                    step.status === 'failed' ? 'border-destructive/20' : 'border-border'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      {statusIcon[step.status]}
+                      <span className="text-sm font-medium text-foreground">{stageLabel}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {step.status === 'running' && `${Math.round(step.progress)}%`}
+                      {step.status === 'completed' && '100%'}
+                    </span>
+                  </div>
+                  {(step.status === 'running' || step.status === 'completed') && (
+                    <div className="h-1 bg-muted rounded-full overflow-hidden mb-2">
+                      <motion.div
+                        className={`h-full rounded-full ${step.status === 'completed' ? 'bg-success' : 'gold-gradient'}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${step.progress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">{step.message}</p>
+                  {step.itemsProcessed !== undefined && step.itemsTotal !== undefined && (
+                    <p className="text-[11px] text-muted-foreground/60 mt-1 tabular-nums">{step.itemsProcessed} / {step.itemsTotal} {t.common.items}</p>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 };

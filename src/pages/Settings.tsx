@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { SettingsSectionSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -11,6 +12,12 @@ import type { Locale, ThemeMode } from '@/types';
 const Settings: React.FC = () => {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 900);
+    return () => clearTimeout(timer);
+  }, []);
 
   const sections = [
     {
@@ -126,35 +133,41 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {sections.map((section, i) => (
-          <motion.div
-            key={section.title}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="bg-card border border-border rounded-lg p-5 shadow-premium"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <section.icon className="h-4 w-4 text-primary/70" />
-              <span className="text-sm font-semibold text-foreground">{section.title}</span>
-              {section.tooltip && <InfoTooltip content={section.tooltip} />}
-            </div>
-            {section.content}
-          </motion.div>
-        ))}
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => <SettingsSectionSkeleton key={i} />)
+        ) : (
+          sections.map((section, i) => (
+            <motion.div
+              key={section.title}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-card border border-border rounded-lg p-5 shadow-premium"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <section.icon className="h-4 w-4 text-primary/70" />
+                <span className="text-sm font-semibold text-foreground">{section.title}</span>
+                {section.tooltip && <InfoTooltip content={section.tooltip} />}
+              </div>
+              {section.content}
+            </motion.div>
+          ))
+        )}
       </div>
 
       {/* Backup */}
-      <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
-        <div className="flex items-center gap-2 mb-4">
-          <Archive className="h-4 w-4 text-primary/70" />
-          <span className="text-sm font-semibold text-foreground">{t.settings.backup}</span>
+      {!loading && (
+        <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="h-4 w-4 text-primary/70" />
+            <span className="text-sm font-semibold text-foreground">{t.settings.backup}</span>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" size="sm"><Archive className="h-4 w-4 mr-1.5" />{t.settings.createBackup}</Button>
+            <Button variant="outline" size="sm"><RotateCcw className="h-4 w-4 mr-1.5" />{t.settings.restoreBackup}</Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" size="sm"><Archive className="h-4 w-4 mr-1.5" />{t.settings.createBackup}</Button>
-          <Button variant="outline" size="sm"><RotateCcw className="h-4 w-4 mr-1.5" />{t.settings.restoreBackup}</Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

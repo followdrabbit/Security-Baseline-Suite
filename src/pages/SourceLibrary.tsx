@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { mockSources } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
+import { TableSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,11 +12,17 @@ import { Search, Upload, Link2, FileText, Globe, X, Sparkles } from 'lucide-reac
 
 const SourceLibrary: React.FC = () => {
   const { t } = useI18n();
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [previewId, setPreviewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filtered = mockSources.filter(s => {
     if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -78,53 +85,59 @@ const SourceLibrary: React.FC = () => {
 
       <div className="flex gap-6">
         {/* Table */}
-        <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden shadow-premium">
-          {filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">{t.sources.noSources}</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">{t.sources.noSourcesDesc}</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="w-10 py-3 px-3"><input type="checkbox" className="rounded border-border" /></th>
-                    <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.name}</th>
-                    <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.type}</th>
-                    <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.status}</th>
-                    <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.origin}</th>
-                    <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.confidence}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((source) => (
-                    <tr
-                      key={source.id}
-                      className={`border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer ${previewId === source.id ? 'bg-primary/5' : ''}`}
-                      onClick={() => setPreviewId(source.id)}
-                    >
-                      <td className="py-3 px-3" onClick={e => { e.stopPropagation(); toggleSelect(source.id); }}>
-                        <input type="checkbox" checked={selected.includes(source.id)} readOnly className="rounded border-border" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          {source.type === 'url' ? <Globe className="h-3.5 w-3.5 text-info shrink-0" /> : <FileText className="h-3.5 w-3.5 text-warning shrink-0" />}
-                          <span className="font-medium text-foreground truncate max-w-[250px]">{source.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-xs text-muted-foreground uppercase">{source.type}</td>
-                      <td className="py-3 px-3"><StatusBadge status={source.status} /></td>
-                      <td className="py-3 px-3 text-xs text-muted-foreground">{source.origin}</td>
-                      <td className="py-3 px-3">{source.confidence > 0 ? <ConfidenceScore score={source.confidence} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+        {loading ? (
+          <div className="flex-1">
+            <TableSkeleton rows={8} columns={6} />
+          </div>
+        ) : (
+          <div className="flex-1 bg-card border border-border rounded-lg overflow-hidden shadow-premium">
+            {filtered.length === 0 ? (
+              <div className="p-12 text-center">
+                <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">{t.sources.noSources}</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">{t.sources.noSourcesDesc}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="w-10 py-3 px-3"><input type="checkbox" className="rounded border-border" /></th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.name}</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.type}</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.status}</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.origin}</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.confidence}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {filtered.map((source) => (
+                      <tr
+                        key={source.id}
+                        className={`border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer ${previewId === source.id ? 'bg-primary/5' : ''}`}
+                        onClick={() => setPreviewId(source.id)}
+                      >
+                        <td className="py-3 px-3" onClick={e => { e.stopPropagation(); toggleSelect(source.id); }}>
+                          <input type="checkbox" checked={selected.includes(source.id)} readOnly className="rounded border-border" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            {source.type === 'url' ? <Globe className="h-3.5 w-3.5 text-info shrink-0" /> : <FileText className="h-3.5 w-3.5 text-warning shrink-0" />}
+                            <span className="font-medium text-foreground truncate max-w-[250px]">{source.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-xs text-muted-foreground uppercase">{source.type}</td>
+                        <td className="py-3 px-3"><StatusBadge status={source.status} /></td>
+                        <td className="py-3 px-3 text-xs text-muted-foreground">{source.origin}</td>
+                        <td className="py-3 px-3">{source.confidence > 0 ? <ConfidenceScore score={source.confidence} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Preview panel */}
         {previewSource && (
