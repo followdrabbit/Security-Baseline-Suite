@@ -28,8 +28,10 @@ const History: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
+  const [restoreModal, setRestoreModal] = useState<{ open: boolean; versionId?: string; version?: string }>({ open: false });
+  const [restoring, setRestoring] = useState(false);
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
     open: false, fromVersion: 0, toVersion: 0, entries: [],
   });
