@@ -29,6 +29,9 @@ const SourceLibrary: React.FC = () => {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [urlDialogOpen, setUrlDialogOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlLoading, setUrlLoading] = useState(false);
 
   // For now, use first project or allow "no project" scenario
   const { data: projects } = useQuery({
