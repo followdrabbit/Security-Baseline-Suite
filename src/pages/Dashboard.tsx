@@ -6,7 +6,7 @@ import { mockProjects, mockControls } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
-import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical } from 'lucide-react';
+import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +29,9 @@ const sparkControls = [
 ];
 const sparkConfidence = [
   { d: 'Mon', v: 84 }, { d: 'Tue', v: 85 }, { d: 'Wed', v: 87 }, { d: 'Thu', v: 88 }, { d: 'Fri', v: 89 }, { d: 'Sat', v: 90 }, { d: 'Sun', v: 91 },
+];
+const sparkThreats = [
+  { d: 'Mon', v: 15 }, { d: 'Tue', v: 17 }, { d: 'Wed', v: 19 }, { d: 'Thu', v: 21 }, { d: 'Fri', v: 22 }, { d: 'Sat', v: 24 }, { d: 'Sun', v: 25 },
 ];
 
 // --- Generate trend data for various periods ---
@@ -266,11 +269,14 @@ const Dashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const totalThreats = mockControls.reduce((sum, c) => sum + c.threatScenarios.length, 0);
+
   const kpis = [
     { label: t.dashboard.totalProjects, value: '5', icon: Layers, change: '+2', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: '3', icon: Shield, change: '+1', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
     { label: t.dashboard.controlsGenerated, value: '181', icon: BarChart3, change: '+47', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
     { label: t.dashboard.avgConfidence, value: '91%', icon: TrendingUp, change: '+3%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
+    { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: '+4', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
 
   return (
@@ -285,12 +291,12 @@ const Dashboard: React.FC = () => {
 
       {/* KPIs with sparklines */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <KPICardSkeleton key={i} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map(i => <KPICardSkeleton key={i} />)}
         </div>
       ) : (
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"
           initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         >
           {kpis.map((kpi) => (
