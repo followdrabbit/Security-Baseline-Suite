@@ -2,95 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
 
+    --background: 40 20% 97%;
+    --foreground: 220 25% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 220 25% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
+    --popover-foreground: 220 25% 12%;
+    --primary: 43 50% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 10% 93%;
+    --secondary-foreground: 220 20% 20%;
+    --muted: 40 10% 94%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 43 35% 90%;
+    --accent-foreground: 43 50% 35%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 12% 88%;
+    --input: 40 12% 88%;
+    --ring: 43 50% 45%;
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    --gold: 43 55% 50%;
+    --gold-muted: 43 25% 70%;
+    --gold-subtle: 43 20% 92%;
+    --surface-elevated: 0 0% 100%;
+    --surface-sunken: 40 15% 95%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 30%;
+    --sidebar-primary: 43 50% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 43 25% 93%;
+    --sidebar-accent-foreground: 220 20% 15%;
+    --sidebar-border: 40 12% 90%;
+    --sidebar-ring: 43 50% 45%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 152 55% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 90% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 70% 50%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 220 25% 6%;
+    --foreground: 40 12% 88%;
+    --card: 220 20% 9%;
+    --card-foreground: 40 12% 88%;
+    --popover: 220 22% 8%;
+    --popover-foreground: 40 12% 88%;
+    --primary: 43 55% 55%;
+    --primary-foreground: 220 25% 6%;
+    --secondary: 220 18% 13%;
+    --secondary-foreground: 40 12% 80%;
+    --muted: 220 15% 14%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 43 30% 15%;
+    --accent-foreground: 43 55% 65%;
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 15%;
+    --input: 220 15% 15%;
+    --ring: 43 55% 55%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --gold: 43 55% 55%;
+    --gold-muted: 43 30% 40%;
+    --gold-subtle: 43 20% 12%;
+    --surface-elevated: 220 18% 11%;
+    --surface-sunken: 220 22% 5%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --sidebar-background: 220 22% 7%;
+    --sidebar-foreground: 40 10% 70%;
+    --sidebar-primary: 43 55% 55%;
+    --sidebar-primary-foreground: 220 25% 6%;
+    --sidebar-accent: 220 18% 12%;
+    --sidebar-accent-foreground: 40 12% 85%;
+    --sidebar-border: 220 15% 12%;
+    --sidebar-ring: 43 55% 55%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 152 50% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 85% 55%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 65% 55%;
+    --info-foreground: 0 0% 100%;
   }
 }
 
@@ -98,8 +100,70 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .bg-gold-subtle {
+    background-color: hsl(var(--gold-subtle));
+  }
+  .border-gold-muted {
+    border-color: hsl(var(--gold-muted));
+  }
+  .bg-surface-elevated {
+    background-color: hsl(var(--surface-elevated));
+  }
+  .bg-surface-sunken {
+    background-color: hsl(var(--surface-sunken));
+  }
+  .shadow-premium {
+    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04), 0 4px 16px -2px hsl(var(--foreground) / 0.06);
+  }
+  .shadow-premium-lg {
+    box-shadow: 0 4px 12px 0 hsl(var(--foreground) / 0.05), 0 12px 40px -4px hsl(var(--foreground) / 0.08);
+  }
+  .gold-gradient {
+    background: linear-gradient(135deg, hsl(43 55% 50%), hsl(43 45% 60%));
+  }
+  .gold-gradient-text {
+    background: linear-gradient(135deg, hsl(43 55% 50%), hsl(43 45% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.35);
 }
