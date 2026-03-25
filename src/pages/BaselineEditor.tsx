@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import type { ControlItem } from '@/types';
 
 const BaselineEditor: React.FC = () => {
