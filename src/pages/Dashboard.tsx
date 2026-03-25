@@ -346,7 +346,7 @@ const Dashboard: React.FC = () => {
                 </button>
               ))}
             </div>
-            <div className="h-[200px]">
+            <div className="h-[200px]" ref={controlsChartRef}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendDataMap[controlsPeriod]} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
