@@ -229,11 +229,32 @@ const History: React.FC = () => {
         title={t.confirmModal.restoreTitle}
         description={t.confirmModal.restoreDesc}
         itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
-        confirmLabel={t.history.restore}
+        confirmLabel={restoring ? 'Restoring...' : t.history.restore}
         cancelLabel={t.common.cancel}
-        onConfirm={() => {
-          toast({ title: `🔄 ${t.toasts.restored}`, description: `${t.toasts.restoredDesc} ${restoreModal.version}.` });
-          setRestoreModal({ open: false });
+        onConfirm={async () => {
+          if (!restoreModal.versionId || !selectedProjectId || restoring) return;
+          setRestoring(true);
+          try {
+            const { data, error } = await supabase.functions.invoke('restore-baseline', {
+              body: { versionId: restoreModal.versionId, projectId: selectedProjectId },
+            });
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            queryClient.invalidateQueries({ queryKey: ['baseline-versions'] });
+            queryClient.invalidateQueries({ queryKey: ['export-projects'] });
+            queryClient.invalidateQueries({ queryKey: ['history-projects'] });
+            toast({
+              title: `🔄 ${t.toasts.restored}`,
+              description: `Baseline restored to Version ${restoreModal.version} (${data.controlCount} controls). New Version ${data.newVersion} created.`,
+            });
+          } catch (err) {
+            console.error('Restore error:', err);
+            toast({ title: '❌ Restore failed', description: 'Could not restore the baseline. Please try again.', variant: 'destructive' });
+          } finally {
+            setRestoring(false);
+            setRestoreModal({ open: false });
+          }
         }}
       />
 
