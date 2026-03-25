@@ -708,6 +708,8 @@ const translations = {
         showApproved: 'Aprobados',
         showPending: 'Pendientes',
         showRejected: 'Rechazados',
+        exportPng: 'Exportar como PNG',
+        exportCsv: 'Exportar como CSV',
       },
     },
     project: {
