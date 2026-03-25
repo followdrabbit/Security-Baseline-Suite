@@ -35,7 +35,10 @@ const BaselineEditor: React.FC = () => {
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [strideFilter, setStrideFilter] = useState('all');
+  const [strideFilter, setStrideFilter] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('stride') || 'all';
+  });
   const [likelihoodFilter, setLikelihoodFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'mindmap'>('list');
