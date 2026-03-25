@@ -234,6 +234,18 @@ const BaselineEditor: React.FC = () => {
           })
         )}
       </div>
+
+      <ConfirmationModal
+        open={confirmModal.open}
+        onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))}
+        variant={confirmModal.variant}
+        title={t.confirmModal[`${confirmModal.variant}Title`]}
+        description={t.confirmModal[`${confirmModal.variant}Desc`]}
+        itemLabel={confirmModal.controlLabel}
+        confirmLabel={t.common.confirm}
+        cancelLabel={t.common.cancel}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 };
