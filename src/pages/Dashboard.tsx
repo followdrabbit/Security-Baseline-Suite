@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { mockProjects, mockControls } from '@/data/mockData';
@@ -200,12 +200,17 @@ function computeStrideData(t: any) {
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
+
+  const handleStrideClick = useCallback((category: string) => {
+    navigate(`/editor?stride=${category}`);
+  }, [navigate]);
 
   const toggleSeries = (key: 'approved' | 'pending' | 'rejected') => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
@@ -465,10 +470,11 @@ const Dashboard: React.FC = () => {
                   {t.dashboard.stride.totalThreats}: {computeStrideData(t).reduce((sum, d) => sum + d.count, 0)}
                 </p>
               </div>
+              <p className="text-[10px] text-muted-foreground/60 italic">Click a category to filter in Baseline Editor</p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Bar Chart */}
-              <div className="h-[220px]">
+              <div className="h-[220px] cursor-pointer">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={computeStrideData(t)} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
@@ -486,9 +492,9 @@ const Dashboard: React.FC = () => {
                         );
                       }}
                     />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18} className="cursor-pointer" onClick={(data: any) => { if (data?.category) handleStrideClick(data.category); }}>
                       {computeStrideData(t).map((entry) => (
-                        <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} />
+                        <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} className="cursor-pointer hover:opacity-80 transition-opacity" />
                       ))}
                     </Bar>
                   </BarChart>
@@ -499,9 +505,9 @@ const Dashboard: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={computeStrideData(t)} cx="50%" cy="50%" outerRadius="70%">
                     <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
-                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', cursor: 'pointer' }} onClick={(e: any) => { const strideData = computeStrideData(t); const match = strideData.find(d => d.label === e?.value); if (match) handleStrideClick(match.category); }} />
                     <PolarRadiusAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} />
-                    <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+                    <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))', cursor: 'pointer' }} activeDot={{ r: 6, fill: 'hsl(var(--primary))', cursor: 'pointer', onClick: (e: any, payload: any) => { if (payload?.payload?.category) handleStrideClick(payload.payload.category); } }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
