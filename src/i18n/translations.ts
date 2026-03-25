@@ -194,6 +194,10 @@ const translations = {
       mitigations: 'Mitigations',
       residualRisk: 'Residual Risk',
       noThreats: 'No threat scenarios identified',
+      filterStride: 'STRIDE Category',
+      filterLikelihood: 'Likelihood',
+      veryHigh: 'Very High',
+      veryLow: 'Very Low',
     },
     history: {
       title: 'Version History',
@@ -538,6 +542,10 @@ const translations = {
       mitigations: 'Mitigações',
       residualRisk: 'Risco Residual',
       noThreats: 'Nenhum cenário de ameaça identificado',
+      filterStride: 'Categoria STRIDE',
+      filterLikelihood: 'Probabilidade',
+      veryHigh: 'Muito Alta',
+      veryLow: 'Muito Baixa',
     },
     history: {
       title: 'Histórico de Versões',
@@ -882,6 +890,10 @@ const translations = {
       mitigations: 'Mitigaciones',
       residualRisk: 'Riesgo Residual',
       noThreats: 'Sin escenarios de amenaza identificados',
+      filterStride: 'Categoría STRIDE',
+      filterLikelihood: 'Probabilidad',
+      veryHigh: 'Muy Alta',
+      veryLow: 'Muy Baja',
     },
     history: {
       title: 'Historial de Versiones',
