@@ -7,18 +7,83 @@ const corsHeaders = {
 };
 
 /**
- * Use Lovable AI (Gemini) to extract structured text from a binary document.
- * Sends the file as a base64-encoded inline_data part.
+ * Extract raw text from DOCX/PPTX XML files (they are ZIP archives with XML inside).
  */
-async function extractTextWithAI(
+async function extractTextFromOfficeXml(fileBytes: ArrayBuffer, fileType: string): Promise<string> {
+  // @ts-ignore: Deno supports fflate via esm.sh
+  const { unzipSync } = await import("https://esm.sh/fflate@0.8.2");
+
+  const uint8 = new Uint8Array(fileBytes);
+  let files: Record<string, Uint8Array>;
+  try {
+    files = unzipSync(uint8);
+  } catch {
+    return "";
+  }
+
+  const decoder = new TextDecoder();
+  let rawText = "";
+
+  if (fileType === "docx" || fileType === "doc") {
+    // Extract text from word/document.xml
+    for (const [path, data] of Object.entries(files)) {
+      if (path.startsWith("word/") && path.endsWith(".xml")) {
+        const xml = decoder.decode(data);
+        // Extract text between <w:t> tags
+        const matches = xml.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+        const parts: string[] = [];
+        for (const m of matches) {
+          parts.push(m[1]);
+        }
+        if (parts.length > 0) {
+          rawText += parts.join(" ") + "\n";
+        }
+      }
+    }
+  } else if (fileType === "pptx" || fileType === "ppt") {
+    // Extract text from ppt/slides/slideN.xml
+    const slideEntries = Object.entries(files)
+      .filter(([path]) => path.startsWith("ppt/slides/slide") && path.endsWith(".xml"))
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+
+    for (const [path, data] of slideEntries) {
+      const xml = decoder.decode(data);
+      const matches = xml.matchAll(/<a:t>([^<]*)<\/a:t>/g);
+      const parts: string[] = [];
+      for (const m of matches) {
+        parts.push(m[1]);
+      }
+      if (parts.length > 0) {
+        rawText += `--- Slide ---\n${parts.join(" ")}\n\n`;
+      }
+    }
+  } else if (fileType === "xlsx" || fileType === "xls") {
+    // Extract shared strings from xl/sharedStrings.xml
+    for (const [path, data] of Object.entries(files)) {
+      if (path === "xl/sharedStrings.xml") {
+        const xml = decoder.decode(data);
+        const matches = xml.matchAll(/<t[^>]*>([^<]*)<\/t>/g);
+        const parts: string[] = [];
+        for (const m of matches) {
+          parts.push(m[1]);
+        }
+        rawText += parts.join(", ");
+      }
+    }
+  }
+
+  return rawText.trim();
+}
+
+/**
+ * Use Lovable AI to extract structured text from a PDF (native Gemini support)
+ */
+async function extractTextFromPdfWithAI(
   fileBytes: ArrayBuffer,
   fileName: string,
-  mimeType: string,
 ): Promise<{ text: string; preview: string; confidence: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    throw new Error("LOVABLE_API_KEY not configured");
-  }
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
   const base64 = btoa(
     new Uint8Array(fileBytes).reduce((data, byte) => data + String.fromCharCode(byte), ""),
@@ -40,16 +105,8 @@ async function extractTextWithAI(
         {
           role: "user",
           content: [
-            {
-              type: "text",
-              text: `Extract all text content from this document: "${fileName}"`,
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64}`,
-              },
-            },
+            { type: "text", text: `Extract all text content from this PDF document: "${fileName}"` },
+            { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
           ],
         },
       ],
@@ -60,8 +117,8 @@ async function extractTextWithAI(
 
   if (!response.ok) {
     const errBody = await response.text();
-    console.error("AI extraction failed:", response.status, errBody);
-    throw new Error(`AI extraction failed: ${response.status}`);
+    console.error("AI PDF extraction failed:", response.status, errBody);
+    throw new Error(`AI PDF extraction failed: ${response.status}`);
   }
 
   const result = await response.json();
@@ -71,6 +128,59 @@ async function extractTextWithAI(
     text: extractedText,
     preview: extractedText.substring(0, 500),
     confidence: extractedText.length > 100 ? 0.85 : extractedText.length > 20 ? 0.6 : 0.3,
+  };
+}
+
+/**
+ * Use Lovable AI to structure raw extracted text from Office documents
+ */
+async function structureTextWithAI(
+  rawText: string,
+  fileName: string,
+): Promise<{ text: string; preview: string; confidence: number }> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "system",
+          content: `You are a document text structuring specialist. Given raw extracted text from a document, clean it up and organize it with proper markdown formatting (headings, lists, tables, paragraphs). Output ONLY the structured text, no commentary.`,
+        },
+        {
+          role: "user",
+          content: `Structure and clean the following raw text extracted from "${fileName}":\n\n${rawText}`,
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 16000,
+    }),
+  });
+
+  if (!response.ok) {
+    // If AI structuring fails, just use raw text
+    console.error("AI structuring failed, using raw text");
+    return {
+      text: rawText,
+      preview: rawText.substring(0, 500),
+      confidence: 0.6,
+    };
+  }
+
+  const result = await response.json();
+  const structuredText = result.choices?.[0]?.message?.content || rawText;
+
+  return {
+    text: structuredText,
+    preview: structuredText.substring(0, 500),
+    confidence: structuredText.length > 100 ? 0.8 : 0.5,
   };
 }
 
@@ -117,7 +227,6 @@ Deno.serve(async (req) => {
     const fileType = fileName.split(".").pop()?.toLowerCase() || "";
     const storagePath = `${user.id}/${projectId}/${Date.now()}-${fileName}`;
 
-    // Read file bytes
     const arrayBuffer = await file.arrayBuffer();
 
     // Upload to storage
@@ -135,135 +244,136 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extract text content based on file type
+    const textFormats = ["txt", "md", "csv", "json", "html"];
+    const officeFormats = ["docx", "doc", "pptx", "ppt", "xlsx", "xls"];
+
     let extractedText = "";
     let preview = "";
     let confidence = 0;
     let status = "pending";
 
-    const textFormats = ["txt", "md", "csv", "json", "html"];
-    const aiFormats = ["pdf", "docx", "pptx", "xlsx", "doc", "ppt", "xls"];
-
-    // Mime type mapping for AI extraction
-    const mimeMap: Record<string, string> = {
-      pdf: "application/pdf",
-      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      doc: "application/msword",
-      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      ppt: "application/vnd.ms-powerpoint",
-      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      xls: "application/vnd.ms-excel",
-    };
-
+    // --- Plain text formats ---
     if (textFormats.includes(fileType)) {
       extractedText = new TextDecoder().decode(arrayBuffer);
       preview = extractedText.substring(0, 500);
       confidence = 0.95;
       status = "processed";
-    } else if (aiFormats.includes(fileType)) {
+    }
+    // --- PDF: use Gemini native PDF support ---
+    else if (fileType === "pdf") {
+      // Insert as extracting first
+      const { data: source, error: insertError } = await supabase
+        .from("sources")
+        .insert({
+          project_id: projectId, user_id: user.id, type: "document",
+          name: fileName, file_name: fileName, file_type: fileType,
+          status: "extracting", origin: "Upload",
+          preview: `Extracting text from ${fileName}...`,
+          extracted_content: null, confidence: 0, tags: [fileType], url: storagePath,
+        })
+        .select().single();
+
+      if (insertError) {
+        return new Response(JSON.stringify({ error: `DB insert failed: ${insertError.message}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       try {
-        status = "extracting";
-        // Insert initial record as "extracting"
-        const { data: source, error: insertError } = await supabase
+        const aiResult = await extractTextFromPdfWithAI(arrayBuffer, fileName);
+        const { data: updated } = await supabase
           .from("sources")
-          .insert({
-            project_id: projectId,
-            user_id: user.id,
-            type: "document",
-            name: fileName,
-            file_name: fileName,
-            file_type: fileType,
-            status: "extracting",
-            origin: "Upload",
-            preview: `Extracting text from ${fileName}...`,
-            extracted_content: null,
-            confidence: 0,
-            tags: [fileType],
-            url: storagePath,
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          return new Response(JSON.stringify({ error: `DB insert failed: ${insertError.message}` }), {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Run AI extraction
-        const mimeType = mimeMap[fileType] || file.type || "application/octet-stream";
-        const aiResult = await extractTextWithAI(arrayBuffer, fileName, mimeType);
-
-        // Update the record with extracted content
-        const { data: updated, error: updateError } = await supabase
-          .from("sources")
-          .update({
-            status: "processed",
-            extracted_content: aiResult.text,
-            preview: aiResult.preview,
-            confidence: aiResult.confidence,
-          })
-          .eq("id", source.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error("Failed to update source after extraction:", updateError);
-        }
+          .update({ status: "processed", extracted_content: aiResult.text, preview: aiResult.preview, confidence: aiResult.confidence })
+          .eq("id", source.id).select().single();
 
         return new Response(JSON.stringify({ source: updated || source }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-      } catch (aiError) {
-        console.error("AI extraction error:", aiError);
-        // If AI fails, still keep the record as pending
-        const { data: source } = await supabase
-          .from("sources")
-          .update({
-            status: "pending",
-            preview: `Document uploaded: ${fileName} (${fileType.toUpperCase()}, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB) — AI extraction failed, retry later`,
-          })
-          .eq("project_id", projectId)
-          .eq("file_name", fileName)
-          .eq("user_id", user.id)
-          .select()
-          .single();
+      } catch (err) {
+        console.error("PDF AI extraction error:", err);
+        await supabase.from("sources").update({
+          status: "pending",
+          preview: `Document uploaded: ${fileName} (PDF, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB) — extraction failed`,
+        }).eq("id", source.id);
 
-        return new Response(JSON.stringify({ source, warning: "AI extraction failed, document saved as pending" }), {
+        return new Response(JSON.stringify({ source, warning: "PDF AI extraction failed" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    } else {
+    }
+    // --- Office formats: extract XML text then structure with AI ---
+    else if (officeFormats.includes(fileType)) {
+      const { data: source, error: insertError } = await supabase
+        .from("sources")
+        .insert({
+          project_id: projectId, user_id: user.id, type: "document",
+          name: fileName, file_name: fileName, file_type: fileType,
+          status: "extracting", origin: "Upload",
+          preview: `Extracting text from ${fileName}...`,
+          extracted_content: null, confidence: 0, tags: [fileType], url: storagePath,
+        })
+        .select().single();
+
+      if (insertError) {
+        return new Response(JSON.stringify({ error: `DB insert failed: ${insertError.message}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      try {
+        const rawText = await extractTextFromOfficeXml(arrayBuffer, fileType);
+        if (!rawText) {
+          await supabase.from("sources").update({
+            status: "pending",
+            preview: `Document uploaded: ${fileName} (${fileType.toUpperCase()}, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB) — no text extracted`,
+          }).eq("id", source.id);
+
+          return new Response(JSON.stringify({ source, warning: "No text could be extracted from Office document" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Structure with AI
+        const structured = await structureTextWithAI(rawText, fileName);
+        const { data: updated } = await supabase
+          .from("sources")
+          .update({ status: "processed", extracted_content: structured.text, preview: structured.preview, confidence: structured.confidence })
+          .eq("id", source.id).select().single();
+
+        return new Response(JSON.stringify({ source: updated || source }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        console.error("Office extraction error:", err);
+        await supabase.from("sources").update({
+          status: "pending",
+          preview: `Document uploaded: ${fileName} — extraction failed`,
+        }).eq("id", source.id);
+
+        return new Response(JSON.stringify({ source, warning: "Office extraction failed" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // --- Unknown formats ---
+    else {
       preview = `Document uploaded: ${fileName} (${fileType.toUpperCase()}, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB)`;
-      status = "pending";
     }
 
-    // Insert source record (for text formats and unknown formats)
+    // Insert for text formats and unknown formats
     const { data: source, error: insertError } = await supabase
       .from("sources")
       .insert({
-        project_id: projectId,
-        user_id: user.id,
-        type: "document",
-        name: fileName,
-        file_name: fileName,
-        file_type: fileType,
-        status,
-        origin: "Upload",
-        preview,
-        extracted_content: extractedText || null,
-        confidence,
-        tags: [fileType],
-        url: storagePath,
+        project_id: projectId, user_id: user.id, type: "document",
+        name: fileName, file_name: fileName, file_type: fileType,
+        status, origin: "Upload", preview,
+        extracted_content: extractedText || null, confidence, tags: [fileType], url: storagePath,
       })
-      .select()
-      .single();
+      .select().single();
 
     if (insertError) {
       return new Response(JSON.stringify({ error: `DB insert failed: ${insertError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -273,8 +383,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("parse-document error:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
