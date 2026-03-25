@@ -258,6 +258,16 @@ const translations = {
       approveAllTitle: 'Approve All Reviewed',
       approveAllDesc: 'This will approve all controls currently marked as reviewed. This action cannot be easily undone.',
     },
+    toasts: {
+      approved: 'Control Approved',
+      approvedDesc: 'has been successfully approved.',
+      rejected: 'Control Rejected',
+      rejectedDesc: 'has been rejected.',
+      approvedAll: 'All Controls Approved',
+      approvedAllDesc: 'All reviewed controls have been approved successfully.',
+      restored: 'Version Restored',
+      restoredDesc: 'Baseline has been restored to version',
+    },
     common: {
       save: 'Save',
       cancel: 'Cancel',
