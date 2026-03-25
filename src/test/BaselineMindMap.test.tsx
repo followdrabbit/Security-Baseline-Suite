@@ -68,10 +68,12 @@ describe('BaselineMindMap integration', () => {
 
   it('renders the SVG with correct aria-label', () => {
     renderMindMap();
-    const svg = screen.getByRole('img');
-    expect(svg).toHaveAttribute('aria-label', expect.stringContaining('AWS S3'));
-    expect(svg).toHaveAttribute('aria-label', expect.stringContaining('3 security controls'));
-    expect(svg).toHaveAttribute('aria-label', expect.stringContaining('2 categories'));
+    const svgs = screen.getAllByRole('img');
+    const mainSvg = svgs.find(el => el.tagName.toLowerCase() === 'svg');
+    expect(mainSvg).toBeDefined();
+    expect(mainSvg).toHaveAttribute('aria-label', expect.stringContaining('AWS S3'));
+    expect(mainSvg).toHaveAttribute('aria-label', expect.stringContaining('3 security controls'));
+    expect(mainSvg).toHaveAttribute('aria-label', expect.stringContaining('2 categories'));
   });
 
   it('renders all control nodes with accessible labels', () => {
