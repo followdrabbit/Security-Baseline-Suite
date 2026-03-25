@@ -212,10 +212,10 @@ const BaselineEditor: React.FC = () => {
 
                         {/* Actions */}
                         <div className="flex gap-2 pt-2 border-t border-border/50">
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'approved')} className="text-success border-success/30 hover:bg-success/10">
+                          <Button size="sm" variant="outline" onClick={() => requestConfirm('approve', control.id)} className="text-success border-success/30 hover:bg-success/10">
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{t.editor.approve}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'rejected')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                          <Button size="sm" variant="outline" onClick={() => requestConfirm('reject', control.id)} className="text-destructive border-destructive/30 hover:bg-destructive/10">
                             <XCircle className="h-3.5 w-3.5 mr-1" />{t.editor.reject}
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'adjusted')}>
