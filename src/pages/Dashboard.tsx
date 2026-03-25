@@ -28,8 +28,26 @@ const sparkConfidence = [
   { d: 'Mon', v: 84 }, { d: 'Tue', v: 85 }, { d: 'Wed', v: 87 }, { d: 'Thu', v: 88 }, { d: 'Fri', v: 89 }, { d: 'Sat', v: 90 }, { d: 'Sun', v: 91 },
 ];
 
-// --- Large trend chart data ---
-const trendData = [
+// --- Generate trend data for various periods ---
+function generateTrendData(days: number): typeof trendData7d {
+  const result = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const progress = (days - i) / days;
+    const base = 80 + Math.floor(progress * 100);
+    const approved = Math.floor(30 + progress * 80 + Math.sin(i * 0.5) * 8);
+    const pending = Math.floor(55 - progress * 18 + Math.cos(i * 0.7) * 5);
+    const rejected = Math.floor(20 + progress * 14 + Math.sin(i * 0.3) * 4);
+    const confidence = Math.min(95, Math.floor(83 + progress * 10 + Math.sin(i * 0.4) * 2));
+    result.push({ day: label, controls: approved + pending + rejected, confidence, approved, pending, rejected });
+  }
+  return result;
+}
+
+const trendData7d = [
   { day: 'Mar 19', controls: 112, confidence: 84, approved: 38, pending: 52, rejected: 22 },
   { day: 'Mar 20', controls: 124, confidence: 85, approved: 45, pending: 54, rejected: 25 },
   { day: 'Mar 21', controls: 138, confidence: 87, approved: 56, pending: 55, rejected: 27 },
@@ -38,6 +56,11 @@ const trendData = [
   { day: 'Mar 24', controls: 172, confidence: 90, approved: 96, pending: 43, rejected: 33 },
   { day: 'Mar 25', controls: 181, confidence: 91, approved: 108, pending: 40, rejected: 33 },
 ];
+const trendData30d = generateTrendData(30);
+const trendData90d = generateTrendData(90);
+
+type TrendPeriod = '7d' | '30d' | '90d';
+const trendDataMap: Record<TrendPeriod, typeof trendData7d> = { '7d': trendData7d, '30d': trendData30d, '90d': trendData90d };
 
 // --- Activity types ---
 type ActivityAction = 'approved' | 'rejected' | 'reviewed' | 'adjusted' | 'created' | 'restored' | 'exported' | 'commented';
