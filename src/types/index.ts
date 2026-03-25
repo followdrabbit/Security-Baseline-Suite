@@ -6,6 +6,21 @@ export type SourceStatus = 'pending' | 'validated' | 'extracting' | 'normalized'
 export type SourceType = 'url' | 'document';
 export type ReviewStatus = 'pending' | 'reviewed' | 'approved' | 'rejected' | 'adjusted';
 export type Criticality = 'critical' | 'high' | 'medium' | 'low' | 'informational';
+export type StrideCategory = 'spoofing' | 'tampering' | 'repudiation' | 'information_disclosure' | 'denial_of_service' | 'elevation_of_privilege';
+export type ThreatLikelihood = 'very_high' | 'high' | 'medium' | 'low' | 'very_low';
+
+export interface ThreatScenario {
+  id: string;
+  threatName: string;
+  strideCategory: StrideCategory;
+  attackVector: string;
+  threatAgent: string;
+  preconditions: string;
+  impact: string;
+  likelihood: ThreatLikelihood;
+  mitigations: string[];
+  residualRisk: string;
+}
 export type PipelineStage = 'source_ingestion' | 'content_extraction' | 'normalization' | 'evidence_grouping' | 'control_extraction' | 'deduplication' | 'baseline_composition' | 'technical_review' | 'final_proposal';
 export type PipelineStageStatus = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -56,6 +71,7 @@ export interface ControlItem {
   automation: string;
   references: string[];
   frameworkMappings: string[];
+  threatScenarios: ThreatScenario[];
   sourceTraceability: SourceTraceability[];
   confidenceScore: number;
   reviewStatus: ReviewStatus;
@@ -83,6 +99,7 @@ export interface TemplateRule {
   criticalityRules: string;
   dedupRules: string;
   mappingRules: string;
+  threatModelingRules: string;
   isDefault: boolean;
 }
 

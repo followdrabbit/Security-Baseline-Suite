@@ -13,6 +13,7 @@ const makeControl = (overrides: Partial<ControlItem> & { id: string; controlId: 
   automation: '',
   references: [],
   frameworkMappings: [],
+  threatScenarios: [],
   sourceTraceability: [],
   confidenceScore: 0.9,
   reviewStatus: 'pending',

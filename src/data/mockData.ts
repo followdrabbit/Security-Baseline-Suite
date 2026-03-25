@@ -1,4 +1,4 @@
-import type { Project, SourceItem, ControlItem, BaselineVersion, PipelineStep, TemplateRule } from '@/types';
+import type { Project, SourceItem, ControlItem, BaselineVersion, PipelineStep, TemplateRule, ThreatScenario } from '@/types';
 
 export const mockProjects: Project[] = [
   {
@@ -49,6 +49,81 @@ export const mockSources: SourceItem[] = [
   { id: 'src-008', projectId: 'proj-001', type: 'document', name: 'Compliance Requirements Matrix.xlsx', fileName: 'compliance-matrix.xlsx', fileType: 'xlsx', status: 'pending', addedAt: '2026-03-22T07:00:00Z', tags: ['compliance', 'matrix'], preview: 'Comprehensive compliance requirements matrix mapping regulatory requirements to technical controls.', confidence: 0, origin: 'Compliance Team' },
 ];
 
+// Helper to create threat scenarios
+const threats = {
+  s3PublicAccess: [
+    { id: 'thr-001', threatName: 'Unauthorized Data Exposure via Public Bucket', strideCategory: 'information_disclosure' as const, attackVector: 'Attacker scans for publicly accessible S3 buckets using automated tools (e.g., S3Scanner, BucketFinder)', threatAgent: 'External attacker, automated scanner', preconditions: 'S3 bucket has public access enabled or misconfigured bucket policy', impact: 'Mass data breach, regulatory fines (GDPR, HIPAA), reputational damage', likelihood: 'high' as const, mitigations: ['Enable S3 Block Public Access at account level', 'Use AWS Config rule to detect public buckets', 'Implement SCPs to prevent public bucket creation'], residualRisk: 'Low — with account-level block, individual bucket misconfiguration is prevented' },
+    { id: 'thr-002', threatName: 'Data Exfiltration via Policy Misconfiguration', strideCategory: 'tampering' as const, attackVector: 'Insider or compromised IAM role modifies bucket policy to allow cross-account or public access', threatAgent: 'Malicious insider, compromised credentials', preconditions: 'IAM user/role with s3:PutBucketPolicy permission', impact: 'Targeted data exfiltration, compliance violation', likelihood: 'medium' as const, mitigations: ['Monitor CloudTrail for bucket policy changes', 'Use S3 Block Public Access as guardrail', 'Implement least privilege IAM policies'], residualRisk: 'Medium — requires continuous monitoring of policy changes' },
+  ],
+  s3Encryption: [
+    { id: 'thr-003', threatName: 'Data-at-Rest Exposure via Missing Encryption', strideCategory: 'information_disclosure' as const, attackVector: 'Physical access to storage media or exploitation of AWS infrastructure vulnerability', threatAgent: 'Advanced persistent threat, nation-state actor', preconditions: 'Objects stored without server-side encryption', impact: 'Exposure of sensitive data, regulatory non-compliance', likelihood: 'low' as const, mitigations: ['Enable SSE-KMS as default encryption', 'Use KMS key policies to restrict decryption', 'Implement S3 bucket policies requiring encryption'], residualRisk: 'Very Low — SSE-KMS with CMK provides strong encryption with audit trail' },
+  ],
+  s3Logging: [
+    { id: 'thr-004', threatName: 'Undetected Unauthorized Access', strideCategory: 'repudiation' as const, attackVector: 'Attacker accesses S3 objects without leaving audit trail due to disabled logging', threatAgent: 'External attacker, malicious insider', preconditions: 'Server access logging is disabled', impact: 'Inability to detect breach, failed forensic investigation, compliance violation', likelihood: 'high' as const, mitigations: ['Enable server access logging for all buckets', 'Ship logs to centralized SIEM', 'Set up alerts for anomalous access patterns'], residualRisk: 'Low — with comprehensive logging and alerting' },
+  ],
+  s3Tls: [
+    { id: 'thr-005', threatName: 'Man-in-the-Middle Interception', strideCategory: 'tampering' as const, attackVector: 'Attacker intercepts unencrypted or weakly encrypted S3 API requests on the network path', threatAgent: 'Network-level attacker, compromised proxy', preconditions: 'TLS version < 1.2 permitted, or HTTP allowed', impact: 'Credential theft, data interception, session hijacking', likelihood: 'medium' as const, mitigations: ['Enforce TLS 1.2+ via bucket policy conditions', 'Deny HTTP requests with aws:SecureTransport', 'Monitor for non-TLS API calls via CloudTrail'], residualRisk: 'Very Low — TLS 1.2+ enforcement eliminates downgrade attacks' },
+  ],
+  s3Versioning: [
+    { id: 'thr-006', threatName: 'Ransomware / Destructive Deletion', strideCategory: 'denial_of_service' as const, attackVector: 'Attacker with write/delete permissions encrypts or deletes all objects in the bucket', threatAgent: 'Ransomware operator, disgruntled employee', preconditions: 'Versioning disabled, no MFA delete, overly permissive permissions', impact: 'Permanent data loss, business disruption, ransom payment', likelihood: 'medium' as const, mitigations: ['Enable versioning on all critical buckets', 'Enable MFA Delete for version deletion', 'Use Object Lock for compliance retention'], residualRisk: 'Low — versioning allows recovery; Object Lock prevents deletion' },
+  ],
+  s3Iam: [
+    { id: 'thr-007', threatName: 'Privilege Escalation via Overly Permissive Policies', strideCategory: 'elevation_of_privilege' as const, attackVector: 'Attacker leverages s3:* or overly broad IAM policies to escalate access to sensitive buckets', threatAgent: 'Compromised application, malicious insider', preconditions: 'IAM policies with wildcard actions or resource permissions', impact: 'Cross-bucket data access, unauthorized data modification', likelihood: 'high' as const, mitigations: ['Implement least privilege IAM policies', 'Use IAM Access Analyzer', 'Scope policies to specific buckets and actions'], residualRisk: 'Medium — requires ongoing IAM hygiene and periodic reviews' },
+    { id: 'thr-008', threatName: 'Cross-Account Unauthorized Access', strideCategory: 'spoofing' as const, attackVector: 'Misconfigured bucket policy or IAM role trust allows unauthorized cross-account access', threatAgent: 'External AWS account, supply chain partner', preconditions: 'Bucket policy with Principal: * or overly broad account trust', impact: 'Data breach via trusted account compromise', likelihood: 'medium' as const, mitigations: ['Restrict cross-account access to specific IAM roles', 'Use VPC endpoints with endpoint policies', 'Audit bucket policies regularly'], residualRisk: 'Low — with proper principal scoping and VPC restrictions' },
+  ],
+  azureHttps: [
+    { id: 'thr-009', threatName: 'Data Interception via HTTP', strideCategory: 'information_disclosure' as const, attackVector: 'Eavesdropping on unencrypted HTTP traffic to Azure Storage endpoints', threatAgent: 'Network sniffer, MITM proxy', preconditions: 'Storage account allows HTTP access', impact: 'Credential and data exposure', likelihood: 'medium' as const, mitigations: ['Enforce HTTPS-only on all storage accounts', 'Use Azure Policy for compliance'], residualRisk: 'Very Low — HTTPS-only eliminates cleartext transmission' },
+  ],
+  azureSoftDelete: [
+    { id: 'thr-010', threatName: 'Accidental or Malicious Data Destruction', strideCategory: 'denial_of_service' as const, attackVector: 'Authorized user or compromised account deletes critical blobs', threatAgent: 'Insider, compromised service principal', preconditions: 'Soft delete not enabled', impact: 'Permanent data loss, business continuity disruption', likelihood: 'medium' as const, mitigations: ['Enable soft delete with 14+ day retention', 'Enable container soft delete', 'Implement RBAC for delete operations'], residualRisk: 'Low — soft delete provides recovery window' },
+  ],
+  azureFirewall: [
+    { id: 'thr-011', threatName: 'Brute-Force Access from Internet', strideCategory: 'spoofing' as const, attackVector: 'Attacker attempts authentication against public storage endpoints', threatAgent: 'External attacker, botnet', preconditions: 'Storage account accessible from all networks', impact: 'Account compromise, data theft', likelihood: 'high' as const, mitigations: ['Restrict to VNet and trusted IPs', 'Use private endpoints', 'Enable Azure Defender for Storage'], residualRisk: 'Low — network restrictions significantly reduce attack surface' },
+  ],
+  azureLogging: [
+    { id: 'thr-012', threatName: 'Unaudited Administrative Actions', strideCategory: 'repudiation' as const, attackVector: 'Admin modifies storage configuration without audit trail', threatAgent: 'Malicious admin, compromised management account', preconditions: 'Diagnostic logging not enabled', impact: 'Undetectable configuration tampering, compliance failure', likelihood: 'medium' as const, mitigations: ['Enable Storage Analytics logging', 'Stream diagnostics to Log Analytics workspace', 'Set up alerts for configuration changes'], residualRisk: 'Low — comprehensive logging enables detection' },
+  ],
+  k8sRbac: [
+    { id: 'thr-013', threatName: 'Cluster Takeover via Missing RBAC', strideCategory: 'elevation_of_privilege' as const, attackVector: 'Any authenticated user performs privileged operations (create pods, access secrets) without authorization checks', threatAgent: 'Compromised service account, rogue developer', preconditions: 'RBAC disabled or default permissive roles', impact: 'Full cluster compromise, lateral movement, data exfiltration', likelihood: 'high' as const, mitigations: ['Enable and enforce RBAC', 'Remove default cluster-admin bindings', 'Implement namespace-scoped roles'], residualRisk: 'Low — properly configured RBAC prevents unauthorized actions' },
+  ],
+  k8sPodSecurity: [
+    { id: 'thr-014', threatName: 'Container Escape and Host Compromise', strideCategory: 'elevation_of_privilege' as const, attackVector: 'Root container exploits kernel vulnerability to escape container namespace and access host', threatAgent: 'Attacker with container code execution', preconditions: 'Container running as root, no security context constraints', impact: 'Host node compromise, cluster-wide lateral movement', likelihood: 'high' as const, mitigations: ['Enforce restricted Pod Security Standards', 'Run containers as non-root', 'Drop all capabilities, add only required ones'], residualRisk: 'Low — restricted PSS prevents most escape vectors' },
+  ],
+  k8sAudit: [
+    { id: 'thr-015', threatName: 'Undetected API Server Abuse', strideCategory: 'repudiation' as const, attackVector: 'Attacker makes malicious API calls that go unlogged', threatAgent: 'Compromised credentials, rogue operator', preconditions: 'Audit logging disabled', impact: 'Undetected privilege escalation, data theft', likelihood: 'medium' as const, mitigations: ['Enable comprehensive audit logging', 'Ship audit logs to SIEM', 'Alert on suspicious API patterns'], residualRisk: 'Low — audit logs enable forensic investigation' },
+  ],
+  k8sNetpol: [
+    { id: 'thr-016', threatName: 'Lateral Movement via Pod Network', strideCategory: 'information_disclosure' as const, attackVector: 'Compromised pod communicates with other pods/services to exfiltrate data or pivot', threatAgent: 'Attacker with pod-level access', preconditions: 'No network policies, flat pod network', impact: 'Cross-service data access, widespread compromise', likelihood: 'high' as const, mitigations: ['Implement default-deny network policies', 'Use namespace isolation', 'Deploy Cilium/Calico for microsegmentation'], residualRisk: 'Medium — requires ongoing policy maintenance' },
+  ],
+  k8sSecrets: [
+    { id: 'thr-017', threatName: 'Secret Extraction from etcd', strideCategory: 'information_disclosure' as const, attackVector: 'Attacker with etcd access reads base64-encoded secrets directly', threatAgent: 'Privileged attacker, backup system compromise', preconditions: 'Secrets not encrypted at rest in etcd', impact: 'API keys, passwords, certificates exposed', likelihood: 'medium' as const, mitigations: ['Enable encryption at rest with KMS', 'Restrict etcd access', 'Use external secret managers (Vault, AWS SM)'], residualRisk: 'Low — KMS encryption prevents plaintext access' },
+  ],
+  pgSsl: [
+    { id: 'thr-018', threatName: 'Credential Sniffing on Database Connections', strideCategory: 'information_disclosure' as const, attackVector: 'Network attacker captures PostgreSQL credentials and query data over unencrypted connections', threatAgent: 'Network-level attacker, compromised switch/router', preconditions: 'SSL not required in pg_hba.conf', impact: 'Database credential theft, query data exposure', likelihood: 'medium' as const, mitigations: ['Enforce ssl = on in postgresql.conf', 'Use hostssl entries in pg_hba.conf', 'Require client certificates for admin access'], residualRisk: 'Very Low — enforced SSL prevents all cleartext communication' },
+  ],
+  pgRbac: [
+    { id: 'thr-019', threatName: 'SQL Injection Escalation via Superuser', strideCategory: 'elevation_of_privilege' as const, attackVector: 'Application SQL injection exploits superuser connection to access all databases and system functions', threatAgent: 'External attacker via web application', preconditions: 'Application connects with superuser role', impact: 'Full database compromise, OS command execution', likelihood: 'high' as const, mitigations: ['Use dedicated application roles with minimal privileges', 'Never use superuser for applications', 'Implement row-level security'], residualRisk: 'Low — least-privilege roles contain injection impact' },
+  ],
+  pgAudit: [
+    { id: 'thr-020', threatName: 'Undetected Data Manipulation', strideCategory: 'repudiation' as const, attackVector: 'Database user modifies or deletes critical data without audit evidence', threatAgent: 'Malicious DBA, compromised service account', preconditions: 'pgAudit not installed or configured', impact: 'Data integrity compromise, regulatory non-compliance', likelihood: 'medium' as const, mitigations: ['Install and configure pgAudit', 'Log all DDL and DML operations', 'Ship audit logs to SIEM'], residualRisk: 'Low — comprehensive auditing enables forensics' },
+  ],
+  pgConnections: [
+    { id: 'thr-021', threatName: 'Denial of Service via Connection Exhaustion', strideCategory: 'denial_of_service' as const, attackVector: 'Attacker opens maximum connections to exhaust PostgreSQL connection slots', threatAgent: 'External attacker, misbehaving application', preconditions: 'No connection limits or pooling configured', impact: 'Database unavailability, application outage', likelihood: 'medium' as const, mitigations: ['Configure per-role connection limits', 'Use PgBouncer for connection pooling', 'Set statement and idle timeouts'], residualRisk: 'Low — connection pooling and limits prevent exhaustion' },
+  ],
+  gh2fa: [
+    { id: 'thr-022', threatName: 'Account Takeover via Credential Stuffing', strideCategory: 'spoofing' as const, attackVector: 'Attacker uses leaked credentials from other breaches to access GitHub accounts without 2FA', threatAgent: 'Automated credential stuffing tools', preconditions: '2FA not enforced for organization members', impact: 'Source code theft, supply chain compromise, secret exposure', likelihood: 'high' as const, mitigations: ['Require 2FA for all organization members', 'Use hardware security keys (FIDO2)', 'Monitor failed authentication attempts'], residualRisk: 'Very Low — 2FA prevents credential-only attacks' },
+  ],
+  ghBranch: [
+    { id: 'thr-023', threatName: 'Unauthorized Code Deployment', strideCategory: 'tampering' as const, attackVector: 'Developer or compromised account pushes malicious code directly to production branch', threatAgent: 'Malicious insider, compromised developer account', preconditions: 'No branch protection on main/production branches', impact: 'Malicious code in production, supply chain attack', likelihood: 'high' as const, mitigations: ['Require pull request reviews', 'Enforce status checks before merge', 'Require signed commits'], residualRisk: 'Low — multi-party review prevents unilateral changes' },
+  ],
+  ghSecrets: [
+    { id: 'thr-024', threatName: 'Secret Leakage via Code Commits', strideCategory: 'information_disclosure' as const, attackVector: 'Developer accidentally commits API keys, tokens, or passwords to repository', threatAgent: 'Careless developer, automated deployment scripts', preconditions: 'Secret scanning not enabled or push protection disabled', impact: 'API key compromise, unauthorized service access, financial loss', likelihood: 'very_high' as const, mitigations: ['Enable GitHub Secret Scanning', 'Enable push protection to block commits with secrets', 'Rotate any detected secrets immediately'], residualRisk: 'Low — push protection prevents most secret leaks' },
+  ],
+  ghAuditLog: [
+    { id: 'thr-025', threatName: 'Undetected Admin Privilege Abuse', strideCategory: 'repudiation' as const, attackVector: 'Organization admin performs unauthorized actions (adding members, changing settings) without external audit trail', threatAgent: 'Rogue admin, compromised admin account', preconditions: 'Audit log streaming not configured', impact: 'Undetected security policy changes, unauthorized access grants', likelihood: 'medium' as const, mitigations: ['Enable audit log streaming to SIEM', 'Alert on sensitive admin actions', 'Implement admin access reviews'], residualRisk: 'Low — external audit logs enable detection and investigation' },
+  ],
+};
+
 export const mockControls: ControlItem[] = [
   // === Amazon S3 (proj-001) ===
   {
@@ -61,6 +136,7 @@ export const mockControls: ControlItem[] = [
     automation: 'AWS Config Rule: s3-account-level-public-access-blocks-periodic.',
     references: ['AWS S3 Security Best Practices', 'CIS AWS Foundations Benchmark v3.0 - Control 2.1.4'],
     frameworkMappings: ['CIS AWS 3.0 - 2.1.4', 'NIST 800-53 - AC-3', 'ISO 27001 - A.9.4.1', 'SOC 2 - CC6.1'],
+    threatScenarios: threats.s3PublicAccess,
     sourceTraceability: [
       { sourceId: 'src-001', sourceName: 'AWS S3 Security Best Practices', excerpt: 'We recommend that you enable Block Public Access settings for all AWS accounts...', sourceType: 'url', confidence: 0.97 },
       { sourceId: 'src-002', sourceName: 'CIS Amazon S3 Benchmark v3.0', excerpt: 'Ensure that S3 Block Public Access setting is enabled at the account level...', sourceType: 'url', confidence: 0.98 },
@@ -77,6 +153,7 @@ export const mockControls: ControlItem[] = [
     automation: 'AWS Config Rule: s3-default-encryption-kms.',
     references: ['AWS S3 Encryption Documentation', 'CIS AWS Foundations Benchmark v3.0 - Control 2.1.1'],
     frameworkMappings: ['CIS AWS 3.0 - 2.1.1', 'NIST 800-53 - SC-28', 'ISO 27001 - A.10.1.1', 'PCI DSS - 3.4'],
+    threatScenarios: threats.s3Encryption,
     sourceTraceability: [
       { sourceId: 'src-001', sourceName: 'AWS S3 Security Best Practices', excerpt: 'Use server-side encryption with AWS KMS keys (SSE-KMS) for sensitive data...', sourceType: 'url', confidence: 0.95 },
     ],
@@ -92,6 +169,7 @@ export const mockControls: ControlItem[] = [
     automation: 'AWS Config Rule: s3-bucket-logging-enabled.',
     references: ['AWS S3 Logging Documentation', 'CIS AWS Benchmark v3.0 - 3.6'],
     frameworkMappings: ['CIS AWS 3.0 - 3.6', 'NIST 800-53 - AU-2', 'ISO 27001 - A.12.4.1'],
+    threatScenarios: threats.s3Logging,
     sourceTraceability: [
       { sourceId: 'src-001', sourceName: 'AWS S3 Security Best Practices', excerpt: 'Enable Amazon S3 server access logging for security and access audits...', sourceType: 'url', confidence: 0.93 },
     ],
@@ -107,6 +185,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Bucket policy with aws:SecureTransport and s3:TlsVersion condition keys.',
     references: ['AWS S3 TLS Documentation', 'NIST SP 800-52 Rev. 2'],
     frameworkMappings: ['NIST 800-53 - SC-8', 'PCI DSS - 4.1'],
+    threatScenarios: threats.s3Tls,
     sourceTraceability: [
       { sourceId: 'src-002', sourceName: 'CIS Amazon S3 Benchmark v3.0', excerpt: 'Ensure the S3 Bucket Policy requires TLS 1.2 minimum...', sourceType: 'url', confidence: 0.96 },
     ],
@@ -122,6 +201,7 @@ export const mockControls: ControlItem[] = [
     automation: 'AWS Config Rule: s3-bucket-versioning-enabled.',
     references: ['AWS S3 Versioning Documentation', 'CIS AWS Benchmark v3.0 - 2.1.3'],
     frameworkMappings: ['CIS AWS 3.0 - 2.1.3', 'NIST 800-53 - CP-9', 'ISO 27001 - A.12.3.1'],
+    threatScenarios: threats.s3Versioning,
     sourceTraceability: [
       { sourceId: 'src-001', sourceName: 'AWS S3 Security Best Practices', excerpt: 'Use S3 Versioning to keep multiple variants of an object...', sourceType: 'url', confidence: 0.90 },
     ],
@@ -137,6 +217,7 @@ export const mockControls: ControlItem[] = [
     automation: 'AWS IAM Access Analyzer. AWS Config Rule: iam-policy-no-statements-with-full-access.',
     references: ['AWS IAM Best Practices', 'CIS AWS Benchmark v3.0 - 1.16'],
     frameworkMappings: ['CIS AWS 3.0 - 1.16', 'NIST 800-53 - AC-6', 'ISO 27001 - A.9.2.3', 'SOC 2 - CC6.3'],
+    threatScenarios: threats.s3Iam,
     sourceTraceability: [
       { sourceId: 'src-001', sourceName: 'AWS S3 Security Best Practices', excerpt: 'Grant least privilege access to S3 resources...', sourceType: 'url', confidence: 0.96 },
     ],
@@ -154,6 +235,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Azure Policy: Secure transfer to storage accounts should be enabled.',
     references: ['Azure Storage Security Guide', 'CIS Azure Foundations Benchmark - 3.1'],
     frameworkMappings: ['CIS Azure 2.0 - 3.1', 'NIST 800-53 - SC-8', 'ISO 27001 - A.13.1.1'],
+    threatScenarios: threats.azureHttps,
     sourceTraceability: [],
     confidenceScore: 0.94, reviewStatus: 'approved', reviewerNotes: '', version: 1, category: 'encryption',
   },
@@ -167,6 +249,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Azure Policy: Soft delete should be enabled for Azure Blobs.',
     references: ['Azure Blob Soft Delete Documentation', 'CIS Azure Benchmark - 3.8'],
     frameworkMappings: ['CIS Azure 2.0 - 3.8', 'NIST 800-53 - CP-9', 'ISO 27001 - A.12.3.1'],
+    threatScenarios: threats.azureSoftDelete,
     sourceTraceability: [],
     confidenceScore: 0.91, reviewStatus: 'reviewed', reviewerNotes: 'Set retention to minimum 14 days.', version: 1, category: 'storage',
   },
@@ -180,6 +263,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Azure Policy: Storage accounts should restrict network access.',
     references: ['Azure Storage Firewalls Documentation', 'CIS Azure Benchmark - 3.7'],
     frameworkMappings: ['CIS Azure 2.0 - 3.7', 'NIST 800-53 - SC-7', 'ISO 27001 - A.13.1.3'],
+    threatScenarios: threats.azureFirewall,
     sourceTraceability: [],
     confidenceScore: 0.93, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'network',
   },
@@ -193,6 +277,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Azure Policy: Diagnostic logs in Storage accounts should be enabled.',
     references: ['Azure Storage Analytics Documentation', 'CIS Azure Benchmark - 3.3'],
     frameworkMappings: ['CIS Azure 2.0 - 3.3', 'NIST 800-53 - AU-2', 'ISO 27001 - A.12.4.1'],
+    threatScenarios: threats.azureLogging,
     sourceTraceability: [],
     confidenceScore: 0.89, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'logging',
   },
@@ -208,6 +293,7 @@ export const mockControls: ControlItem[] = [
     automation: 'kube-bench check: 1.1.1. OPA/Gatekeeper policies.',
     references: ['Kubernetes RBAC Documentation', 'CIS Kubernetes Benchmark - 5.1.1'],
     frameworkMappings: ['CIS K8s - 5.1.1', 'NIST 800-53 - AC-3', 'ISO 27001 - A.9.2.3'],
+    threatScenarios: threats.k8sRbac,
     sourceTraceability: [],
     confidenceScore: 0.96, reviewStatus: 'approved', reviewerNotes: 'Mandatory for all clusters.', version: 2, category: 'identity',
   },
@@ -221,6 +307,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Kubernetes Pod Security Admission controller. OPA/Gatekeeper policies.',
     references: ['Kubernetes Pod Security Standards', 'CIS Kubernetes Benchmark - 5.2'],
     frameworkMappings: ['CIS K8s - 5.2', 'NIST 800-53 - CM-7', 'ISO 27001 - A.12.6.1'],
+    threatScenarios: threats.k8sPodSecurity,
     sourceTraceability: [],
     confidenceScore: 0.94, reviewStatus: 'approved', reviewerNotes: 'Enforce restricted profile for prod.', version: 1, category: 'runtime',
   },
@@ -234,6 +321,7 @@ export const mockControls: ControlItem[] = [
     automation: 'kube-bench check: 1.2.22. Fluentd/Filebeat log shipping.',
     references: ['Kubernetes Audit Logging Documentation', 'CIS Kubernetes Benchmark - 1.2.22'],
     frameworkMappings: ['CIS K8s - 1.2.22', 'NIST 800-53 - AU-2', 'ISO 27001 - A.12.4.1'],
+    threatScenarios: threats.k8sAudit,
     sourceTraceability: [],
     confidenceScore: 0.92, reviewStatus: 'reviewed', reviewerNotes: '', version: 1, category: 'logging',
   },
@@ -247,6 +335,7 @@ export const mockControls: ControlItem[] = [
     automation: 'Calico/Cilium policies. OPA/Gatekeeper deny-all-default policies.',
     references: ['Kubernetes Network Policies Documentation', 'CIS Kubernetes Benchmark - 5.3.2'],
     frameworkMappings: ['CIS K8s - 5.3.2', 'NIST 800-53 - SC-7', 'ISO 27001 - A.13.1.3'],
+    threatScenarios: threats.k8sNetpol,
     sourceTraceability: [],
     confidenceScore: 0.90, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'network',
   },
@@ -260,6 +349,7 @@ export const mockControls: ControlItem[] = [
     automation: 'kube-bench check: 1.2.33. EncryptionConfiguration manifest.',
     references: ['Kubernetes Encryption at Rest Documentation', 'CIS Kubernetes Benchmark - 1.2.33'],
     frameworkMappings: ['CIS K8s - 1.2.33', 'NIST 800-53 - SC-28', 'ISO 27001 - A.10.1.1'],
+    threatScenarios: threats.k8sSecrets,
     sourceTraceability: [],
     confidenceScore: 0.93, reviewStatus: 'reviewed', reviewerNotes: 'Verify KMS provider integration.', version: 1, category: 'encryption',
   },
@@ -275,6 +365,7 @@ export const mockControls: ControlItem[] = [
     automation: 'pg_hba.conf hostssl entries. Cloud provider enforced SSL settings.',
     references: ['PostgreSQL SSL Documentation', 'CIS PostgreSQL Benchmark - 6.8'],
     frameworkMappings: ['CIS PG 16 - 6.8', 'NIST 800-53 - SC-8', 'ISO 27001 - A.13.1.1'],
+    threatScenarios: threats.pgSsl,
     sourceTraceability: [],
     confidenceScore: 0.95, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'encryption',
   },
@@ -288,6 +379,7 @@ export const mockControls: ControlItem[] = [
     automation: 'pgAudit for role monitoring. Ansible/Terraform for role provisioning.',
     references: ['PostgreSQL Role Management Documentation', 'CIS PostgreSQL Benchmark - 4.3'],
     frameworkMappings: ['CIS PG 16 - 4.3', 'NIST 800-53 - AC-6', 'ISO 27001 - A.9.2.3'],
+    threatScenarios: threats.pgRbac,
     sourceTraceability: [],
     confidenceScore: 0.93, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'identity',
   },
@@ -301,6 +393,7 @@ export const mockControls: ControlItem[] = [
     automation: 'pgAudit extension installation. Log shipping to SIEM.',
     references: ['pgAudit Documentation', 'CIS PostgreSQL Benchmark - 4.1'],
     frameworkMappings: ['CIS PG 16 - 4.1', 'NIST 800-53 - AU-2', 'ISO 27001 - A.12.4.1'],
+    threatScenarios: threats.pgAudit,
     sourceTraceability: [],
     confidenceScore: 0.90, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'logging',
   },
@@ -314,6 +407,7 @@ export const mockControls: ControlItem[] = [
     automation: 'postgresql.conf settings. PgBouncer connection pooling.',
     references: ['PostgreSQL Connection Settings Documentation', 'CIS PostgreSQL Benchmark - 6.2'],
     frameworkMappings: ['CIS PG 16 - 6.2', 'NIST 800-53 - SC-5', 'ISO 27001 - A.12.1.3'],
+    threatScenarios: threats.pgConnections,
     sourceTraceability: [],
     confidenceScore: 0.87, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'network',
   },
@@ -329,6 +423,7 @@ export const mockControls: ControlItem[] = [
     automation: 'GitHub Organization Settings > Require 2FA. GitHub API for compliance monitoring.',
     references: ['GitHub 2FA Documentation', 'CIS GitHub Benchmark - 1.1'],
     frameworkMappings: ['CIS GitHub - 1.1', 'NIST 800-53 - IA-2', 'ISO 27001 - A.9.4.2'],
+    threatScenarios: threats.gh2fa,
     sourceTraceability: [],
     confidenceScore: 0.97, reviewStatus: 'approved', reviewerNotes: 'Critical authentication control.', version: 2, category: 'identity',
   },
@@ -342,6 +437,7 @@ export const mockControls: ControlItem[] = [
     automation: 'GitHub Repository Rulesets. Terraform GitHub provider.',
     references: ['GitHub Branch Protection Documentation', 'CIS GitHub Benchmark - 2.1'],
     frameworkMappings: ['CIS GitHub - 2.1', 'NIST 800-53 - CM-3', 'ISO 27001 - A.14.2.2'],
+    threatScenarios: threats.ghBranch,
     sourceTraceability: [],
     confidenceScore: 0.95, reviewStatus: 'approved', reviewerNotes: 'Enforce for all repos.', version: 1, category: 'cicd',
   },
@@ -355,6 +451,7 @@ export const mockControls: ControlItem[] = [
     automation: 'GitHub Organization Settings > Code Security. GitHub API for enforcement.',
     references: ['GitHub Secret Scanning Documentation', 'CIS GitHub Benchmark - 3.1'],
     frameworkMappings: ['CIS GitHub - 3.1', 'NIST 800-53 - IA-5', 'ISO 27001 - A.9.4.3'],
+    threatScenarios: threats.ghSecrets,
     sourceTraceability: [],
     confidenceScore: 0.94, reviewStatus: 'reviewed', reviewerNotes: 'Enable push protection for all repos.', version: 1, category: 'cicd',
   },
@@ -368,6 +465,7 @@ export const mockControls: ControlItem[] = [
     automation: 'GitHub Audit Log Streaming API. Integration with Splunk, Datadog, or Azure Sentinel.',
     references: ['GitHub Audit Log Documentation', 'CIS GitHub Benchmark - 4.1'],
     frameworkMappings: ['CIS GitHub - 4.1', 'NIST 800-53 - AU-6', 'ISO 27001 - A.12.4.1'],
+    threatScenarios: threats.ghAuditLog,
     sourceTraceability: [],
     confidenceScore: 0.91, reviewStatus: 'pending', reviewerNotes: '', version: 1, category: 'logging',
   },
@@ -392,6 +490,6 @@ export const mockVersions: BaselineVersion[] = [
 ];
 
 export const mockTemplates: TemplateRule[] = [
-  { id: 'tmpl-001', name: 'Enterprise Standard Template', description: 'Comprehensive enterprise security baseline template with full control structure and framework mappings', language: 'en', controlStructure: 'ID, Title, Description, Applicability, Risk, Criticality, Automation, References, Mappings', writingRules: 'Professional tone, imperative mood, specific and actionable', riskRules: 'CIA triad assessment with business impact analysis', criticalityRules: 'Critical > High > Medium > Low > Informational based on exploitability and impact', dedupRules: 'Semantic similarity > 0.85 triggers merge review', mappingRules: 'Map to CIS, NIST 800-53, ISO 27001, SOC 2 when applicable', isDefault: true },
-  { id: 'tmpl-002', name: 'Compliance-Focused Template', description: 'Template optimized for regulatory compliance with emphasis on framework mappings and evidence', language: 'en', controlStructure: 'ID, Title, Description, Compliance Requirement, Evidence, Mappings', writingRules: 'Formal regulatory language, cite specific clauses', riskRules: 'Compliance risk scoring based on regulatory penalties', criticalityRules: 'Based on regulatory requirements and audit findings', dedupRules: 'Merge controls with identical compliance requirements', mappingRules: 'Mandatory mapping to PCI DSS, HIPAA, SOX, GDPR', isDefault: false },
+  { id: 'tmpl-001', name: 'Enterprise Standard Template', description: 'Comprehensive enterprise security baseline template with full control structure and framework mappings', language: 'en', controlStructure: 'ID, Title, Description, Applicability, Risk, Criticality, Automation, References, Mappings, Threat Modeling', writingRules: 'Professional tone, imperative mood, specific and actionable', riskRules: 'CIA triad assessment with business impact analysis', criticalityRules: 'Critical > High > Medium > Low > Informational based on exploitability and impact', dedupRules: 'Semantic similarity > 0.85 triggers merge review', mappingRules: 'Map to CIS, NIST 800-53, ISO 27001, SOC 2 when applicable', threatModelingRules: 'STRIDE-based analysis per control. Each threat must include: attack vector, threat agent, preconditions, impact assessment, likelihood rating, mitigations, and residual risk. Minimum 1 threat scenario per control.', isDefault: true },
+  { id: 'tmpl-002', name: 'Compliance-Focused Template', description: 'Template optimized for regulatory compliance with emphasis on framework mappings and evidence', language: 'en', controlStructure: 'ID, Title, Description, Compliance Requirement, Evidence, Mappings', writingRules: 'Formal regulatory language, cite specific clauses', riskRules: 'Compliance risk scoring based on regulatory penalties', criticalityRules: 'Based on regulatory requirements and audit findings', dedupRules: 'Merge controls with identical compliance requirements', mappingRules: 'Mandatory mapping to PCI DSS, HIPAA, SOX, GDPR', threatModelingRules: 'Compliance-oriented threat analysis focusing on regulatory risk scenarios and data protection impact assessments.', isDefault: false },
 ];

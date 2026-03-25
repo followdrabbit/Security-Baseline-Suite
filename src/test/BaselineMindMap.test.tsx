@@ -34,6 +34,7 @@ const makeControl = (overrides: Partial<ControlItem> & { id: string; controlId: 
   automation: '',
   references: [],
   frameworkMappings: ['NIST-1', 'ISO-2'],
+  threatScenarios: [],
   sourceTraceability: [],
   confidenceScore: 0.9,
   reviewStatus: 'pending',
