@@ -42,13 +42,28 @@ const MindMapControlNode: React.FC<Props> = ({
       onMouseLeave={onMouseLeave}
       onClick={onClick}
     >
+      {/* Pulse ring for highlighted nodes */}
+      {isHighlighted && !isSelected && (
+        <motion.circle
+          cx={x}
+          cy={y}
+          r={24}
+          fill="none"
+          stroke={critColor}
+          strokeWidth={1.5}
+          initial={{ opacity: 0.6, scale: 0.9 }}
+          animate={{ opacity: [0.6, 0, 0.6], scale: [0.9, 1.15, 0.9] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ transformOrigin: `${x}px ${y}px` }}
+        />
+      )}
       <motion.circle
         initial={{ r: 0, opacity: 0 }}
         animate={{ r: isHovered || isSelected ? 22 : (isHighlighted ? 20 : 18), opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.6 }}
         cx={x}
         cy={y}
-        fill={`hsla(${catColor}, 0.15)`}
+        fill={`hsla(${catColor}, ${isHighlighted ? 0.25 : 0.15})`}
         stroke={isSelected ? critColor : isHighlighted ? critColor : `hsl(${catColor})`}
         strokeWidth={isSelected ? 2.5 : isHighlighted ? 2 : 1.5}
       />
