@@ -264,7 +264,7 @@ const BaselineEditor: React.FC = () => {
           <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {selectedProjectObj
-              ? `${filtered.length} ${t.editor.controlsIn} ${(selectedProjectObj as any).technology}`
+              ? `${filtered.length} ${t.editor.controlsIn} ${(selectedProjectObj as any).name}`
               : t.editor.subtitle}
           </p>
         </div>
@@ -314,7 +314,7 @@ const BaselineEditor: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">{t.editor.allBaselines}</SelectItem>
             {projects.map((p: any) => (
-              <SelectItem key={p.id} value={p.id}>{p.technology}</SelectItem>
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
