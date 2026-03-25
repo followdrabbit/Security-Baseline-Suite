@@ -4,6 +4,7 @@ import { useMindMapFilters } from '@/hooks/useMindMapFilters';
 import type { ControlItem } from '@/types';
 
 const makeControl = (overrides: Partial<ControlItem> & { id: string; controlId: string; title: string }): ControlItem => ({
+  projectId: 'proj-1',
   description: '',
   applicability: '',
   securityRisk: '',
