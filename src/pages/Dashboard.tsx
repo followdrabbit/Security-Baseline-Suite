@@ -30,6 +30,9 @@ const sparkControls = [
 const sparkConfidence = [
   { d: 'Mon', v: 84 }, { d: 'Tue', v: 85 }, { d: 'Wed', v: 87 }, { d: 'Thu', v: 88 }, { d: 'Fri', v: 89 }, { d: 'Sat', v: 90 }, { d: 'Sun', v: 91 },
 ];
+const sparkThreats = [
+  { d: 'Mon', v: 15 }, { d: 'Tue', v: 17 }, { d: 'Wed', v: 19 }, { d: 'Thu', v: 21 }, { d: 'Fri', v: 22 }, { d: 'Sat', v: 24 }, { d: 'Sun', v: 25 },
+];
 
 // --- Generate trend data for various periods ---
 function generateTrendData(days: number): typeof trendData7d {
