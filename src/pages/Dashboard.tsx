@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockProjects, mockControls } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
@@ -182,14 +184,16 @@ const STRIDE_COLORS: Record<StrideCategory, string> = {
 
 const STRIDE_ORDER: StrideCategory[] = ['spoofing', 'tampering', 'repudiation', 'information_disclosure', 'denial_of_service', 'elevation_of_privilege'];
 
-function computeStrideData(t: any) {
+function computeStrideData(t: any, controls: any[]) {
   const counts: Record<StrideCategory, number> = {
     spoofing: 0, tampering: 0, repudiation: 0,
     information_disclosure: 0, denial_of_service: 0, elevation_of_privilege: 0,
   };
-  for (const ctrl of mockControls) {
-    for (const ts of ctrl.threatScenarios) {
-      counts[ts.strideCategory]++;
+  for (const ctrl of controls) {
+    const scenarios = Array.isArray(ctrl.threat_scenarios) ? ctrl.threat_scenarios : (Array.isArray(ctrl.threatScenarios) ? ctrl.threatScenarios : []);
+    for (const ts of scenarios) {
+      const cat = (ts.strideCategory || ts.stride_category) as StrideCategory;
+      if (cat && counts[cat] !== undefined) counts[cat]++;
     }
   }
   return STRIDE_ORDER.map(cat => ({
@@ -203,13 +207,47 @@ function computeStrideData(t: any) {
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real projects
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ['dashboard-projects', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch real controls
+  const { data: controls = [], isLoading: controlsLoading } = useQuery({
+    queryKey: ['dashboard-controls', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('controls')
+        .select('*');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const loading = projectsLoading || controlsLoading;
+
+  const userName = useMemo(() => {
+    if (!user) return '';
+    return user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+  }, [user]);
 
   const handleStrideClick = useCallback((category: string) => {
     navigate(`/editor?stride=${category}`);
@@ -232,7 +270,6 @@ const Dashboard: React.FC = () => {
     canvas.height = height * scale;
     const ctx = canvas.getContext('2d')!;
     ctx.scale(scale, scale);
-    // Draw background
     const bg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
     ctx.fillStyle = bg ? `hsl(${bg})` : '#1a1a2e';
     ctx.fillRect(0, 0, width, height);
@@ -264,19 +301,34 @@ const Dashboard: React.FC = () => {
     toast({ title: '📄 CSV Exported', description: filename });
   }, [toast]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Compute KPIs from real data
+  const totalThreats = useMemo(() => {
+    let count = 0;
+    for (const c of controls) {
+      const scenarios = Array.isArray(c.threat_scenarios) ? c.threat_scenarios : [];
+      count += scenarios.length;
+    }
+    return count;
+  }, [controls]);
 
-  const totalThreats = mockControls.reduce((sum, c) => sum + c.threatScenarios.length, 0);
+  const avgConfidence = useMemo(() => {
+    if (controls.length === 0) return 0;
+    const sum = controls.reduce((acc, c) => acc + (Number(c.confidence_score) || 0), 0);
+    return Math.round(sum / controls.length);
+  }, [controls]);
+
+  const approvedBaselines = useMemo(() => {
+    return projects.filter(p => p.status === 'approved' || p.status === 'in_progress').length;
+  }, [projects]);
+
+  const strideData = useMemo(() => computeStrideData(t, controls), [t, controls]);
 
   const kpis = [
-    { label: t.dashboard.totalProjects, value: '5', icon: Layers, change: '+2', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
-    { label: t.dashboard.activeBaselines, value: '3', icon: Shield, change: '+1', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
-    { label: t.dashboard.controlsGenerated, value: '181', icon: BarChart3, change: '+47', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
-    { label: t.dashboard.avgConfidence, value: '91%', icon: TrendingUp, change: '+3%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
-    { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: '+4', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
+    { label: t.dashboard.totalProjects, value: String(projects.length), icon: Layers, change: projects.length > 0 ? `+${projects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
+    { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
+    { label: t.dashboard.controlsGenerated, value: String(controls.length), icon: BarChart3, change: controls.length > 0 ? `+${controls.length}` : '0', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
+    { label: t.dashboard.avgConfidence, value: `${avgConfidence}%`, icon: TrendingUp, change: avgConfidence > 0 ? `${avgConfidence}%` : '0%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
+    { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: totalThreats > 0 ? `+${totalThreats}` : '0', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
 
   return (
@@ -284,7 +336,7 @@ const Dashboard: React.FC = () => {
       {/* Welcome */}
       <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }}>
         <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
-          {t.dashboard.welcome}, <span className="gold-gradient-text">Helena</span>
+          {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
       </motion.div>
@@ -473,7 +525,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.stride.title}</h3>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {t.dashboard.stride.totalThreats}: {computeStrideData(t).reduce((sum, d) => sum + d.count, 0)}
+                  {t.dashboard.stride.totalThreats}: {totalThreats}
                 </p>
               </div>
               <p className="text-[10px] text-muted-foreground/60 italic">Click a category to filter in Baseline Editor</p>
@@ -482,7 +534,7 @@ const Dashboard: React.FC = () => {
               {/* Bar Chart */}
               <div className="h-[220px] cursor-pointer">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={computeStrideData(t)} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                  <BarChart data={strideData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
                     <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={110} />
@@ -499,7 +551,7 @@ const Dashboard: React.FC = () => {
                       }}
                     />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18} className="cursor-pointer" onClick={(data: any) => { if (data?.category) handleStrideClick(data.category); }}>
-                      {computeStrideData(t).map((entry) => (
+                      {strideData.map((entry) => (
                         <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} className="cursor-pointer hover:opacity-80 transition-opacity" />
                       ))}
                     </Bar>
@@ -509,9 +561,9 @@ const Dashboard: React.FC = () => {
               {/* Radar Chart */}
               <div className="h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={computeStrideData(t)} cx="50%" cy="50%" outerRadius="70%">
+                  <RadarChart data={strideData} cx="50%" cy="50%" outerRadius="70%">
                     <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
-                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', cursor: 'pointer' }} onClick={(e: any) => { const strideData = computeStrideData(t); const match = strideData.find(d => d.label === e?.value); if (match) handleStrideClick(match.category); }} />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', cursor: 'pointer' }} onClick={(e: any) => { const match = strideData.find(d => d.label === e?.value); if (match) handleStrideClick(match.category); }} />
                     <PolarRadiusAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} />
                     <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))', cursor: 'pointer' }} activeDot={{ r: 6, fill: 'hsl(var(--primary))', cursor: 'pointer', onClick: (e: any, payload: any) => { if (payload?.payload?.category) handleStrideClick(payload.payload.category); } }} />
                   </RadarChart>
@@ -551,14 +603,14 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockProjects.map((proj) => (
+                    {projects.map((proj) => (
                       <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
-                        <td className="py-3 px-4"><StatusBadge status={proj.status} type="project" /></td>
-                        <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.controlCount}</td>
-                        <td className="py-3 px-4">{proj.avgConfidence > 0 ? <ConfidenceScore score={proj.avgConfidence} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
-                        <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updatedAt).toLocaleDateString()}</td>
+                        <td className="py-3 px-4"><StatusBadge status={proj.status as any} type="project" /></td>
+                        <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.control_count || 0}</td>
+                        <td className="py-3 px-4">{(proj.avg_confidence || 0) > 0 ? <ConfidenceScore score={proj.avg_confidence || 0} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
+                        <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updated_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
