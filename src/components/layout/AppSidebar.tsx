@@ -1,14 +1,39 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain,
+  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useI18n } from '@/contexts/I18nContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
+
+const UserFooter: React.FC<{ collapsed: boolean }> = ({ collapsed }) => {
+  const { user, signOut } = useAuth();
+  if (!user) return null;
+  return (
+    <SidebarMenuItem>
+      <div className="flex items-center gap-3 px-3 py-2 rounded-md text-sm">
+        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+          <User className="h-3 w-3 text-primary" />
+        </div>
+        {!collapsed && (
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-foreground truncate">{user.email}</p>
+          </div>
+        )}
+        {!collapsed && (
+          <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors" title="Sair">
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </SidebarMenuItem>
+  );
+};
 
 const AppSidebar: React.FC = () => {
   const { t } = useI18n();
@@ -80,7 +105,7 @@ const AppSidebar: React.FC = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="p-2 space-y-1">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -94,6 +119,7 @@ const AppSidebar: React.FC = () => {
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <UserFooter collapsed={collapsed} />
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
