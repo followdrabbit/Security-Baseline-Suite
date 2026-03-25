@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { ControlItem } from '@/types';
+import type { ControlItem, StrideCategory, ThreatLikelihood } from '@/types';
 
 const CATEGORY_LABELS: Record<string, { en: string; pt: string; es: string }> = {
   identity: { en: 'Identity & Access', pt: 'Identidade e Acesso', es: 'Identidad y Acceso' },
@@ -35,6 +35,8 @@ const BaselineEditor: React.FC = () => {
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [strideFilter, setStrideFilter] = useState('all');
+  const [likelihoodFilter, setLikelihoodFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'mindmap'>('list');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
@@ -57,8 +59,14 @@ const BaselineEditor: React.FC = () => {
     if (search && !c.title.toLowerCase().includes(search.toLowerCase()) && !c.controlId.toLowerCase().includes(search.toLowerCase())) return false;
     if (critFilter !== 'all' && c.criticality !== critFilter) return false;
     if (statusFilter !== 'all' && c.reviewStatus !== statusFilter) return false;
+    if (strideFilter !== 'all') {
+      if (!c.threatScenarios?.some(ts => ts.strideCategory === strideFilter)) return false;
+    }
+    if (likelihoodFilter !== 'all') {
+      if (!c.threatScenarios?.some(ts => ts.likelihood === likelihoodFilter)) return false;
+    }
     return true;
-  }), [controls, selectedProject, search, critFilter, statusFilter]);
+  }), [controls, selectedProject, search, critFilter, statusFilter, strideFilter, likelihoodFilter]);
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<string, ControlItem[]> = {};
@@ -173,6 +181,35 @@ const BaselineEditor: React.FC = () => {
             <SelectItem value="reviewed">{t.common.reviewed}</SelectItem>
             <SelectItem value="approved">{t.common.approved}</SelectItem>
             <SelectItem value="rejected">{t.common.rejected}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={strideFilter} onValueChange={setStrideFilter}>
+          <SelectTrigger className="w-[170px]">
+            <Target className="h-3.5 w-3.5 mr-1.5 text-destructive/70" />
+            <SelectValue placeholder={t.editor.filterStride} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.editor.filterStride}</SelectItem>
+            <SelectItem value="spoofing">Spoofing</SelectItem>
+            <SelectItem value="tampering">Tampering</SelectItem>
+            <SelectItem value="repudiation">Repudiation</SelectItem>
+            <SelectItem value="information_disclosure">Information Disclosure</SelectItem>
+            <SelectItem value="denial_of_service">Denial of Service</SelectItem>
+            <SelectItem value="elevation_of_privilege">Elevation of Privilege</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={likelihoodFilter} onValueChange={setLikelihoodFilter}>
+          <SelectTrigger className="w-[155px]">
+            <AlertTriangle className="h-3.5 w-3.5 mr-1.5 text-warning/70" />
+            <SelectValue placeholder={t.editor.filterLikelihood} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.editor.filterLikelihood}</SelectItem>
+            <SelectItem value="very_high">{t.editor.veryHigh}</SelectItem>
+            <SelectItem value="high">{t.common.high}</SelectItem>
+            <SelectItem value="medium">{t.common.medium}</SelectItem>
+            <SelectItem value="low">{t.common.low}</SelectItem>
+            <SelectItem value="very_low">{t.editor.veryLow}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
