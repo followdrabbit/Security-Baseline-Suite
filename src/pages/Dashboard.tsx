@@ -10,9 +10,36 @@ import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XC
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
+// --- Sparkline data for each KPI ---
+const sparkProjects = [
+  { d: 'Mon', v: 3 }, { d: 'Tue', v: 3 }, { d: 'Wed', v: 3 }, { d: 'Thu', v: 4 }, { d: 'Fri', v: 4 }, { d: 'Sat', v: 5 }, { d: 'Sun', v: 5 },
+];
+const sparkBaselines = [
+  { d: 'Mon', v: 1 }, { d: 'Tue', v: 2 }, { d: 'Wed', v: 2 }, { d: 'Thu', v: 2 }, { d: 'Fri', v: 3 }, { d: 'Sat', v: 3 }, { d: 'Sun', v: 3 },
+];
+const sparkControls = [
+  { d: 'Mon', v: 112 }, { d: 'Tue', v: 124 }, { d: 'Wed', v: 138 }, { d: 'Thu', v: 149 }, { d: 'Fri', v: 160 }, { d: 'Sat', v: 172 }, { d: 'Sun', v: 181 },
+];
+const sparkConfidence = [
+  { d: 'Mon', v: 84 }, { d: 'Tue', v: 85 }, { d: 'Wed', v: 87 }, { d: 'Thu', v: 88 }, { d: 'Fri', v: 89 }, { d: 'Sat', v: 90 }, { d: 'Sun', v: 91 },
+];
+
+// --- Large trend chart data ---
+const trendData = [
+  { day: 'Mar 19', controls: 112, confidence: 84, approved: 38, pending: 52, rejected: 22 },
+  { day: 'Mar 20', controls: 124, confidence: 85, approved: 45, pending: 54, rejected: 25 },
+  { day: 'Mar 21', controls: 138, confidence: 87, approved: 56, pending: 55, rejected: 27 },
+  { day: 'Mar 22', controls: 149, confidence: 88, approved: 68, pending: 50, rejected: 31 },
+  { day: 'Mar 23', controls: 160, confidence: 89, approved: 82, pending: 47, rejected: 31 },
+  { day: 'Mar 24', controls: 172, confidence: 90, approved: 96, pending: 43, rejected: 33 },
+  { day: 'Mar 25', controls: 181, confidence: 91, approved: 108, pending: 40, rejected: 33 },
+];
+
+// --- Activity types ---
 type ActivityAction = 'approved' | 'rejected' | 'reviewed' | 'adjusted' | 'created' | 'restored' | 'exported' | 'commented';
 
 interface ActivityEntry {
@@ -68,6 +95,52 @@ const ActivityTimelineSkeleton: React.FC = () => (
   </div>
 );
 
+const TrendChartSkeleton: React.FC = () => (
+  <div className="bg-card border border-border rounded-lg p-5 shadow-premium space-y-4">
+    <Skeleton className="h-5 w-40" />
+    <Skeleton className="h-[200px] w-full rounded-md" />
+  </div>
+);
+
+// Sparkline mini chart inside KPI cards
+const Sparkline: React.FC<{ data: { d: string; v: number }[]; color: string; type?: 'area' | 'bar' }> = ({ data, color, type = 'area' }) => (
+  <div className="h-10 w-full mt-2">
+    <ResponsiveContainer width="100%" height="100%">
+      {type === 'bar' ? (
+        <BarChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+          <Bar dataKey="v" fill={color} radius={[2, 2, 0, 0]} opacity={0.7} />
+        </BarChart>
+      ) : (
+        <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id={`spark-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#spark-${color.replace('#', '')})`} dot={false} />
+        </AreaChart>
+      )}
+    </ResponsiveContainer>
+  </div>
+);
+
+// Custom tooltip for the main trend chart
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
+      <p className="font-semibold text-foreground mb-1">{label}</p>
+      {payload.map((entry: any) => (
+        <p key={entry.name} className="text-muted-foreground">
+          <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: entry.color }} />
+          {entry.name}: <span className="text-foreground font-medium">{entry.value}{entry.name === 'Confidence' ? '%' : ''}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
@@ -78,10 +151,10 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const kpis = [
-    { label: t.dashboard.totalProjects, value: '5', icon: Layers, change: '+2' },
-    { label: t.dashboard.activeBaselines, value: '3', icon: Shield, change: '+1' },
-    { label: t.dashboard.controlsGenerated, value: '181', icon: BarChart3, change: '+47' },
-    { label: t.dashboard.avgConfidence, value: '91%', icon: TrendingUp, change: '+3%' },
+    { label: t.dashboard.totalProjects, value: '5', icon: Layers, change: '+2', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
+    { label: t.dashboard.activeBaselines, value: '3', icon: Shield, change: '+1', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
+    { label: t.dashboard.controlsGenerated, value: '181', icon: BarChart3, change: '+47', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
+    { label: t.dashboard.avgConfidence, value: '91%', icon: TrendingUp, change: '+3%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
   ];
 
   return (
@@ -94,7 +167,7 @@ const Dashboard: React.FC = () => {
         <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
       </motion.div>
 
-      {/* KPIs */}
+      {/* KPIs with sparklines */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => <KPICardSkeleton key={i} />)}
@@ -108,14 +181,15 @@ const Dashboard: React.FC = () => {
             <motion.div
               key={kpi.label}
               variants={fadeIn}
-              className="bg-card border border-border rounded-lg p-5 shadow-premium hover:shadow-premium-lg transition-shadow duration-300"
+              className="bg-card border border-border rounded-lg p-5 shadow-premium hover:shadow-premium-lg transition-shadow duration-300 overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-1">
                 <kpi.icon className="h-5 w-5 text-primary/70" />
                 <span className="text-[11px] font-medium text-success tracking-wide">{kpi.change}</span>
               </div>
               <p className="text-2xl font-display font-semibold text-foreground">{kpi.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <Sparkline data={kpi.spark} color={kpi.color} type={kpi.sparkType} />
             </motion.div>
           ))}
         </motion.div>
@@ -130,6 +204,73 @@ const Dashboard: React.FC = () => {
           <Link to="/export-import"><Download className="h-4 w-4 mr-2" />{t.dashboard.importProject}</Link>
         </Button>
       </div>
+
+      {/* Trend Charts */}
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TrendChartSkeleton />
+          <TrendChartSkeleton />
+        </div>
+      ) : (
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.25 }}
+        >
+          {/* Controls Evolution */}
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.controls}</h3>
+              <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">{t.dashboard.trends.last7Days}</span>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradApproved" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradPending" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradRejected" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="approved" name="Approved" stroke="#10b981" strokeWidth={2} fill="url(#gradApproved)" dot={false} />
+                  <Area type="monotone" dataKey="pending" name="Pending" stroke="#f59e0b" strokeWidth={1.5} fill="url(#gradPending)" dot={false} />
+                  <Area type="monotone" dataKey="rejected" name="Rejected" stroke="#ef4444" strokeWidth={1.5} fill="url(#gradRejected)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Confidence Trend */}
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.confidence}</h3>
+              <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">{t.dashboard.trends.last7Days}</span>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[80, 95]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="confidence" name="Confidence" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 }} activeDot={{ r: 5, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Two-column layout: Projects + Activity */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
