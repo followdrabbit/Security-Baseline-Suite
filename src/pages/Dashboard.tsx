@@ -200,12 +200,17 @@ function computeStrideData(t: any) {
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
+
+  const handleStrideClick = useCallback((category: string) => {
+    navigate(`/editor?stride=${category}`);
+  }, [navigate]);
 
   const toggleSeries = (key: 'approved' | 'pending' | 'rejected') => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
