@@ -11,6 +11,7 @@ import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-rea
 const History: React.FC = () => {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
