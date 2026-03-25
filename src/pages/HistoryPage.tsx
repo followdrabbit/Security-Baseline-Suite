@@ -7,6 +7,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-react';
 
 const mockDiffData: Record<string, DiffEntry[]> = {
