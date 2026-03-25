@@ -345,8 +345,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                   />
                 </motion.g>
               ))}
-              />
-            ))}
+            </AnimatePresence>
 
             {/* Category nodes */}
             {categoryPositions.map((cat, i) => {
