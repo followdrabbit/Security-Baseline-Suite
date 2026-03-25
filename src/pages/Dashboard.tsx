@@ -505,9 +505,9 @@ const Dashboard: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart data={computeStrideData(t)} cx="50%" cy="50%" outerRadius="70%">
                     <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
-                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))', cursor: 'pointer' }} onClick={(e: any) => { const strideData = computeStrideData(t); const match = strideData.find(d => d.label === e?.value); if (match) handleStrideClick(match.category); }} />
                     <PolarRadiusAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} />
-                    <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+                    <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))', cursor: 'pointer' }} activeDot={{ r: 6, fill: 'hsl(var(--primary))', cursor: 'pointer', onClick: (e: any, payload: any) => { if (payload?.payload?.category) handleStrideClick(payload.payload.category); } }} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
