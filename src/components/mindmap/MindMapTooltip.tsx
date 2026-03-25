@@ -85,7 +85,7 @@ const MindMapTooltip: React.FC<Props> = ({
           <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
             <span>Status: {statusLabel[ctrl.reviewStatus || ''] || 'Pending'}</span>
             {ctrl.confidence != null && (
-              <span>· {Math.round(ctrl.confidence)}% conf.</span>
+              <span>· {Math.round(ctrl.confidence * 100)}% conf.</span>
             )}
           </div>
         </div>
