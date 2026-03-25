@@ -184,9 +184,9 @@ describe('BaselineEditor', () => {
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
       act(() => controlBtn!.click());
 
-      expect(screen.getByText(/Attack Vector/i)).toBeInTheDocument();
-      expect(screen.getByText(/Mitigations/i)).toBeInTheDocument();
-      expect(screen.getByText(/Residual Risk/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Attack Vector/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Mitigations/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Residual Risk/i).length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows no threats message for control without threats', () => {

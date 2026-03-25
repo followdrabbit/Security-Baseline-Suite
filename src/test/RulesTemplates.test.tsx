@@ -79,7 +79,7 @@ describe('RulesTemplates', () => {
 
     it('renders all expected rule blocks', () => {
       renderRules();
-      expect(screen.getByText(/Template/i)).toBeInTheDocument();
+      expect(screen.getByText('Baseline Template')).toBeInTheDocument();
       expect(screen.getByText(/Writing Standards/i)).toBeInTheDocument();
       expect(screen.getByText(/Deduplication/i)).toBeInTheDocument();
       expect(screen.getByText(/Criticality/i)).toBeInTheDocument();
