@@ -338,12 +338,33 @@ Generate 8-15 comprehensive security controls for ${technology}. Return a JSON o
     }
 
     // Update project control count
+    const totalCount = inserted?.length || controlRows.length;
     await supabase
       .from("projects")
-      .update({ control_count: controlRows.length, status: "review" })
+      .update({ control_count: totalCount, status: "review" })
       .eq("id", projectId);
 
-    return new Response(JSON.stringify({ controls: inserted, count: inserted?.length || 0 }), {
+    // Get current version count for this project
+    const { count: versionCount } = await supabase
+      .from("baseline_versions")
+      .select("*", { count: "exact", head: true })
+      .eq("project_id", projectId)
+      .eq("user_id", userId);
+
+    const newVersion = (versionCount || 0) + 1;
+
+    // Create baseline version snapshot
+    await supabase.from("baseline_versions").insert({
+      project_id: projectId,
+      user_id: userId,
+      version: newVersion,
+      control_count: totalCount,
+      controls_snapshot: inserted || controlRows,
+      changes_summary: `Generated ${totalCount} security controls from ${sourceTexts?.length || 0} sources using AI (STRIDE methodology)`,
+      status: "review",
+    });
+
+    return new Response(JSON.stringify({ controls: inserted, count: totalCount }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
