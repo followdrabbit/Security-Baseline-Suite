@@ -323,6 +323,20 @@ const Dashboard: React.FC = () => {
 
   const strideData = useMemo(() => computeStrideData(t, controls), [t, controls]);
 
+  const reviewStatusData = useMemo(() => {
+    const counts = { approved: 0, pending: 0, rejected: 0 };
+    for (const c of controls) {
+      const s = c.review_status as keyof typeof counts;
+      if (counts[s] !== undefined) counts[s]++;
+      else counts.pending++;
+    }
+    return [
+      { name: 'Approved', value: counts.approved, color: '#10b981' },
+      { name: 'Pending', value: counts.pending, color: '#f59e0b' },
+      { name: 'Rejected', value: counts.rejected, color: '#ef4444' },
+    ];
+  }, [controls]);
+
   const kpis = [
     { label: t.dashboard.totalProjects, value: String(projects.length), icon: Layers, change: projects.length > 0 ? `+${projects.length}` : '0', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: String(approvedBaselines), icon: Shield, change: approvedBaselines > 0 ? `+${approvedBaselines}` : '0', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
