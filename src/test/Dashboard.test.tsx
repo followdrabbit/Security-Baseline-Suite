@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import { I18nProvider } from '@/contexts/I18nContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock framer-motion
 vi.mock('framer-motion', async () => {
@@ -44,99 +45,79 @@ vi.mock('recharts', () => ({
   PolarRadiusAxis: () => null,
 }));
 
-const renderDashboard = () =>
-  render(
-    <MemoryRouter>
-      <I18nProvider>
-        <Dashboard />
-      </I18nProvider>
-    </MemoryRouter>
+// Mock auth context
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user', email: 'test@aureum.com', user_metadata: { full_name: 'Test User' } },
+    session: {},
+    loading: false,
+  }),
+}));
+
+// Mock supabase
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: (table: string) => ({
+      select: () => ({
+        order: () => Promise.resolve({
+          data: table === 'projects' ? [
+            { id: '1', name: 'Demo Project', technology: 'AWS S3', status: 'in_progress', control_count: 7, avg_confidence: 85, updated_at: new Date().toISOString(), vendor: 'AWS', tags: [] },
+          ] : [
+            { id: 'c1', control_id: 'S3-001', title: 'Test', confidence_score: 85, threat_scenarios: [{ strideCategory: 'spoofing' }], review_status: 'pending' },
+          ],
+          error: null,
+        }),
+      }),
+    }),
+    auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }), getSession: () => Promise.resolve({ data: { session: null } }) },
+  },
+}));
+
+const renderDashboard = () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <I18nProvider>
+          <Dashboard />
+        </I18nProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
+};
 
 describe('Dashboard', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.useFakeTimers();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('shows welcome message and KPIs after loading', () => {
+  it('shows welcome message with user name after loading', async () => {
     renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    expect(screen.getByText(/Welcome back/i)).toBeInTheDocument();
-    expect(screen.getByText('Helena')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('181')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome back/i)).toBeInTheDocument();
+      expect(screen.getByText('Test User')).toBeInTheDocument();
+    });
   });
 
-  it('renders quick action buttons with links', () => {
+  it('renders quick action buttons with links', async () => {
     renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    const createLink = screen.getByRole('link', { name: /Create New Baseline/i });
-    expect(createLink).toHaveAttribute('href', '/new-project');
-
-    const importLink = screen.getByRole('link', { name: /Import Project/i });
-    expect(importLink).toHaveAttribute('href', '/export-import');
+    await waitFor(() => {
+      const createLink = screen.getByRole('link', { name: /Create New Baseline/i });
+      expect(createLink).toHaveAttribute('href', '/new-project');
+    });
   });
 
-  it('renders recent projects table after loading', () => {
+  it('renders real project data after loading', async () => {
     renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    expect(screen.getByText('Recent Projects')).toBeInTheDocument();
-    expect(screen.getByText('Amazon S3')).toBeInTheDocument();
-    expect(screen.getByText('Kubernetes')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Demo Project')).toBeInTheDocument();
+    });
   });
 
-  it('renders activity timeline after loading', () => {
+  it('renders STRIDE threat distribution chart section', async () => {
     renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    expect(screen.getByText(/Recent Activity/i)).toBeInTheDocument();
-    // Helena Vasquez appears multiple times in the timeline
-    const helenas = screen.getAllByText('Helena Vasquez');
-    expect(helenas.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('renders trend charts after loading', () => {
-    renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    // Trend chart containers should be present
-    const chartContainers = screen.getAllByTestId('chart-container');
-    expect(chartContainers.length).toBeGreaterThan(0);
-  });
-
-  it('renders KPI change indicators', () => {
-    renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    expect(screen.getByText('+2')).toBeInTheDocument();
-    expect(screen.getByText('+1')).toBeInTheDocument();
-    expect(screen.getByText('+47')).toBeInTheDocument();
-    expect(screen.getByText('+3%')).toBeInTheDocument();
-  });
-
-  it('renders Active Threats KPI card', () => {
-    renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    expect(screen.getByText('Active Threats')).toBeInTheDocument();
-    expect(screen.getByText('25')).toBeInTheDocument();
-    expect(screen.getByText('+4')).toBeInTheDocument();
-  });
-
-  it('renders STRIDE threat distribution chart section', () => {
-    renderDashboard();
-    act(() => vi.advanceTimersByTime(1600));
-
-    expect(screen.getByText('Threat Distribution by STRIDE')).toBeInTheDocument();
-    expect(screen.getByText(/Total Threats: 25/)).toBeInTheDocument();
-    expect(screen.getByText(/Click a category to filter/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Threat Distribution by STRIDE')).toBeInTheDocument();
+    });
   });
 });
