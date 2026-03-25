@@ -482,6 +482,16 @@ const translations = {
       outputLanguage: 'O idioma no qual os controles de baseline serão escritos.',
       reviewStatus: 'Estado atual da revisão: Pendente, Revisado, Aprovado, Rejeitado ou Ajustado.',
     },
+    confirmModal: {
+      approveTitle: 'Aprovar Controle',
+      approveDesc: 'Tem certeza de que deseja aprovar este controle de segurança? Esta ação o marca como validado.',
+      rejectTitle: 'Rejeitar Controle',
+      rejectDesc: 'Tem certeza de que deseja rejeitar este controle de segurança? Você pode adicionar notas explicando o motivo.',
+      restoreTitle: 'Restaurar Versão',
+      restoreDesc: 'Isso restaurará o baseline para uma versão anterior. Alterações atuais podem ser sobrescritas.',
+      approveAllTitle: 'Aprovar Todos Revisados',
+      approveAllDesc: 'Isso aprovará todos os controles marcados como revisados. Esta ação não pode ser facilmente desfeita.',
+    },
     common: {
       save: 'Salvar',
       cancel: 'Cancelar',
