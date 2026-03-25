@@ -276,6 +276,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           onMouseLeave={handleMouseUp}
         >
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             className="w-full"
             style={{ minHeight: '500px', transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, transformOrigin: 'center center' }}
