@@ -66,7 +66,7 @@ const History: React.FC = () => {
                       {i > 0 && (
                         <>
                           <Button variant="outline" size="sm"><GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}</Button>
-                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, version: ver.version })}><RotateCcw className="h-3.5 w-3.5 mr-1" />{t.history.restore}</Button>
+                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, version: String(ver.version) })}><RotateCcw className="h-3.5 w-3.5 mr-1" />{t.history.restore}</Button>
                         </>
                       )}
                     </div>
