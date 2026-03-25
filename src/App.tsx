@@ -16,6 +16,7 @@ import Traceability from "@/pages/Traceability";
 import HistoryPage from "@/pages/HistoryPage";
 import ExportImport from "@/pages/ExportImport";
 import Settings from "@/pages/Settings";
+import AIIntegrations from "@/pages/AIIntegrations";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
                 <Route path="/traceability" element={<Traceability />} />
                 <Route path="/history" element={<HistoryPage />} />
                 <Route path="/export-import" element={<ExportImport />} />
+                <Route path="/ai-integrations" element={<AIIntegrations />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
