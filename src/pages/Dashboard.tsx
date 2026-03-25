@@ -618,7 +618,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Review Status Breakdown */}
-      {!loading && controls.length > 0 && (
+      {!loading && filteredControls.length > 0 && (
         <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.4 }}>
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
             <h3 className="text-sm font-display font-semibold text-foreground mb-4">Review Status Breakdown</h3>
