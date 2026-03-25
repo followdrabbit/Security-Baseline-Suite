@@ -167,6 +167,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
+  const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
+  const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
+
+  const toggleSeries = (key: 'approved' | 'pending' | 'rejected') => {
+    setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
