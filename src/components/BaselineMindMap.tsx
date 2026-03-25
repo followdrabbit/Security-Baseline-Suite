@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Download } from 'lucide-react';
 import type { ControlItem } from '@/types';
 
 interface MindMapNode {
@@ -47,6 +48,8 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const svgContainerRef = React.useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -118,7 +121,69 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
   const centerX = svgWidth / 2;
   const centerY = svgHeight / 2;
 
-  // Distribute categories evenly in a circle
+  const exportToPng = useCallback(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    clone.removeAttribute('class');
+    clone.removeAttribute('style');
+    clone.setAttribute('width', String(svgWidth));
+    clone.setAttribute('height', String(svgHeight));
+    
+    const computedBg = getComputedStyle(document.documentElement);
+    const cardBg = computedBg.getPropertyValue('--card').trim();
+    const primaryColor = computedBg.getPropertyValue('--primary').trim();
+    const mutedFg = computedBg.getPropertyValue('--muted-foreground').trim();
+    
+    const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bgRect.setAttribute('width', '100%');
+    bgRect.setAttribute('height', '100%');
+    bgRect.setAttribute('fill', cardBg ? `hsl(${cardBg})` : '#1a1a2e');
+    clone.insertBefore(bgRect, clone.firstChild);
+
+    clone.querySelectorAll('text').forEach(text => {
+      const fill = text.getAttribute('fill') || '';
+      if (fill.includes('var(--muted-foreground)')) text.setAttribute('fill', mutedFg ? `hsl(${mutedFg})` : '#888');
+      else if (fill.includes('var(--primary)')) text.setAttribute('fill', primaryColor ? `hsl(${primaryColor})` : '#c8a84e');
+    });
+    clone.querySelectorAll('circle').forEach(circle => {
+      const fill = circle.getAttribute('fill') || '';
+      const stroke = circle.getAttribute('stroke') || '';
+      if (fill.includes('var(--card)')) circle.setAttribute('fill', cardBg ? `hsl(${cardBg})` : '#1a1a2e');
+      if (fill.includes('var(--primary)')) circle.setAttribute('fill', primaryColor ? `hsl(${primaryColor})` : 'hsla(43, 55%, 55%, 0.1)');
+      if (stroke.includes('var(--primary)')) circle.setAttribute('stroke', primaryColor ? `hsl(${primaryColor})` : '#c8a84e');
+    });
+
+    const svgString = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.onload = () => {
+      const scale = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = svgWidth * scale;
+      canvas.height = svgHeight * scale;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(pngBlob => {
+        if (!pngBlob) return;
+        const pngUrl = URL.createObjectURL(pngBlob);
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `mindmap-${technologyName.replace(/\s+/g, '-').toLowerCase()}.png`;
+        a.click();
+        URL.revokeObjectURL(pngUrl);
+      }, 'image/png');
+    };
+    img.src = url;
+  }, [svgWidth, svgHeight, technologyName]);
+
+
   const categoryPositions = useMemo(() => {
     return categories.map((cat, i) => {
       const angle = (i / categories.length) * 2 * Math.PI - Math.PI / 2;
@@ -193,6 +258,12 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           <span className="text-[10px] text-muted-foreground font-mono w-12 text-center">{Math.round(zoom * 100)}%</span>
           <button onClick={resetView} className="px-2 py-1 text-[10px] rounded bg-accent text-accent-foreground hover:bg-accent/80 transition-colors">Reset</button>
           <span className="text-[10px] text-muted-foreground ml-2">Scroll to zoom · Drag to pan</span>
+          <div className="ml-auto">
+            <button onClick={exportToPng} className="flex items-center gap-1.5 px-3 py-1 text-[10px] rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium">
+              <Download className="w-3 h-3" />
+              Export PNG
+            </button>
+          </div>
         </div>
         <div
           ref={svgContainerRef}
@@ -205,6 +276,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           onMouseLeave={handleMouseUp}
         >
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             className="w-full"
             style={{ minHeight: '500px', transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, transformOrigin: 'center center' }}
