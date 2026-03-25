@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Download } from 'lucide-react';
 import type { ControlItem } from '@/types';
 
 interface MindMapNode {
