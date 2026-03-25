@@ -147,12 +147,50 @@ const Traceability: React.FC = () => {
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
+                      const pct = Math.round((d.controls / mockControls.length) * 100);
+                      const relatedControls = mockControls.filter(c =>
+                        c.frameworkMappings.some(m => getFrameworkPrefix(m) === d.framework)
+                      );
+                      const avgConfidence = relatedControls.length
+                        ? Math.round(relatedControls.reduce((sum, c) => sum + c.confidenceScore, 0) / relatedControls.length * 100)
+                        : 0;
                       return (
-                        <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
-                          <p className="font-semibold text-foreground">{d.framework}</p>
-                          <p className="text-muted-foreground">
-                            {d.controls} {t.traceabilityPage.controlsMapped}
-                          </p>
+                        <div className="bg-popover border border-border rounded-lg px-3.5 py-3 shadow-premium text-xs min-w-[200px]">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                            <p className="font-semibold text-foreground text-sm">{d.framework}</p>
+                          </div>
+                          <div className="space-y-1.5 mb-2.5">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">{t.traceabilityPage.controlsMapped}</span>
+                              <span className="font-semibold text-foreground">{d.controls} / {mockControls.length}</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Coverage</span>
+                              <span className="font-semibold text-foreground">{pct}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Avg. Confidence</span>
+                              <span className="font-semibold text-foreground">{avgConfidence}%</span>
+                            </div>
+                          </div>
+                          <div className="border-t border-border pt-2">
+                            <p className="text-[10px] text-muted-foreground mb-1 font-medium">Top controls:</p>
+                            <div className="space-y-0.5">
+                              {relatedControls.slice(0, 3).map(c => (
+                                <div key={c.id} className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-mono text-primary/70">{c.controlId}</span>
+                                  <span className="text-[10px] text-foreground/70 truncate">{c.title}</span>
+                                </div>
+                              ))}
+                              {relatedControls.length > 3 && (
+                                <span className="text-[10px] text-muted-foreground/60">+{relatedControls.length - 3} more</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       );
                     }}
