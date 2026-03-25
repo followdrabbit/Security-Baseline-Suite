@@ -403,23 +403,26 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
               const isHovered = hoveredNode === ctrl.id;
               const isSelected = selectedControl?.id === ctrl.id;
               const critColor = CRITICALITY_RING[ctrl.criticality || 'medium'] || 'hsl(var(--muted-foreground))';
+              const isDimmed = matchingControlIds !== null && !matchingControlIds.has(ctrl.id);
+              const isHighlighted = matchingControlIds !== null && matchingControlIds.has(ctrl.id);
               return (
                 <g
                   key={ctrl.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer transition-opacity"
+                  style={{ opacity: isDimmed ? 0.15 : 1 }}
                   onMouseEnter={() => setHoveredNode(ctrl.id)}
                   onMouseLeave={() => setHoveredNode(null)}
                   onClick={() => handleControlClick(ctrl.id)}
                 >
                   <motion.circle
                     initial={{ r: 0, opacity: 0 }}
-                    animate={{ r: isHovered || isSelected ? 22 : 18, opacity: 1 }}
+                    animate={{ r: isHovered || isSelected ? 22 : (isHighlighted ? 20 : 18), opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.6 }}
                     cx={x}
                     cy={y}
                     fill={`hsla(${catColor}, 0.15)`}
-                    stroke={isSelected ? critColor : `hsl(${catColor})`}
-                    strokeWidth={isSelected ? 2.5 : 1.5}
+                    stroke={isSelected ? critColor : isHighlighted ? critColor : `hsl(${catColor})`}
+                    strokeWidth={isSelected ? 2.5 : isHighlighted ? 2 : 1.5}
                   />
                   {/* Criticality ring */}
                   <motion.circle
