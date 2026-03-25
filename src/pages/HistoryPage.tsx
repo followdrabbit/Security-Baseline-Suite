@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
@@ -11,7 +11,7 @@ import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-react';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2 } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
@@ -28,8 +28,10 @@ const History: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
+  const [restoreModal, setRestoreModal] = useState<{ open: boolean; versionId?: string; version?: string }>({ open: false });
+  const [restoring, setRestoring] = useState(false);
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
     open: false, fromVersion: 0, toVersion: 0, entries: [],
   });
@@ -206,7 +208,7 @@ const History: React.FC = () => {
                           <Button variant="outline" size="sm" onClick={() => openDiff(i)}>
                             <GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, version: String(ver.version) })}>
+                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, versionId: ver.id, version: String(ver.version) })}>
                             <RotateCcw className="h-3.5 w-3.5 mr-1" />{t.history.restore}
                           </Button>
                         </>
@@ -227,11 +229,32 @@ const History: React.FC = () => {
         title={t.confirmModal.restoreTitle}
         description={t.confirmModal.restoreDesc}
         itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
-        confirmLabel={t.history.restore}
+        confirmLabel={restoring ? 'Restoring...' : t.history.restore}
         cancelLabel={t.common.cancel}
-        onConfirm={() => {
-          toast({ title: `🔄 ${t.toasts.restored}`, description: `${t.toasts.restoredDesc} ${restoreModal.version}.` });
-          setRestoreModal({ open: false });
+        onConfirm={async () => {
+          if (!restoreModal.versionId || !selectedProjectId || restoring) return;
+          setRestoring(true);
+          try {
+            const { data, error } = await supabase.functions.invoke('restore-baseline', {
+              body: { versionId: restoreModal.versionId, projectId: selectedProjectId },
+            });
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+
+            queryClient.invalidateQueries({ queryKey: ['baseline-versions'] });
+            queryClient.invalidateQueries({ queryKey: ['export-projects'] });
+            queryClient.invalidateQueries({ queryKey: ['history-projects'] });
+            toast({
+              title: `🔄 ${t.toasts.restored}`,
+              description: `Baseline restored to Version ${restoreModal.version} (${data.controlCount} controls). New Version ${data.newVersion} created.`,
+            });
+          } catch (err) {
+            console.error('Restore error:', err);
+            toast({ title: '❌ Restore failed', description: 'Could not restore the baseline. Please try again.', variant: 'destructive' });
+          } finally {
+            setRestoring(false);
+            setRestoreModal({ open: false });
+          }
         }}
       />
 
