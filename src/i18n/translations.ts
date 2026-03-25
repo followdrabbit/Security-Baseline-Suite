@@ -54,6 +54,8 @@ const translations = {
         showApproved: 'Approved',
         showPending: 'Pending',
         showRejected: 'Rejected',
+        exportPng: 'Export as PNG',
+        exportCsv: 'Export as CSV',
       },
     },
     project: {
@@ -379,6 +381,8 @@ const translations = {
         showApproved: 'Aprovados',
         showPending: 'Pendentes',
         showRejected: 'Rejeitados',
+        exportPng: 'Exportar como PNG',
+        exportCsv: 'Exportar como CSV',
       },
     },
     project: {
@@ -704,6 +708,8 @@ const translations = {
         showApproved: 'Aprobados',
         showPending: 'Pendientes',
         showRejected: 'Rechazados',
+        exportPng: 'Exportar como PNG',
+        exportCsv: 'Exportar como CSV',
       },
     },
     project: {

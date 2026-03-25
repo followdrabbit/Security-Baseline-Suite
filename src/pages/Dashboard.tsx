@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -6,11 +6,13 @@ import { mockProjects } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
-import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare } from 'lucide-react';
+import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useToast } from '@/hooks/use-toast';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
@@ -166,14 +168,62 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
+  const controlsChartRef = useRef<HTMLDivElement>(null);
+  const confidenceChartRef = useRef<HTMLDivElement>(null);
 
   const toggleSeries = (key: 'approved' | 'pending' | 'rejected') => {
     setVisibleSeries(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const exportChartAsPng = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
+    const container = ref.current;
+    if (!container) return;
+    const svg = container.querySelector('svg.recharts-surface') as SVGSVGElement | null;
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const { width, height } = svg.getBoundingClientRect();
+    const canvas = document.createElement('canvas');
+    const scale = 2;
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(scale, scale);
+    // Draw background
+    const bg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+    ctx.fillStyle = bg ? `hsl(${bg})` : '#1a1a2e';
+    ctx.fillRect(0, 0, width, height);
+    const img = new window.Image();
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.download = `${filename}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      toast({ title: '📊 PNG Exported', description: filename });
+    };
+    img.src = url;
+  }, [toast]);
+
+  const exportChartAsCsv = useCallback((data: typeof trendData7d, columns: string[], filename: string) => {
+    const header = columns.join(',');
+    const rows = data.map(row => columns.map(c => (row as any)[c] ?? '').join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.download = `${filename}.csv`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast({ title: '📄 CSV Exported', description: filename });
+  }, [toast]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1500);
@@ -250,16 +300,33 @@ const Dashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.controls}</h3>
-              <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
-                {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setControlsPeriod(p)}
-                    className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${controlsPeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+                  {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setControlsPeriod(p)}
+                      className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${controlsPeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
+                    </button>
+                  ))}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[160px]">
+                    <DropdownMenuItem onClick={() => exportChartAsPng(controlsChartRef, `controls-trend-${controlsPeriod}`)}>
+                      <Image className="h-3.5 w-3.5 mr-2" />{t.dashboard.trends.exportPng}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportChartAsCsv(trendDataMap[controlsPeriod], ['day', 'approved', 'pending', 'rejected'], `controls-trend-${controlsPeriod}`)}>
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />{t.dashboard.trends.exportCsv}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             {/* Series toggles */}
@@ -279,7 +346,7 @@ const Dashboard: React.FC = () => {
                 </button>
               ))}
             </div>
-            <div className="h-[200px]">
+            <div className="h-[200px]" ref={controlsChartRef}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendDataMap[controlsPeriod]} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
@@ -312,19 +379,36 @@ const Dashboard: React.FC = () => {
           <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.trends.confidence}</h3>
-              <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
-                {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setConfidencePeriod(p)}
-                    className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${confidencePeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+                  {(['7d', '30d', '90d'] as TrendPeriod[]).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setConfidencePeriod(p)}
+                      className={`px-2.5 py-1 text-[10px] font-medium rounded transition-all ${confidencePeriod === p ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      {t.dashboard.trends[`period${p.toUpperCase()}` as 'period7d' | 'period30d' | 'period90d']}
+                    </button>
+                  ))}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[160px]">
+                    <DropdownMenuItem onClick={() => exportChartAsPng(confidenceChartRef, `confidence-trend-${confidencePeriod}`)}>
+                      <Image className="h-3.5 w-3.5 mr-2" />{t.dashboard.trends.exportPng}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportChartAsCsv(trendDataMap[confidencePeriod], ['day', 'confidence'], `confidence-trend-${confidencePeriod}`)}>
+                      <FileSpreadsheet className="h-3.5 w-3.5 mr-2" />{t.dashboard.trends.exportCsv}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
-            <div className="h-[200px]">
+            <div className="h-[200px]" ref={confidenceChartRef}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendDataMap[confidencePeriod]} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
