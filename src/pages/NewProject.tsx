@@ -197,11 +197,50 @@ const NewProject: React.FC = () => {
           <ChevronLeft className="h-4 w-4 mr-1" />{t.project.previous}
         </Button>
         {current < 4 ? (
-          <Button onClick={() => setCurrent(current + 1)} className="gold-gradient text-primary-foreground hover:opacity-90">
+          <Button
+            onClick={async () => {
+              if (current === 0 && !projectId) {
+                if (!form.name || !form.technology) {
+                  toast.error('Preencha nome e tecnologia');
+                  return;
+                }
+                setSaving(true);
+                try {
+                  const { data, error } = await supabase.from('projects').insert({
+                    name: form.name,
+                    technology: form.technology,
+                    vendor: form.vendor || null,
+                    version: form.version || null,
+                    category: form.category || null,
+                    output_language: form.outputLanguage,
+                    notes: form.notes || null,
+                    tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+                    user_id: user!.id,
+                    status: 'draft',
+                  }).select('id').single();
+                  if (error) throw error;
+                  setProjectId(data.id);
+                  toast.success('Projeto criado com sucesso');
+                } catch (err: any) {
+                  toast.error(`Erro ao criar projeto: ${err.message}`);
+                  setSaving(false);
+                  return;
+                }
+                setSaving(false);
+              }
+              setCurrent(current + 1);
+            }}
+            className="gold-gradient text-primary-foreground hover:opacity-90"
+            disabled={saving}
+          >
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
             {t.project.next}<ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
-          <Button className="gold-gradient text-primary-foreground hover:opacity-90">
+          <Button
+            className="gold-gradient text-primary-foreground hover:opacity-90"
+            onClick={() => navigate('/sources')}
+          >
             {t.project.save}
           </Button>
         )}
