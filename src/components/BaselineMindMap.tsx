@@ -318,7 +318,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           <select
             value={criticalityFilter}
             onChange={e => setCriticalityFilter(e.target.value)}
-            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors"
+            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors w-auto max-w-[140px]"
           >
             <option value="all">All Criticality</option>
             <option value="critical">Critical</option>
@@ -330,7 +330,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors"
+            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors w-auto max-w-[120px]"
           >
             <option value="all">All Status</option>
             <option value="approved">Approved</option>
