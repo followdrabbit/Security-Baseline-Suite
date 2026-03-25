@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockProjects } from '@/data/mockData';
+import { mockProjects, mockControls } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import type { StrideCategory } from '@/types';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
@@ -165,6 +166,36 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     </div>
   );
 };
+
+// --- STRIDE threat distribution data ---
+const STRIDE_COLORS: Record<StrideCategory, string> = {
+  spoofing: '#8b5cf6',
+  tampering: '#f59e0b',
+  repudiation: '#6366f1',
+  information_disclosure: '#ef4444',
+  denial_of_service: '#ec4899',
+  elevation_of_privilege: '#14b8a6',
+};
+
+const STRIDE_ORDER: StrideCategory[] = ['spoofing', 'tampering', 'repudiation', 'information_disclosure', 'denial_of_service', 'elevation_of_privilege'];
+
+function computeStrideData(t: any) {
+  const counts: Record<StrideCategory, number> = {
+    spoofing: 0, tampering: 0, repudiation: 0,
+    information_disclosure: 0, denial_of_service: 0, elevation_of_privilege: 0,
+  };
+  for (const ctrl of mockControls) {
+    for (const ts of ctrl.threatScenarios) {
+      counts[ts.strideCategory]++;
+    }
+  }
+  return STRIDE_ORDER.map(cat => ({
+    category: cat,
+    label: (t.dashboard.stride as any)?.[cat] ?? cat.replace(/_/g, ' '),
+    count: counts[cat],
+    color: STRIDE_COLORS[cat],
+  }));
+}
 
 const Dashboard: React.FC = () => {
   const { t } = useI18n();
@@ -418,6 +449,62 @@ const Dashboard: React.FC = () => {
                   <Line type="monotone" dataKey="confidence" name={t.dashboard.trends.confidence} stroke="hsl(var(--primary))" strokeWidth={2.5} dot={confidencePeriod === '7d' ? { r: 3, fill: 'hsl(var(--primary))', strokeWidth: 0 } : false} activeDot={{ r: 5, fill: 'hsl(var(--primary))', strokeWidth: 2, stroke: 'hsl(var(--background))' }} />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* STRIDE Threat Distribution */}
+      {!loading && (
+        <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ delay: 0.35 }}>
+          <div className="bg-card border border-border rounded-lg p-5 shadow-premium">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-display font-semibold text-foreground">{t.dashboard.stride.title}</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {t.dashboard.stride.totalThreats}: {computeStrideData(t).reduce((sum, d) => sum + d.count, 0)}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Bar Chart */}
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={computeStrideData(t)} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={110} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-premium text-xs">
+                            <p className="font-semibold text-foreground">{d.label}</p>
+                            <p className="text-muted-foreground">{d.count} threats</p>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18}>
+                      {computeStrideData(t).map((entry) => (
+                        <Cell key={entry.category} fill={entry.color} fillOpacity={0.85} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Radar Chart */}
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={computeStrideData(t)} cx="50%" cy="50%" outerRadius="70%">
+                    <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <PolarRadiusAxis tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} />
+                    <Radar dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--primary))' }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </motion.div>

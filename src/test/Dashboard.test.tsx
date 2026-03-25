@@ -28,14 +28,20 @@ vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div data-testid="chart-container">{children}</div>,
   AreaChart: () => <div data-testid="area-chart" />,
   LineChart: () => <div data-testid="line-chart" />,
-  BarChart: () => <div data-testid="bar-chart" />,
+  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  RadarChart: ({ children }: any) => <div data-testid="radar-chart">{children}</div>,
   Area: () => null,
   Line: () => null,
-  Bar: () => null,
+  Bar: ({ children }: any) => <>{children}</>,
+  Radar: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
   Tooltip: () => null,
+  Cell: () => null,
+  PolarGrid: () => null,
+  PolarAngleAxis: () => null,
+  PolarRadiusAxis: () => null,
 }));
 
 const renderDashboard = () =>
