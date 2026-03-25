@@ -52,6 +52,25 @@ const BaselineEditor: React.FC = () => {
     setControls(prev => prev.map(c => c.id === id ? { ...c, reviewStatus: status } : c));
   };
 
+  const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll', controlId?: string) => {
+    const control = controlId ? controls.find(c => c.id === controlId) : undefined;
+    setConfirmModal({
+      open: true,
+      variant,
+      controlId,
+      controlLabel: control ? `${control.controlId} — ${control.title}` : undefined,
+    });
+  };
+
+  const handleConfirm = () => {
+    if (confirmModal.variant === 'approveAll') {
+      setControls(prev => prev.map(c => c.reviewStatus === 'reviewed' ? { ...c, reviewStatus: 'approved' } : c));
+    } else if (confirmModal.controlId) {
+      updateStatus(confirmModal.controlId, confirmModal.variant === 'approve' ? 'approved' : 'rejected');
+    }
+    setConfirmModal(prev => ({ ...prev, open: false }));
+  };
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
