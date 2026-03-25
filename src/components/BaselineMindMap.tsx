@@ -1,36 +1,14 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Search, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { ControlItem } from '@/types';
-
-interface MindMapNode {
-  id: string;
-  label: string;
-  sublabel?: string;
-  children?: MindMapNode[];
-  criticality?: string;
-  reviewStatus?: string;
-  confidence?: number;
-  category?: string;
-}
-
-const CATEGORY_COLORS: Record<string, string> = {
-  identity: '43, 55%, 55%',
-  encryption: '210, 65%, 55%',
-  logging: '152, 50%, 45%',
-  network: '280, 50%, 55%',
-  storage: '38, 85%, 55%',
-  runtime: '0, 55%, 50%',
-  cicd: '190, 60%, 45%',
-};
-
-const CRITICALITY_RING: Record<string, string> = {
-  critical: 'hsl(0, 65%, 50%)',
-  high: 'hsl(25, 80%, 50%)',
-  medium: 'hsl(38, 85%, 55%)',
-  low: 'hsl(152, 50%, 45%)',
-  informational: 'hsl(210, 65%, 55%)',
-};
+import { CATEGORY_COLORS, CRITICALITY_RING } from './mindmap/types';
+import type { CategoryPosition, ControlPosition } from './mindmap/types';
+import MindMapFilterBar from './mindmap/MindMapFilterBar';
+import MindMapControlNode from './mindmap/MindMapControlNode';
+import MindMapLegend from './mindmap/MindMapLegend';
+import MindMapMiniMap from './mindmap/MindMapMiniMap';
+import MindMapDetailPanel from './mindmap/MindMapDetailPanel';
 
 interface Props {
   technologyName: string;
@@ -50,7 +28,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
   const hasActiveFilter = searchText.trim() !== '' || criticalityFilter !== 'all' || statusFilter !== 'all';
 
   const matchingControlIds = useMemo(() => {
-    if (!hasActiveFilter) return null; // null = no filter active, show all normally
+    if (!hasActiveFilter) return null;
     const ids = new Set<string>();
     const query = searchText.toLowerCase().trim();
     for (const c of controls) {
@@ -61,8 +39,6 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
     }
     return ids;
   }, [controls, searchText, criticalityFilter, statusFilter, hasActiveFilter]);
-
-  // matchingCategoryIds is defined after tree (below)
 
   const clearFilters = useCallback(() => {
     setSearchText('');
@@ -75,9 +51,8 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const svgContainerRef = React.useRef<HTMLDivElement>(null);
+  const svgContainerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -97,16 +72,11 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
     setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
   }, [isPanning, panStart]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
-  }, []);
+  const handleMouseUp = useCallback(() => setIsPanning(false), []);
+  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
 
-  const resetView = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
-
-  const tree = useMemo<MindMapNode>(() => {
+  // Tree structure
+  const tree = useMemo(() => {
     const groups: Record<string, ControlItem[]> = {};
     for (const c of controls) {
       const cat = c.category || 'other';
@@ -144,13 +114,12 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
     if (!matchingControlIds) return null;
     const ids = new Set<string>();
     for (const cat of categories) {
-      const hasMatch = (cat.children || []).some(ctrl => matchingControlIds.has(ctrl.id));
-      if (hasMatch) ids.add(cat.id);
+      if ((cat.children || []).some(ctrl => matchingControlIds.has(ctrl.id))) ids.add(cat.id);
     }
     return ids;
   }, [matchingControlIds, categories]);
 
-  // Layout calculations
+  // Layout
   const svgWidth = 900;
   const padding = 60;
   const categoryRadius = 180;
@@ -159,27 +128,60 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
   const centerX = svgWidth / 2;
   const centerY = svgHeight / 2;
 
+  const categoryPositions = useMemo<CategoryPosition[]>(() =>
+    categories.map((cat, i) => {
+      const angle = (i / categories.length) * 2 * Math.PI - Math.PI / 2;
+      return { ...cat, x: centerX + Math.cos(angle) * categoryRadius, y: centerY + Math.sin(angle) * categoryRadius, angle };
+    }),
+    [categories, centerX, centerY, categoryRadius]
+  );
+
+  const controlPositions = useMemo<ControlPosition[]>(() => {
+    const positions: ControlPosition[] = [];
+    categoryPositions.forEach(cat => {
+      const children = cat.children || [];
+      const spreadAngle = Math.min(Math.PI * 0.4, children.length * 0.15);
+      const baseAngle = cat.angle;
+      children.forEach((ctrl, j) => {
+        const totalChildren = children.length;
+        const childAngle = totalChildren === 1
+          ? baseAngle
+          : baseAngle - spreadAngle / 2 + (j / (totalChildren - 1)) * spreadAngle;
+        positions.push({
+          ctrl,
+          x: centerX + Math.cos(childAngle) * controlRadius,
+          y: centerY + Math.sin(childAngle) * controlRadius,
+          parentX: cat.x,
+          parentY: cat.y,
+          catColor: CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%',
+        });
+      });
+    });
+    return positions;
+  }, [categoryPositions, centerX, centerY, controlRadius]);
+
+  const handleControlClick = useCallback((nodeId: string) => {
+    const ctrl = controls.find(c => c.id === nodeId);
+    setSelectedControl(prev => prev?.id === nodeId ? null : ctrl || null);
+  }, [controls]);
+
   const exportToPng = useCallback(() => {
     const svgEl = svgRef.current;
     if (!svgEl) return;
-
     const clone = svgEl.cloneNode(true) as SVGSVGElement;
     clone.removeAttribute('class');
     clone.removeAttribute('style');
     clone.setAttribute('width', String(svgWidth));
     clone.setAttribute('height', String(svgHeight));
-    
-    const computedBg = getComputedStyle(document.documentElement);
-    const cardBg = computedBg.getPropertyValue('--card').trim();
-    const primaryColor = computedBg.getPropertyValue('--primary').trim();
-    const mutedFg = computedBg.getPropertyValue('--muted-foreground').trim();
-    
+    const cs = getComputedStyle(document.documentElement);
+    const cardBg = cs.getPropertyValue('--card').trim();
+    const primaryColor = cs.getPropertyValue('--primary').trim();
+    const mutedFg = cs.getPropertyValue('--muted-foreground').trim();
     const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     bgRect.setAttribute('width', '100%');
     bgRect.setAttribute('height', '100%');
     bgRect.setAttribute('fill', cardBg ? `hsl(${cardBg})` : '#1a1a2e');
     clone.insertBefore(bgRect, clone.firstChild);
-
     clone.querySelectorAll('text').forEach(text => {
       const fill = text.getAttribute('fill') || '';
       if (fill.includes('var(--muted-foreground)')) text.setAttribute('fill', mutedFg ? `hsl(${mutedFg})` : '#888');
@@ -192,11 +194,9 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
       if (fill.includes('var(--primary)')) circle.setAttribute('fill', primaryColor ? `hsl(${primaryColor})` : 'hsla(43, 55%, 55%, 0.1)');
       if (stroke.includes('var(--primary)')) circle.setAttribute('stroke', primaryColor ? `hsl(${primaryColor})` : '#c8a84e');
     });
-
     const svgString = new XMLSerializer().serializeToString(clone);
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-
     const img = new Image();
     img.onload = () => {
       const scale = 2;
@@ -221,73 +221,8 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
     img.src = url;
   }, [svgWidth, svgHeight, technologyName]);
 
-
-  const categoryPositions = useMemo(() => {
-    return categories.map((cat, i) => {
-      const angle = (i / categories.length) * 2 * Math.PI - Math.PI / 2;
-      return {
-        ...cat,
-        x: centerX + Math.cos(angle) * categoryRadius,
-        y: centerY + Math.sin(angle) * categoryRadius,
-        angle,
-      };
-    });
-  }, [categories, centerX, centerY, categoryRadius]);
-
-  // Calculate control positions around each category
-  const controlPositions = useMemo(() => {
-    const positions: Array<{
-      ctrl: MindMapNode;
-      x: number;
-      y: number;
-      parentX: number;
-      parentY: number;
-      catColor: string;
-    }> = [];
-
-    categoryPositions.forEach(cat => {
-      const children = cat.children || [];
-      const spreadAngle = Math.min(Math.PI * 0.4, children.length * 0.15);
-      const baseAngle = cat.angle;
-
-      children.forEach((ctrl, j) => {
-        const totalChildren = children.length;
-        const childAngle = totalChildren === 1
-          ? baseAngle
-          : baseAngle - spreadAngle / 2 + (j / (totalChildren - 1)) * spreadAngle;
-        const r = controlRadius;
-        positions.push({
-          ctrl,
-          x: centerX + Math.cos(childAngle) * r,
-          y: centerY + Math.sin(childAngle) * r,
-          parentX: cat.x,
-          parentY: cat.y,
-          catColor: CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%',
-        });
-      });
-    });
-
-    return positions;
-  }, [categoryPositions, centerX, centerY, controlRadius]);
-
-  const handleControlClick = useCallback((nodeId: string) => {
-    const ctrl = controls.find(c => c.id === nodeId);
-    setSelectedControl(prev => prev?.id === nodeId ? null : ctrl || null);
-  }, [controls]);
-
-  const reviewStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return '✓';
-      case 'rejected': return '✗';
-      case 'reviewed': return '◉';
-      case 'adjusted': return '↻';
-      default: return '○';
-    }
-  };
-
   return (
     <div className="relative w-full">
-      {/* SVG Mind Map */}
       <div className="bg-card border border-border rounded-lg shadow-premium overflow-hidden">
         {/* Zoom controls */}
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/30">
@@ -303,54 +238,22 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             </button>
           </div>
         </div>
+
         {/* Filter bar */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/20 overflow-x-auto">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchText}
-              onChange={e => setSearchText(e.target.value)}
-              placeholder="Search controls..."
-              className="pl-7 pr-2 py-1 text-[11px] rounded bg-accent text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none w-40 transition-colors"
-            />
-          </div>
-          <select
-            value={criticalityFilter}
-            onChange={e => setCriticalityFilter(e.target.value)}
-            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors w-auto max-w-[140px]"
-          >
-            <option value="all">All Criticality</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="informational">Informational</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-2 py-1 text-[11px] rounded bg-accent text-foreground border border-border focus:border-primary focus:outline-none transition-colors w-auto max-w-[120px]"
-          >
-            <option value="all">All Status</option>
-            <option value="approved">Approved</option>
-            <option value="reviewed">Reviewed</option>
-            <option value="pending">Pending</option>
-            <option value="rejected">Rejected</option>
-            <option value="adjusted">Adjusted</option>
-          </select>
-          {hasActiveFilter && (
-            <>
-              <button onClick={clearFilters} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors">
-                <X className="w-3 h-3" />
-                Clear
-              </button>
-              <span className="text-[10px] text-muted-foreground ml-1">
-                {matchingControlIds?.size ?? 0} of {totalControls} controls
-              </span>
-            </>
-          )}
-        </div>
+        <MindMapFilterBar
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          criticalityFilter={criticalityFilter}
+          onCriticalityChange={setCriticalityFilter}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          hasActiveFilter={hasActiveFilter}
+          onClear={clearFilters}
+          matchingCount={matchingControlIds?.size ?? 0}
+          totalCount={totalControls}
+        />
+
+        {/* SVG canvas */}
         <div
           ref={svgContainerRef}
           className="overflow-hidden select-none"
@@ -367,24 +270,21 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             className="w-full"
             style={{ minHeight: '500px', transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, transformOrigin: 'center center' }}
           >
-            {/* Connections: root → categories */}
+            {/* Root → category connections */}
             {categoryPositions.map(cat => (
               <motion.line
                 key={`line-root-${cat.id}`}
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 0.4 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                x1={centerX}
-                y1={centerY}
-                x2={cat.x}
-                y2={cat.y}
+                x1={centerX} y1={centerY} x2={cat.x} y2={cat.y}
                 stroke={`hsl(${CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%'})`}
                 strokeWidth={2}
                 strokeDasharray="6 3"
               />
             ))}
 
-            {/* Connections: categories → controls */}
+            {/* Category → control connections */}
             {controlPositions.map(({ ctrl, x, y, parentX, parentY, catColor }) => (
               <motion.path
                 key={`line-${ctrl.id}`}
@@ -399,70 +299,22 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             ))}
 
             {/* Control nodes */}
-            {controlPositions.map(({ ctrl, x, y, catColor }) => {
-              const isHovered = hoveredNode === ctrl.id;
-              const isSelected = selectedControl?.id === ctrl.id;
-              const critColor = CRITICALITY_RING[ctrl.criticality || 'medium'] || 'hsl(var(--muted-foreground))';
-              const isDimmed = matchingControlIds !== null && !matchingControlIds.has(ctrl.id);
-              const isHighlighted = matchingControlIds !== null && matchingControlIds.has(ctrl.id);
-              return (
-                <g
-                  key={ctrl.id}
-                  className="cursor-pointer transition-opacity"
-                  style={{ opacity: isDimmed ? 0.15 : 1 }}
-                  onMouseEnter={() => setHoveredNode(ctrl.id)}
-                  onMouseLeave={() => setHoveredNode(null)}
-                  onClick={() => handleControlClick(ctrl.id)}
-                >
-                  <motion.circle
-                    initial={{ r: 0, opacity: 0 }}
-                    animate={{ r: isHovered || isSelected ? 22 : (isHighlighted ? 20 : 18), opacity: 1 }}
-                    transition={{ duration: 0.3, delay: 0.6 }}
-                    cx={x}
-                    cy={y}
-                    fill={`hsla(${catColor}, 0.15)`}
-                    stroke={isSelected ? critColor : isHighlighted ? critColor : `hsl(${catColor})`}
-                    strokeWidth={isSelected ? 2.5 : isHighlighted ? 2 : 1.5}
-                  />
-                  {/* Criticality ring */}
-                  <motion.circle
-                    initial={{ r: 0 }}
-                    animate={{ r: isHovered || isSelected ? 26 : 0 }}
-                    cx={x}
-                    cy={y}
-                    fill="none"
-                    stroke={critColor}
-                    strokeWidth={1.5}
-                    strokeDasharray="3 2"
-                    opacity={0.6}
-                  />
-                  {/* Status icon */}
-                  <text
-                    x={x}
-                    y={y + 1}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    className="text-[9px] font-bold select-none pointer-events-none"
-                    fill={critColor}
-                  >
-                    {reviewStatusIcon(ctrl.reviewStatus || '')}
-                  </text>
-                  {/* Control ID label */}
-                  <motion.text
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8 }}
-                    x={x}
-                    y={y + 32}
-                    textAnchor="middle"
-                    className="text-[8px] font-mono select-none pointer-events-none"
-                    fill="hsl(var(--muted-foreground))"
-                  >
-                    {ctrl.label}
-                  </motion.text>
-                </g>
-              );
-            })}
+            {controlPositions.map(({ ctrl, x, y, catColor }) => (
+              <MindMapControlNode
+                key={ctrl.id}
+                ctrl={ctrl}
+                x={x}
+                y={y}
+                catColor={catColor}
+                isHovered={hoveredNode === ctrl.id}
+                isSelected={selectedControl?.id === ctrl.id}
+                isDimmed={matchingControlIds !== null && !matchingControlIds.has(ctrl.id)}
+                isHighlighted={matchingControlIds !== null && matchingControlIds.has(ctrl.id)}
+                onMouseEnter={() => setHoveredNode(ctrl.id)}
+                onMouseLeave={() => setHoveredNode(null)}
+                onClick={() => handleControlClick(ctrl.id)}
+              />
+            ))}
 
             {/* Category nodes */}
             {categoryPositions.map((cat, i) => {
@@ -479,11 +331,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                 >
                   <motion.rect
                     initial={{ width: 0, height: 0, opacity: 0 }}
-                    animate={{
-                      width: isHovered ? 140 : 130,
-                      height: isHovered ? 36 : 32,
-                      opacity: 1,
-                    }}
+                    animate={{ width: isHovered ? 140 : 130, height: isHovered ? 36 : 32, opacity: 1 }}
                     transition={{ duration: 0.4, delay: 0.3 + i * 0.05 }}
                     x={cat.x - (isHovered ? 70 : 65)}
                     y={cat.y - (isHovered ? 18 : 16)}
@@ -496,8 +344,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
-                    x={cat.x}
-                    y={cat.y - 1}
+                    x={cat.x} y={cat.y - 1}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     className="text-[9px] font-semibold select-none pointer-events-none"
@@ -506,8 +353,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                     {cat.label}
                   </motion.text>
                   <text
-                    x={cat.x}
-                    y={cat.y + 10}
+                    x={cat.x} y={cat.y + 10}
                     textAnchor="middle"
                     className="text-[7px] select-none pointer-events-none"
                     fill="hsl(var(--muted-foreground))"
@@ -519,192 +365,42 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             })}
 
             {/* Root node */}
-            <motion.circle
-              initial={{ r: 0 }}
-              animate={{ r: 42 }}
-              transition={{ duration: 0.5, type: 'spring' }}
-              cx={centerX}
-              cy={centerY}
-              fill="hsl(var(--card))"
-              stroke="hsl(var(--primary))"
-              strokeWidth={3}
-            />
-            <motion.circle
-              initial={{ r: 0 }}
-              animate={{ r: 38 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              cx={centerX}
-              cy={centerY}
-              fill="hsla(var(--primary), 0.1)"
-              stroke="none"
-            />
-            <motion.text
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              x={centerX}
-              y={centerY - 4}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-[11px] font-display font-bold select-none"
-              fill="hsl(var(--primary))"
-            >
+            <motion.circle initial={{ r: 0 }} animate={{ r: 42 }} transition={{ duration: 0.5, type: 'spring' }} cx={centerX} cy={centerY} fill="hsl(var(--card))" stroke="hsl(var(--primary))" strokeWidth={3} />
+            <motion.circle initial={{ r: 0 }} animate={{ r: 38 }} transition={{ duration: 0.5, delay: 0.1 }} cx={centerX} cy={centerY} fill="hsla(var(--primary), 0.1)" stroke="none" />
+            <motion.text initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} x={centerX} y={centerY - 4} textAnchor="middle" dominantBaseline="middle" className="text-[11px] font-display font-bold select-none" fill="hsl(var(--primary))">
               {technologyName}
             </motion.text>
-            <text
-              x={centerX}
-              y={centerY + 10}
-              textAnchor="middle"
-              className="text-[8px] select-none"
-              fill="hsl(var(--muted-foreground))"
-            >
+            <text x={centerX} y={centerY + 10} textAnchor="middle" className="text-[8px] select-none" fill="hsl(var(--muted-foreground))">
               {totalControls} controls
             </text>
           </svg>
         </div>
 
-        {/* Mini-map overlay - visible when zoomed */}
+        {/* Mini-map */}
         {zoom > 1 && (
-          <div
-            className="absolute bottom-[52px] right-3 border border-border rounded-md bg-card/90 backdrop-blur-sm shadow-lg overflow-hidden cursor-pointer z-10"
-            style={{ width: 160, height: 160 * (svgHeight / svgWidth) }}
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const clickX = (e.clientX - rect.left) / rect.width;
-              const clickY = (e.clientY - rect.top) / rect.height;
-              const containerEl = svgContainerRef.current;
-              if (!containerEl) return;
-              const containerW = containerEl.clientWidth;
-              const containerH = containerEl.clientHeight;
-              setPan({
-                x: -(clickX - 0.5) * svgWidth * zoom + containerW / 2 - svgWidth / 2,
-                y: -(clickY - 0.5) * svgHeight * zoom + containerH / 2 - svgHeight / 2,
-              });
-            }}
-          >
-            <svg
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-              className="w-full h-full"
-            >
-              {/* Background */}
-              <rect width={svgWidth} height={svgHeight} fill="hsl(var(--card))" opacity={0.5} />
-
-              {/* Simplified connections */}
-              {categoryPositions.map(cat => (
-                <line
-                  key={`mini-${cat.id}`}
-                  x1={centerX} y1={centerY}
-                  x2={cat.x} y2={cat.y}
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeWidth={3}
-                  opacity={0.3}
-                />
-              ))}
-
-              {/* Category dots */}
-              {categoryPositions.map(cat => (
-                <circle
-                  key={`mini-cat-${cat.id}`}
-                  cx={cat.x} cy={cat.y} r={12}
-                  fill={`hsl(${CATEGORY_COLORS[cat.category || ''] || '220, 10%, 55%'})`}
-                  opacity={0.6}
-                />
-              ))}
-
-              {/* Control dots */}
-              {controlPositions.map(({ ctrl, x, y, catColor }) => (
-                <circle
-                  key={`mini-ctrl-${ctrl.id}`}
-                  cx={x} cy={y} r={6}
-                  fill={`hsl(${catColor})`}
-                  opacity={0.4}
-                />
-              ))}
-
-              {/* Root dot */}
-              <circle cx={centerX} cy={centerY} r={16} fill="hsl(var(--primary))" opacity={0.7} />
-
-              {/* Viewport indicator */}
-              {(() => {
-                const containerEl = svgContainerRef.current;
-                if (!containerEl) return null;
-                const containerW = containerEl.clientWidth;
-                const containerH = containerEl.clientHeight;
-                const vpW = containerW / zoom;
-                const vpH = containerH / zoom;
-                const vpX = (svgWidth / 2) - (pan.x / zoom) - vpW / 2;
-                const vpY = (svgHeight / 2) - (pan.y / zoom) - vpH / 2;
-                return (
-                  <rect
-                    x={vpX} y={vpY}
-                    width={vpW} height={vpH}
-                    fill="hsl(var(--primary))"
-                    fillOpacity={0.08}
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={4}
-                    strokeOpacity={0.7}
-                    rx={3}
-                  />
-                );
-              })()}
-            </svg>
-          </div>
+          <MindMapMiniMap
+            svgWidth={svgWidth}
+            svgHeight={svgHeight}
+            centerX={centerX}
+            centerY={centerY}
+            zoom={zoom}
+            pan={pan}
+            categoryPositions={categoryPositions}
+            controlPositions={controlPositions}
+            containerRef={svgContainerRef}
+            onNavigate={setPan}
+          />
         )}
 
-        {/* Legend */}
-        <div className="border-t border-border px-5 py-3 flex flex-wrap items-center gap-4 text-[10px]">
-          <span className="font-medium text-muted-foreground uppercase tracking-wider mr-2">Legend:</span>
-          {Object.entries(CRITICALITY_RING).map(([level, color]) => (
-            <span key={level} className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-full border-2 shrink-0" style={{ borderColor: color }} />
-              <span className="capitalize">{level}</span>
-            </span>
-          ))}
-          <span className="border-l border-border pl-4 ml-2 flex items-center gap-3 text-muted-foreground">
-            <span>✓ Approved</span>
-            <span>◉ Reviewed</span>
-            <span>○ Pending</span>
-            <span>✗ Rejected</span>
-          </span>
-        </div>
+        <MindMapLegend />
       </div>
 
       {/* Detail panel */}
       {selectedControl && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 bg-card border border-border rounded-lg p-5 shadow-premium"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <span className="text-xs font-mono text-primary/70 mr-2">{selectedControl.controlId}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                selectedControl.criticality === 'critical' ? 'bg-destructive/10 text-destructive' :
-                selectedControl.criticality === 'high' ? 'bg-warning/10 text-warning' :
-                selectedControl.criticality === 'medium' ? 'bg-accent text-accent-foreground' :
-                'bg-success/10 text-success'
-              }`}>
-                {selectedControl.criticality}
-              </span>
-            </div>
-            <button
-              onClick={() => setSelectedControl(null)}
-              className="text-muted-foreground hover:text-foreground text-xs"
-            >
-              ✕
-            </button>
-          </div>
-          <h4 className="text-sm font-semibold text-foreground mb-2">{selectedControl.title}</h4>
-          <p className="text-xs text-muted-foreground leading-relaxed mb-3">{selectedControl.description}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {selectedControl.frameworkMappings.map(m => (
-              <span key={m} className="px-2 py-0.5 bg-accent text-accent-foreground rounded text-[10px] font-medium">
-                {m}
-              </span>
-            ))}
-          </div>
-        </motion.div>
+        <MindMapDetailPanel
+          control={selectedControl}
+          onClose={() => setSelectedControl(null)}
+        />
       )}
     </div>
   );
