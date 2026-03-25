@@ -826,7 +826,7 @@ const Dashboard: React.FC = () => {
         </motion.div>
       )}
 
-
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
         {/* Recent Projects */}
         {loading ? (
           <div className="space-y-4">
