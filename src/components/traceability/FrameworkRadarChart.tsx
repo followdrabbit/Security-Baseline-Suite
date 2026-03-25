@@ -1,20 +1,22 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockControls } from '@/data/mockData';
 import {
   ResponsiveContainer, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Tooltip,
 } from 'recharts';
 import { FrameworkDatum, getFrameworkPrefix } from './utils';
+import type { ControlItem } from '@/types';
 
 interface Props {
   frameworkData: FrameworkDatum[];
   selectedFramework: string | null;
   onFrameworkClick: (framework: string) => void;
+  totalControls: number;
+  allControls: ControlItem[];
 }
 
-const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework, onFrameworkClick }) => {
+const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework, onFrameworkClick, totalControls, allControls }) => {
   const { t } = useI18n();
 
   return (
@@ -39,7 +41,6 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Radar Chart */}
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={frameworkData} cx="50%" cy="50%" outerRadius="70%">
@@ -55,7 +56,7 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
               <PolarRadiusAxis
                 tick={{ fontSize: 8, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
-                domain={[0, mockControls.length]}
+                domain={[0, totalControls]}
               />
               <Radar
                 dataKey="controls"
@@ -77,8 +78,8 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const d = payload[0].payload;
-                  const pct = Math.round((d.controls / mockControls.length) * 100);
-                  const relatedControls = mockControls.filter(c =>
+                  const pct = Math.round((d.controls / totalControls) * 100);
+                  const relatedControls = allControls.filter(c =>
                     c.frameworkMappings.some(m => getFrameworkPrefix(m) === d.framework)
                   );
                   const avgConfidence = relatedControls.length
@@ -104,7 +105,7 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
                       <div className="space-y-1.5 mb-2.5">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">{t.traceabilityPage.controlsMapped}</span>
-                          <span className="font-semibold text-foreground">{d.controls} / {mockControls.length}</span>
+                          <span className="font-semibold text-foreground">{d.controls} / {totalControls}</span>
                         </div>
                         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                           <motion.div
@@ -157,7 +158,6 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
           </ResponsiveContainer>
         </div>
 
-        {/* Framework Legend / Stats */}
         <div className="flex flex-col justify-center space-y-3">
           {frameworkData.map((fw) => (
             <button
@@ -175,13 +175,13 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
               />
               <span className="text-sm font-semibold text-foreground flex-1">{fw.framework}</span>
               <span className="text-xs text-muted-foreground">
-                {fw.controls} / {mockControls.length}
+                {fw.controls} / {totalControls}
               </span>
               <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${(fw.controls / mockControls.length) * 100}%`,
+                    width: `${(fw.controls / totalControls) * 100}%`,
                     backgroundColor: fw.color,
                   }}
                 />
@@ -189,7 +189,7 @@ const FrameworkRadarChart: React.FC<Props> = ({ frameworkData, selectedFramework
             </button>
           ))}
           <div className="text-[10px] text-muted-foreground/50 pt-1">
-            {t.traceabilityPage.totalControls}: {mockControls.length}
+            {t.traceabilityPage.totalControls}: {totalControls}
           </div>
         </div>
       </div>

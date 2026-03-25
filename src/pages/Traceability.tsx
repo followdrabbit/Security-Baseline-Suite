@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockControls } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import InfoTooltip from '@/components/InfoTooltip';
 import { TraceabilityCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { getFrameworkPrefix, FRAMEWORK_COLORS } from '@/components/traceability/utils';
@@ -10,20 +12,53 @@ import TraceabilityControlCard from '@/components/traceability/TraceabilityContr
 import { exportToCSV, exportToPDF, exportToJSON } from '@/components/traceability/exportUtils';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Braces } from 'lucide-react';
+import type { ControlItem, SourceTraceability, ThreatScenario } from '@/types';
 
 const Traceability: React.FC = () => {
   const { t } = useI18n();
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1400);
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: controls = [], isLoading: loading } = useQuery({
+    queryKey: ['traceability-controls', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('controls')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('control_id', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map((c): ControlItem => ({
+        id: c.id,
+        projectId: c.project_id,
+        controlId: c.control_id,
+        title: c.title,
+        description: c.description || '',
+        applicability: c.applicability || '',
+        securityRisk: c.security_risk || '',
+        criticality: (c.criticality as ControlItem['criticality']) || 'medium',
+        defaultBehaviorLimitations: c.default_behavior_limitations || '',
+        automation: c.automation || '',
+        references: c.references || [],
+        frameworkMappings: c.framework_mappings || [],
+        threatScenarios: (c.threat_scenarios as unknown as ThreatScenario[]) || [],
+        sourceTraceability: (c.source_traceability as unknown as SourceTraceability[]) || [],
+        confidenceScore: Number(c.confidence_score) || 0,
+        reviewStatus: (c.review_status as ControlItem['reviewStatus']) || 'pending',
+        reviewerNotes: c.reviewer_notes || '',
+        version: c.version || 1,
+        category: c.category || '',
+      }));
+    },
+    enabled: !!user,
+  });
 
   const frameworkData = useMemo(() => {
     const counts: Record<string, Set<string>> = {};
-    for (const control of mockControls) {
+    for (const control of controls) {
       for (const mapping of control.frameworkMappings) {
         const prefix = getFrameworkPrefix(mapping);
         if (!counts[prefix]) counts[prefix] = new Set();
@@ -34,18 +69,18 @@ const Traceability: React.FC = () => {
       .map(([framework, controlSet]) => ({
         framework,
         controls: controlSet.size,
-        fullMark: mockControls.length,
+        fullMark: controls.length,
         color: FRAMEWORK_COLORS[framework] || FRAMEWORK_COLORS['Other'],
       }))
       .sort((a, b) => b.controls - a.controls);
-  }, []);
+  }, [controls]);
 
   const filteredControls = useMemo(() => {
-    if (!selectedFramework) return mockControls;
-    return mockControls.filter(c =>
+    if (!selectedFramework) return controls;
+    return controls.filter(c =>
       c.frameworkMappings.some(m => getFrameworkPrefix(m) === selectedFramework)
     );
-  }, [selectedFramework]);
+  }, [selectedFramework, controls]);
 
   const handleFrameworkClick = (framework: string) => {
     setSelectedFramework(prev => prev === framework ? null : framework);
@@ -60,7 +95,7 @@ const Traceability: React.FC = () => {
             {t.traceabilityPage.subtitle} <InfoTooltip content={t.tooltips.traceability} />
           </p>
         </div>
-        {!loading && (
+        {!loading && controls.length > 0 && (
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -93,11 +128,13 @@ const Traceability: React.FC = () => {
         )}
       </div>
 
-      {!loading && (
+      {!loading && controls.length > 0 && (
         <FrameworkRadarChart
           frameworkData={frameworkData}
           selectedFramework={selectedFramework}
           onFrameworkClick={handleFrameworkClick}
+          totalControls={controls.length}
+          allControls={controls}
         />
       )}
 
@@ -110,6 +147,10 @@ const Traceability: React.FC = () => {
       <div className="space-y-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <TraceabilityCardSkeleton key={i} />)
+        ) : controls.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-sm">No controls found. Generate controls in the AI Workspace first.</p>
+          </div>
         ) : (
           filteredControls.map((control, i) => (
             <TraceabilityControlCard key={control.id} control={control} index={i} />
