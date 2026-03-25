@@ -215,6 +215,16 @@ const translations = {
       outputLanguage: 'The language in which the baseline controls will be written.',
       reviewStatus: 'Current review state: Pending, Reviewed, Approved, Rejected, or Adjusted.',
     },
+    confirmModal: {
+      approveTitle: 'Approve Control',
+      approveDesc: 'Are you sure you want to approve this security control? This action marks it as validated.',
+      rejectTitle: 'Reject Control',
+      rejectDesc: 'Are you sure you want to reject this security control? You can add notes explaining the reason.',
+      restoreTitle: 'Restore Version',
+      restoreDesc: 'This will restore the baseline to a previous version. Current changes may be overwritten.',
+      approveAllTitle: 'Approve All Reviewed',
+      approveAllDesc: 'This will approve all controls currently marked as reviewed. This action cannot be easily undone.',
+    },
     common: {
       save: 'Save',
       cancel: 'Cancel',
