@@ -304,7 +304,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
           </div>
         </div>
         {/* Filter bar */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/20 flex-wrap">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted/20 overflow-x-auto">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <input
