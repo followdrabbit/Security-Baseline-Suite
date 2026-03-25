@@ -10,6 +10,7 @@ import { TableSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +29,9 @@ const SourceLibrary: React.FC = () => {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [urlDialogOpen, setUrlDialogOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlLoading, setUrlLoading] = useState(false);
 
   // For now, use first project or allow "no project" scenario
   const { data: projects } = useQuery({
@@ -160,6 +164,40 @@ const SourceLibrary: React.FC = () => {
     },
   });
 
+  const handleAddUrl = async () => {
+    if (!urlInput.trim() || !selectedProjectId) return;
+    setUrlLoading(true);
+
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-url`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${currentSession?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: urlInput.trim(), projectId: selectedProjectId }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process URL');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+      toast.success(`URL processada com sucesso: ${result.source?.name || urlInput}`);
+      setUrlInput('');
+      setUrlDialogOpen(false);
+    } catch (err: any) {
+      toast.error(`Falha ao processar URL: ${err.message}`);
+    } finally {
+      setUrlLoading(false);
+    }
+  };
+
   return (
     <div
       className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6"
@@ -229,7 +267,14 @@ const SourceLibrary: React.FC = () => {
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
-          <Button variant="outline" size="sm"><Link2 className="h-4 w-4 mr-1.5" />{t.sources.addUrl}</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setUrlDialogOpen(true)}
+            disabled={!selectedProjectId}
+          >
+            <Link2 className="h-4 w-4 mr-1.5" />{t.sources.addUrl}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -377,6 +422,45 @@ const SourceLibrary: React.FC = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Add URL Dialog */}
+      <Dialog open={urlDialogOpen} onOpenChange={setUrlDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              Add URL Source
+            </DialogTitle>
+            <DialogDescription>
+              Enter a web page URL to automatically fetch and extract its content for analysis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Input
+              placeholder="https://docs.aws.amazon.com/..."
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !urlLoading && handleAddUrl()}
+              disabled={urlLoading}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              The page content will be fetched, extracted using AI, and saved as a processed source ready for control generation.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUrlDialogOpen(false)} disabled={urlLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddUrl} disabled={urlLoading || !urlInput.trim()}>
+              {urlLoading ? (
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Processing...</>
+              ) : (
+                <><Link2 className="h-4 w-4 mr-1.5" />Add & Process</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
