@@ -45,6 +45,7 @@ export interface SourceItem {
 
 export interface ControlItem {
   id: string;
+  projectId: string;
   controlId: string;
   title: string;
   description: string;

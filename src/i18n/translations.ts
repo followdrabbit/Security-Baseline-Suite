@@ -152,6 +152,9 @@ const translations = {
     editor: {
       title: 'Baseline Editor',
       subtitle: 'Review, edit, and approve generated security controls',
+      selectBaseline: 'Select Baseline',
+      allBaselines: 'All Baselines',
+      controlsIn: 'controls in',
       search: 'Search controls...',
       filterCriticality: 'Criticality',
       filterStatus: 'Review Status',
@@ -479,6 +482,9 @@ const translations = {
     editor: {
       title: 'Editor de Baseline',
       subtitle: 'Revise, edite e aprove controles de segurança gerados',
+      selectBaseline: 'Selecionar Baseline',
+      allBaselines: 'Todos os Baselines',
+      controlsIn: 'controles em',
       search: 'Buscar controles...',
       filterCriticality: 'Criticidade',
       filterStatus: 'Status de Revisão',
@@ -806,6 +812,9 @@ const translations = {
     editor: {
       title: 'Editor de Baseline',
       subtitle: 'Revise, edite y apruebe controles de seguridad generados',
+      selectBaseline: 'Seleccionar Baseline',
+      allBaselines: 'Todos los Baselines',
+      controlsIn: 'controles en',
       search: 'Buscar controles...',
       filterCriticality: 'Criticidad',
       filterStatus: 'Estado de Revisión',

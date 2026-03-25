@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
-import { mockControls } from '@/data/mockData';
+import { mockControls, mockProjects } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -11,18 +11,32 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem } from '@/types';
 
+const CATEGORY_LABELS: Record<string, { en: string; pt: string; es: string }> = {
+  identity: { en: 'Identity & Access', pt: 'Identidade e Acesso', es: 'Identidad y Acceso' },
+  encryption: { en: 'Encryption & Data Protection', pt: 'Criptografia e Proteção de Dados', es: 'Cifrado y Protección de Datos' },
+  logging: { en: 'Logging & Monitoring', pt: 'Logs e Monitoramento', es: 'Logs y Monitoreo' },
+  network: { en: 'Network Security', pt: 'Segurança de Rede', es: 'Seguridad de Red' },
+  storage: { en: 'Storage & Resilience', pt: 'Armazenamento e Resiliência', es: 'Almacenamiento y Resiliencia' },
+  runtime: { en: 'Runtime Security', pt: 'Segurança em Tempo de Execução', es: 'Seguridad en Tiempo de Ejecución' },
+  cicd: { en: 'CI/CD & Supply Chain', pt: 'CI/CD e Cadeia de Suprimentos', es: 'CI/CD y Cadena de Suministro' },
+};
+
+const CATEGORY_ORDER = ['identity', 'encryption', 'network', 'logging', 'storage', 'runtime', 'cicd'];
+
 const BaselineEditor: React.FC = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedProject, setSelectedProject] = useState('all');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [controls, setControls] = useState<ControlItem[]>(mockControls);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
@@ -36,19 +50,41 @@ const BaselineEditor: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const filtered = controls.filter(c => {
+  const filtered = useMemo(() => controls.filter(c => {
+    if (selectedProject !== 'all' && c.projectId !== selectedProject) return false;
     if (search && !c.title.toLowerCase().includes(search.toLowerCase()) && !c.controlId.toLowerCase().includes(search.toLowerCase())) return false;
     if (critFilter !== 'all' && c.criticality !== critFilter) return false;
     if (statusFilter !== 'all' && c.reviewStatus !== statusFilter) return false;
     return true;
-  });
+  }), [controls, selectedProject, search, critFilter, statusFilter]);
+
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<string, ControlItem[]> = {};
+    for (const c of filtered) {
+      const cat = c.category || 'other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(c);
+    }
+    return CATEGORY_ORDER
+      .filter(cat => groups[cat]?.length)
+      .map(cat => ({ category: cat, controls: groups[cat] }))
+      .concat(
+        Object.keys(groups)
+          .filter(cat => !CATEGORY_ORDER.includes(cat))
+          .map(cat => ({ category: cat, controls: groups[cat] }))
+      );
+  }, [filtered]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const toggleCategory = (cat: string) => {
+    setCollapsedCategories(prev => prev.includes(cat) ? prev.filter(x => x !== cat) : [...prev, cat]);
+  };
+
   const expandAll = () => setExpandedIds(filtered.map(c => c.id));
-  const collapseAll = () => setExpandedIds([]);
+  const collapseAll = () => { setExpandedIds([]); setCollapsedCategories([]); };
 
   const updateStatus = (id: string, status: ControlItem['reviewStatus']) => {
     setControls(prev => prev.map(c => c.id === id ? { ...c, reviewStatus: status } : c));
@@ -80,12 +116,19 @@ const BaselineEditor: React.FC = () => {
     setConfirmModal(prev => ({ ...prev, open: false }));
   };
 
+  const selectedProjectObj = mockProjects.find(p => p.id === selectedProject);
+  const lang = locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en';
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t.editor.subtitle}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {selectedProjectObj
+              ? `${filtered.length} ${t.editor.controlsIn} ${selectedProjectObj.technology}`
+              : t.editor.subtitle}
+          </p>
         </div>
         <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => requestConfirm('approveAll')}>
           <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
@@ -94,6 +137,18 @@ const BaselineEditor: React.FC = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        <Select value={selectedProject} onValueChange={setSelectedProject}>
+          <SelectTrigger className="w-[220px]">
+            <Layers className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
+            <SelectValue placeholder={t.editor.selectBaseline} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t.editor.allBaselines}</SelectItem>
+            {mockProjects.filter(p => p.controlCount > 0).map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.technology}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder={t.editor.search} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -126,8 +181,8 @@ const BaselineEditor: React.FC = () => {
 
       <p className="text-xs text-muted-foreground">{filtered.length} {t.common.items}</p>
 
-      {/* Controls list */}
-      <div className="space-y-3">
+      {/* Controls grouped by category */}
+      <div className="space-y-6">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => <ControlCardSkeleton key={i} />)
         ) : filtered.length === 0 ? (
@@ -137,108 +192,55 @@ const BaselineEditor: React.FC = () => {
             <p className="text-xs text-muted-foreground/70 mt-1">{t.editor.noControlsDesc}</p>
           </div>
         ) : (
-          filtered.map((control) => {
-            const isExpanded = expandedIds.includes(control.id);
+          groupedByCategory.map(({ category, controls: catControls }) => {
+            const isCatCollapsed = collapsedCategories.includes(category);
+            const catLabel = CATEGORY_LABELS[category]?.[lang] || category;
             return (
-              <motion.div
-                key={control.id}
-                layout
-                className="bg-card border border-border rounded-lg shadow-premium overflow-hidden"
-              >
-                {/* Header */}
+              <div key={category}>
+                {/* Category header */}
                 <button
-                  className="w-full flex items-center gap-4 p-4 hover:bg-muted/20 transition-colors text-left"
-                  onClick={() => toggleExpand(control.id)}
+                  onClick={() => toggleCategory(category)}
+                  className="flex items-center gap-2 mb-3 group w-full text-left"
                 >
-                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-                  <span className="text-xs font-mono text-primary/70 shrink-0 w-24">{control.controlId}</span>
-                  <span className="text-sm font-medium text-foreground flex-1 truncate">{control.title}</span>
-                  <StatusBadge status={control.criticality} type="criticality" />
-                  <StatusBadge status={control.reviewStatus} type="review" />
-                  <ConfidenceScore score={control.confidenceScore} />
+                  {isCatCollapsed
+                    ? <ChevronRight className="h-4 w-4 text-primary/70" />
+                    : <ChevronDown className="h-4 w-4 text-primary/70" />
+                  }
+                  <h3 className="text-xs font-display font-semibold uppercase tracking-wider text-primary/80">
+                    {catLabel}
+                  </h3>
+                  <span className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                    {catControls.length}
+                  </span>
+                  <div className="flex-1 h-px bg-border/50 ml-2" />
                 </button>
 
-                {/* Expanded content */}
-                <AnimatePresence>
-                  {isExpanded && (
+                <AnimatePresence initial={false}>
+                  {!isCatCollapsed && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="border-t border-border"
+                      className="space-y-3 overflow-hidden"
                     >
-                      <div className="p-5 space-y-4">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          <Field label={t.editor.description} value={control.description} />
-                          <Field label={<span className="flex items-center gap-1">{t.editor.applicability} <InfoTooltip content={t.tooltips.applicability} /></span>} value={control.applicability} />
-                          <Field label={t.editor.securityRisk} value={control.securityRisk} />
-                          <Field label={t.editor.defaultBehavior} value={control.defaultBehaviorLimitations} />
-                          <Field label={t.editor.automation} value={control.automation} />
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
-                              {t.editor.frameworkMappings} <InfoTooltip content={t.tooltips.frameworkMapping} />
-                            </label>
-                            <div className="flex flex-wrap gap-1">
-                              {control.frameworkMappings.map(m => (
-                                <span key={m} className="px-2 py-0.5 bg-accent text-accent-foreground rounded text-[10px] font-medium">{m}</span>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.references}</label>
-                            <ul className="space-y-0.5">
-                              {control.references.map((ref, i) => (
-                                <li key={i} className="text-xs text-foreground/70 flex items-start gap-1.5">
-                                  <FileText className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />{ref}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
-                              {t.editor.traceability} <InfoTooltip content={t.tooltips.traceability} />
-                            </label>
-                            <div className="space-y-2">
-                              {control.sourceTraceability.map((st) => (
-                                <div key={st.sourceId} className="bg-muted/30 rounded p-2.5 text-xs border border-border/50">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="font-medium text-foreground">{st.sourceName}</span>
-                                    <ConfidenceScore score={st.confidence} />
-                                  </div>
-                                  <p className="text-muted-foreground italic">"{st.excerpt}"</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Reviewer notes */}
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
-                          <Textarea placeholder={t.editor.notesPlaceholder} defaultValue={control.reviewerNotes} rows={2} className="text-sm" />
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-2 border-t border-border/50">
-                          <Button size="sm" variant="outline" onClick={() => requestConfirm('approve', control.id)} className="text-success border-success/30 hover:bg-success/10">
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{t.editor.approve}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => requestConfirm('reject', control.id)} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                            <XCircle className="h-3.5 w-3.5 mr-1" />{t.editor.reject}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'adjusted')}>
-                            <Edit3 className="h-3.5 w-3.5 mr-1" />{t.editor.adjust}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'reviewed')}>
-                            {t.editor.markReviewed}
-                          </Button>
-                        </div>
-                      </div>
+                      {catControls.map((control) => (
+                        <ControlCard
+                          key={control.id}
+                          control={control}
+                          isExpanded={expandedIds.includes(control.id)}
+                          onToggle={() => toggleExpand(control.id)}
+                          onApprove={() => requestConfirm('approve', control.id)}
+                          onReject={() => requestConfirm('reject', control.id)}
+                          onAdjust={() => updateStatus(control.id, 'adjusted')}
+                          onMarkReviewed={() => updateStatus(control.id, 'reviewed')}
+                          t={t}
+                        />
+                      ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </div>
             );
           })
         )}
@@ -258,6 +260,116 @@ const BaselineEditor: React.FC = () => {
     </div>
   );
 };
+
+/* ─── Control Card Component ─── */
+interface ControlCardProps {
+  control: ControlItem;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  onAdjust: () => void;
+  onMarkReviewed: () => void;
+  t: any;
+}
+
+const ControlCard: React.FC<ControlCardProps> = ({
+  control, isExpanded, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, t,
+}) => (
+  <motion.div layout className="bg-card border border-border rounded-lg shadow-premium overflow-hidden">
+    <button
+      className="w-full flex items-center gap-4 p-4 hover:bg-muted/20 transition-colors text-left"
+      onClick={onToggle}
+    >
+      {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+      <span className="text-xs font-mono text-primary/70 shrink-0 w-24">{control.controlId}</span>
+      <span className="text-sm font-medium text-foreground flex-1 truncate">{control.title}</span>
+      <StatusBadge status={control.criticality} type="criticality" />
+      <StatusBadge status={control.reviewStatus} type="review" />
+      <ConfidenceScore score={control.confidenceScore} />
+    </button>
+
+    <AnimatePresence>
+      {isExpanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="border-t border-border"
+        >
+          <div className="p-5 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Field label={t.editor.description} value={control.description} />
+              <Field label={<span className="flex items-center gap-1">{t.editor.applicability} <InfoTooltip content={t.tooltips.applicability} /></span>} value={control.applicability} />
+              <Field label={t.editor.securityRisk} value={control.securityRisk} />
+              <Field label={t.editor.defaultBehavior} value={control.defaultBehaviorLimitations} />
+              <Field label={t.editor.automation} value={control.automation} />
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                  {t.editor.frameworkMappings} <InfoTooltip content={t.tooltips.frameworkMapping} />
+                </label>
+                <div className="flex flex-wrap gap-1">
+                  {control.frameworkMappings.map(m => (
+                    <span key={m} className="px-2 py-0.5 bg-accent text-accent-foreground rounded text-[10px] font-medium">{m}</span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.references}</label>
+                <ul className="space-y-0.5">
+                  {control.references.map((ref, i) => (
+                    <li key={i} className="text-xs text-foreground/70 flex items-start gap-1.5">
+                      <FileText className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />{ref}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {control.sourceTraceability.length > 0 && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                    {t.editor.traceability} <InfoTooltip content={t.tooltips.traceability} />
+                  </label>
+                  <div className="space-y-2">
+                    {control.sourceTraceability.map((st) => (
+                      <div key={st.sourceId} className="bg-muted/30 rounded p-2.5 text-xs border border-border/50">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-foreground">{st.sourceName}</span>
+                          <ConfidenceScore score={st.confidence} />
+                        </div>
+                        <p className="text-muted-foreground italic">"{st.excerpt}"</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
+              <Textarea placeholder={t.editor.notesPlaceholder} defaultValue={control.reviewerNotes} rows={2} className="text-sm" />
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-border/50">
+              <Button size="sm" variant="outline" onClick={onApprove} className="text-success border-success/30 hover:bg-success/10">
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{t.editor.approve}
+              </Button>
+              <Button size="sm" variant="outline" onClick={onReject} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                <XCircle className="h-3.5 w-3.5 mr-1" />{t.editor.reject}
+              </Button>
+              <Button size="sm" variant="outline" onClick={onAdjust}>
+                <Edit3 className="h-3.5 w-3.5 mr-1" />{t.editor.adjust}
+              </Button>
+              <Button size="sm" variant="outline" onClick={onMarkReviewed}>
+                {t.editor.markReviewed}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </motion.div>
+);
 
 const Field: React.FC<{ label: React.ReactNode; value: string }> = ({ label, value }) => (
   <div>
