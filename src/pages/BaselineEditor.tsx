@@ -5,6 +5,7 @@ import { mockControls } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,12 @@ const BaselineEditor: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [controls, setControls] = useState<ControlItem[]>(mockControls);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    variant: 'approve' | 'reject' | 'restore' | 'approveAll';
+    controlId?: string;
+    controlLabel?: string;
+  }>({ open: false, variant: 'approve' });
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1300);
@@ -45,6 +52,25 @@ const BaselineEditor: React.FC = () => {
     setControls(prev => prev.map(c => c.id === id ? { ...c, reviewStatus: status } : c));
   };
 
+  const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll', controlId?: string) => {
+    const control = controlId ? controls.find(c => c.id === controlId) : undefined;
+    setConfirmModal({
+      open: true,
+      variant,
+      controlId,
+      controlLabel: control ? `${control.controlId} — ${control.title}` : undefined,
+    });
+  };
+
+  const handleConfirm = () => {
+    if (confirmModal.variant === 'approveAll') {
+      setControls(prev => prev.map(c => c.reviewStatus === 'reviewed' ? { ...c, reviewStatus: 'approved' } : c));
+    } else if (confirmModal.controlId) {
+      updateStatus(confirmModal.controlId, confirmModal.variant === 'approve' ? 'approved' : 'rejected');
+    }
+    setConfirmModal(prev => ({ ...prev, open: false }));
+  };
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -52,7 +78,7 @@ const BaselineEditor: React.FC = () => {
           <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t.editor.subtitle}</p>
         </div>
-        <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90">
+        <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => requestConfirm('approveAll')}>
           <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
         </Button>
       </div>
@@ -186,10 +212,10 @@ const BaselineEditor: React.FC = () => {
 
                         {/* Actions */}
                         <div className="flex gap-2 pt-2 border-t border-border/50">
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'approved')} className="text-success border-success/30 hover:bg-success/10">
+                          <Button size="sm" variant="outline" onClick={() => requestConfirm('approve', control.id)} className="text-success border-success/30 hover:bg-success/10">
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{t.editor.approve}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'rejected')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                          <Button size="sm" variant="outline" onClick={() => requestConfirm('reject', control.id)} className="text-destructive border-destructive/30 hover:bg-destructive/10">
                             <XCircle className="h-3.5 w-3.5 mr-1" />{t.editor.reject}
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => updateStatus(control.id, 'adjusted')}>
@@ -208,6 +234,18 @@ const BaselineEditor: React.FC = () => {
           })
         )}
       </div>
+
+      <ConfirmationModal
+        open={confirmModal.open}
+        onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))}
+        variant={confirmModal.variant}
+        title={t.confirmModal[`${confirmModal.variant}Title`]}
+        description={t.confirmModal[`${confirmModal.variant}Desc`]}
+        itemLabel={confirmModal.controlLabel}
+        confirmLabel={t.common.confirm}
+        cancelLabel={t.common.cancel}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 };

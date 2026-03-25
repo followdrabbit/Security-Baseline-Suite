@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { mockVersions } from '@/data/mockData';
 import StatusBadge from '@/components/StatusBadge';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-react';
@@ -10,6 +11,7 @@ import { History as HistoryIcon, GitCompare, RotateCcw, Clock } from 'lucide-rea
 const History: React.FC = () => {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
@@ -64,7 +66,7 @@ const History: React.FC = () => {
                       {i > 0 && (
                         <>
                           <Button variant="outline" size="sm"><GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}</Button>
-                          <Button variant="outline" size="sm"><RotateCcw className="h-3.5 w-3.5 mr-1" />{t.history.restore}</Button>
+                          <Button variant="outline" size="sm" onClick={() => setRestoreModal({ open: true, version: String(ver.version) })}><RotateCcw className="h-3.5 w-3.5 mr-1" />{t.history.restore}</Button>
                         </>
                       )}
                     </div>
@@ -75,6 +77,18 @@ const History: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        open={restoreModal.open}
+        onOpenChange={(open) => setRestoreModal(prev => ({ ...prev, open }))}
+        variant="restore"
+        title={t.confirmModal.restoreTitle}
+        description={t.confirmModal.restoreDesc}
+        itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
+        confirmLabel={t.history.restore}
+        cancelLabel={t.common.cancel}
+        onConfirm={() => setRestoreModal({ open: false })}
+      />
     </div>
   );
 };
