@@ -238,6 +238,24 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             {/* Root node */}
             <MindMapRootNode cx={centerX} cy={centerY} label={technologyName} controlCount={totalControls} />
           </svg>
+
+          {/* Hover tooltip */}
+          {hoveredNode && !hoveredNode.startsWith('cat-') && (() => {
+            const pos = visibleControls.find(({ ctrl }) => ctrl.id === hoveredNode);
+            if (!pos) return null;
+            return (
+              <MindMapTooltip
+                ctrl={pos.ctrl}
+                x={pos.x}
+                y={pos.y}
+                svgWidth={svgWidth}
+                svgHeight={svgHeight}
+                zoom={zoom}
+                pan={pan}
+                containerRef={svgContainerRef}
+              />
+            );
+          })()}
         </div>
 
         {/* Mini-map */}
