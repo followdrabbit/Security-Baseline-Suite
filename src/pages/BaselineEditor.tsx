@@ -282,7 +282,7 @@ const BaselineEditor: React.FC = () => {
       </div>
       )}
 
-
+      <ConfirmationModal
         open={confirmModal.open}
         onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))}
         variant={confirmModal.variant}
