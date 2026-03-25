@@ -422,6 +422,45 @@ const SourceLibrary: React.FC = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Add URL Dialog */}
+      <Dialog open={urlDialogOpen} onOpenChange={setUrlDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              Add URL Source
+            </DialogTitle>
+            <DialogDescription>
+              Enter a web page URL to automatically fetch and extract its content for analysis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Input
+              placeholder="https://docs.aws.amazon.com/..."
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !urlLoading && handleAddUrl()}
+              disabled={urlLoading}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              The page content will be fetched, extracted using AI, and saved as a processed source ready for control generation.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUrlDialogOpen(false)} disabled={urlLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddUrl} disabled={urlLoading || !urlInput.trim()}>
+              {urlLoading ? (
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Processing...</>
+              ) : (
+                <><Link2 className="h-4 w-4 mr-1.5" />Add & Process</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
