@@ -174,3 +174,14 @@
     transform: translateX(100%);
   }
 }
+
+/* SVG focus-visible outline for keyboard navigation */
+svg g[role="button"]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+svg g[role="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
