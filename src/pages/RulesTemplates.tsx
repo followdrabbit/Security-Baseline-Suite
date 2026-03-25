@@ -5,7 +5,7 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch, BookOpen, Globe, Brain, Save, FolderOpen } from 'lucide-react';
+import { Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch, BookOpen, Globe, Brain, Save, FolderOpen, Crosshair } from 'lucide-react';
 
 interface RuleBlock {
   id: string;
@@ -31,6 +31,7 @@ const RulesTemplates: React.FC = () => {
     { id: 'frameworks', icon: GitBranch, labelKey: 'frameworks', tooltipKey: 'frameworkMapping', content: 'Map to: CIS Benchmarks, NIST 800-53 Rev. 5, ISO 27001:2022, SOC 2 Type II, PCI DSS v4.0, CSA CCM v4. Use official control IDs. Map only when direct correlation exists.' },
     { id: 'references', icon: BookOpen, labelKey: 'references', content: 'Include official vendor documentation, CIS benchmarks, NIST publications, and relevant security advisories. Each control must have at least 1 reference. Prefer primary sources.' },
     { id: 'language', icon: Globe, labelKey: 'outputLanguage', tooltipKey: 'outputLanguage', content: 'Generate baseline content in the selected output language. Technical terms may remain in English when no standard translation exists.' },
+    { id: 'threatModeling', icon: Crosshair, labelKey: 'threatModeling', tooltipKey: 'threatModeling', content: 'STRIDE-based threat analysis per control. Each threat scenario must include: threat name, STRIDE category (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege), attack vector description, threat agent identification, preconditions for exploitation, impact assessment, likelihood rating (Very High/High/Medium/Low/Very Low), specific mitigations, and residual risk evaluation. Minimum 1 threat scenario per control. Align threat likelihood with control criticality level.' },
   ];
 
   return (
