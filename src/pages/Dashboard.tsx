@@ -243,6 +243,20 @@ const Dashboard: React.FC = () => {
     enabled: !!user,
   });
 
+  // Fetch baseline versions for confidence evolution
+  const { data: baselineVersions = [], isLoading: versionsLoading } = useQuery({
+    queryKey: ['dashboard-versions', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('baseline_versions')
+        .select('*')
+        .order('version', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const loading = projectsLoading || controlsLoading;
 
   const filteredControls = useMemo(() => {
