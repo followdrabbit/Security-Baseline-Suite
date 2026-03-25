@@ -350,6 +350,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
               </span>
             </>
           )}
+        </div>
         <div
           ref={svgContainerRef}
           className="overflow-hidden select-none"
