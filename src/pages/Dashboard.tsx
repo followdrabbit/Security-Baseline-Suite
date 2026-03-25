@@ -269,11 +269,14 @@ const Dashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const totalThreats = mockControls.reduce((sum, c) => sum + c.threatScenarios.length, 0);
+
   const kpis = [
     { label: t.dashboard.totalProjects, value: '5', icon: Layers, change: '+2', spark: sparkProjects, color: 'hsl(var(--primary))', sparkType: 'bar' as const },
     { label: t.dashboard.activeBaselines, value: '3', icon: Shield, change: '+1', spark: sparkBaselines, color: '#10b981', sparkType: 'area' as const },
     { label: t.dashboard.controlsGenerated, value: '181', icon: BarChart3, change: '+47', spark: sparkControls, color: '#3b82f6', sparkType: 'area' as const },
     { label: t.dashboard.avgConfidence, value: '91%', icon: TrendingUp, change: '+3%', spark: sparkConfidence, color: '#f59e0b', sparkType: 'area' as const },
+    { label: t.dashboard.activeThreats, value: String(totalThreats), icon: AlertTriangle, change: '+4', spark: sparkThreats, color: '#ef4444', sparkType: 'area' as const },
   ];
 
   return (
