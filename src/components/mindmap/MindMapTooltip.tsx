@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MindMapNode } from './types';
+import { calcTooltipPosition, tooltipStyle } from './useTooltipPosition';
 
 interface Props {
   ctrl: MindMapNode | null;
@@ -40,20 +41,12 @@ const statusLabel: Record<string, string> = {
 const MindMapTooltip: React.FC<Props> = ({
   ctrl, x, y, svgWidth, svgHeight, zoom, pan, containerRef,
 }) => {
-  if (!ctrl || !containerRef.current) return null;
+  if (!ctrl) return null;
 
-  const container = containerRef.current;
-  const rect = container.getBoundingClientRect();
-  const svgDisplayWidth = rect.width;
-  const svgDisplayHeight = Math.min(rect.height, container.clientHeight);
-
-  // Convert SVG coordinates to pixel position within the container
-  const scaleX = svgDisplayWidth / svgWidth;
-  const scaleY = svgDisplayHeight / svgHeight;
-  const scale = Math.min(scaleX, scaleY);
-
-  const pixelX = (x * scale * zoom) + pan.x + (svgDisplayWidth - svgWidth * scale) / 2;
-  const pixelY = (y * scale * zoom) + pan.y + (svgDisplayHeight - svgHeight * scale) / 2;
+  const pos = calcTooltipPosition({
+    svgX: x, svgY: y, svgWidth, svgHeight, zoom, pan, containerRef, offsetY: 50,
+  });
+  if (!pos) return null;
 
   const crit = ctrl.criticality || 'medium';
 
@@ -61,16 +54,12 @@ const MindMapTooltip: React.FC<Props> = ({
     <AnimatePresence>
       <motion.div
         key={ctrl.id}
-        initial={{ opacity: 0, y: 4, scale: 0.95 }}
+        initial={{ opacity: 0, y: pos.alignY === 'above' ? 4 : -4, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+        exit={{ opacity: 0, y: pos.alignY === 'above' ? 4 : -4, scale: 0.95 }}
         transition={{ duration: 0.15 }}
         className="absolute z-50 pointer-events-none"
-        style={{
-          left: pixelX,
-          top: pixelY - 50,
-          transform: 'translate(-50%, -100%)',
-        }}
+        style={tooltipStyle(pos)}
       >
         <div className="bg-popover border border-border rounded-lg shadow-lg px-3 py-2.5 max-w-[220px] text-left">
           <div className="flex items-center gap-1.5 mb-1">
