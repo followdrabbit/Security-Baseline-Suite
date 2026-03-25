@@ -12,6 +12,7 @@ import MindMapLegend from './mindmap/MindMapLegend';
 import MindMapMiniMap from './mindmap/MindMapMiniMap';
 import MindMapDetailPanel from './mindmap/MindMapDetailPanel';
 import MindMapTooltip from './mindmap/MindMapTooltip';
+import MindMapCategoryTooltip from './mindmap/MindMapCategoryTooltip';
 
 interface Props {
   technologyName: string;
@@ -239,7 +240,7 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
             <MindMapRootNode cx={centerX} cy={centerY} label={technologyName} controlCount={totalControls} />
           </svg>
 
-          {/* Hover tooltip */}
+          {/* Hover tooltip - controls */}
           {hoveredNode && !hoveredNode.startsWith('cat-') && (() => {
             const pos = visibleControls.find(({ ctrl }) => ctrl.id === hoveredNode);
             if (!pos) return null;
@@ -248,6 +249,24 @@ const BaselineMindMap: React.FC<Props> = ({ technologyName, controls, categoryLa
                 ctrl={pos.ctrl}
                 x={pos.x}
                 y={pos.y}
+                svgWidth={svgWidth}
+                svgHeight={svgHeight}
+                zoom={zoom}
+                pan={pan}
+                containerRef={svgContainerRef}
+              />
+            );
+          })()}
+
+          {/* Hover tooltip - categories */}
+          {hoveredNode && hoveredNode.startsWith('cat-') && (() => {
+            const catPos = categoryPositions.find(c => c.id === hoveredNode);
+            if (!catPos) return null;
+            return (
+              <MindMapCategoryTooltip
+                cat={catPos}
+                x={catPos.x}
+                y={catPos.y}
                 svgWidth={svgWidth}
                 svgHeight={svgHeight}
                 zoom={zoom}
