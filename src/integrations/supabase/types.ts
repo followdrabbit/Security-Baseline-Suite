@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      baseline_versions: {
+        Row: {
+          changes_summary: string
+          control_count: number
+          controls_snapshot: Json
+          created_at: string
+          id: string
+          project_id: string
+          status: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          changes_summary?: string
+          control_count?: number
+          controls_snapshot?: Json
+          created_at?: string
+          id?: string
+          project_id: string
+          status?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          changes_summary?: string
+          control_count?: number
+          controls_snapshot?: Json
+          created_at?: string
+          id?: string
+          project_id?: string
+          status?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       controls: {
         Row: {
           applicability: string | null
