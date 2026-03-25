@@ -36,6 +36,7 @@ const BaselineEditor: React.FC = () => {
   const [critFilter, setCritFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
+  const [viewMode, setViewMode] = useState<'list' | 'mindmap'>('list');
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [controls, setControls] = useState<ControlItem[]>(mockControls);
