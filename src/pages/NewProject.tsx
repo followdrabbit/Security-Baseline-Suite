@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu } from 'lucide-react';
 import type { Locale } from '@/types';
 
 const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
