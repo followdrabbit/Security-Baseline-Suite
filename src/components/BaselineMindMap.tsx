@@ -11,6 +11,7 @@ import MindMapRootNode from './mindmap/MindMapRootNode';
 import MindMapLegend from './mindmap/MindMapLegend';
 import MindMapMiniMap from './mindmap/MindMapMiniMap';
 import MindMapDetailPanel from './mindmap/MindMapDetailPanel';
+import MindMapTooltip from './mindmap/MindMapTooltip';
 
 interface Props {
   technologyName: string;
