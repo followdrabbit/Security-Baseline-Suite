@@ -124,7 +124,7 @@ const Teams: React.FC = () => {
                         <Users className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{team.name}</span>
                         {team.owner_id === user?.id && (
-                          <Crown className="h-3 w-3 text-amber-500 shrink-0 ml-auto" />
+                          <Crown className="h-3 w-3 text-primary shrink-0 ml-auto" />
                         )}
                       </div>
                     </button>
