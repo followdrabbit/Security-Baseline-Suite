@@ -209,6 +209,9 @@ const translations = {
       filterLikelihood: 'Likelihood',
       veryHigh: 'Very High',
       veryLow: 'Very Low',
+      strideFilterActive: 'Filtered by STRIDE category',
+      fromDashboard: 'from Dashboard',
+      clearFilter: 'Clear filter',
     },
     history: {
       title: 'Version History',
@@ -568,6 +571,9 @@ const translations = {
       filterLikelihood: 'Probabilidade',
       veryHigh: 'Muito Alta',
       veryLow: 'Muito Baixa',
+      strideFilterActive: 'Filtrado por categoria STRIDE',
+      fromDashboard: 'via Dashboard',
+      clearFilter: 'Limpar filtro',
     },
     history: {
       title: 'Histórico de Versões',
@@ -927,6 +933,9 @@ const translations = {
       filterLikelihood: 'Probabilidad',
       veryHigh: 'Muy Alta',
       veryLow: 'Muy Baja',
+      strideFilterActive: 'Filtrado por categoría STRIDE',
+      fromDashboard: 'desde Dashboard',
+      clearFilter: 'Limpiar filtro',
     },
     history: {
       title: 'Historial de Versiones',
