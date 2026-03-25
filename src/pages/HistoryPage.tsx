@@ -80,6 +80,7 @@ const mockDiffData: Record<string, DiffEntry[]> = {
 
 const History: React.FC = () => {
   const { t } = useI18n();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [restoreModal, setRestoreModal] = useState<{ open: boolean; version?: string }>({ open: false });
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
