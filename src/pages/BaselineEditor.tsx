@@ -67,8 +67,15 @@ const BaselineEditor: React.FC = () => {
   const handleConfirm = () => {
     if (confirmModal.variant === 'approveAll') {
       setControls(prev => prev.map(c => c.reviewStatus === 'reviewed' ? { ...c, reviewStatus: 'approved' } : c));
+      toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
     } else if (confirmModal.controlId) {
-      updateStatus(confirmModal.controlId, confirmModal.variant === 'approve' ? 'approved' : 'rejected');
+      const isApprove = confirmModal.variant === 'approve';
+      updateStatus(confirmModal.controlId, isApprove ? 'approved' : 'rejected');
+      const label = confirmModal.controlLabel || confirmModal.controlId;
+      toast({
+        title: isApprove ? `✅ ${t.toasts.approved}` : `❌ ${t.toasts.rejected}`,
+        description: `${label} ${isApprove ? t.toasts.approvedDesc : t.toasts.rejectedDesc}`,
+      });
     }
     setConfirmModal(prev => ({ ...prev, open: false }));
   };

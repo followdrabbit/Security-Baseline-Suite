@@ -170,7 +170,10 @@ const History: React.FC = () => {
         itemLabel={restoreModal.version ? `${t.history.version} ${restoreModal.version}` : undefined}
         confirmLabel={t.history.restore}
         cancelLabel={t.common.cancel}
-        onConfirm={() => setRestoreModal({ open: false })}
+         onConfirm={() => {
+           toast({ title: `🔄 ${t.toasts.restored}`, description: `${t.toasts.restoredDesc} ${restoreModal.version}.` });
+           setRestoreModal({ open: false });
+         }}
       />
 
       <VersionDiffModal
