@@ -181,6 +181,20 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
     return left[field] !== right[field];
   };
 
+  const DiffTooltip: React.FC<{ left?: ControlSnapshot; right?: ControlSnapshot; field: string; label: string; children: React.ReactNode }> = ({ left, right, field, label, children }) => {
+    if (!isFieldChanged(left, right, field)) return <>{children}</>;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild><span className="cursor-help border-b border-dashed border-current">{children}</span></TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs space-y-1">
+          <p className="font-semibold text-muted-foreground">{label}</p>
+          <p className="text-red-400 line-through">{left?.[field] || '—'}</p>
+          <p className="text-emerald-400">{right?.[field] || '—'}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden border-border/50 shadow-2xl">
