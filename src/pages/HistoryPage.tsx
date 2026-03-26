@@ -7,11 +7,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
+import SideBySideCompare from '@/components/SideBySideCompare';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2 } from 'lucide-react';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3 } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
@@ -35,6 +36,11 @@ const History: React.FC = () => {
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
     open: false, fromVersion: 0, toVersion: 0, entries: [],
   });
+  const [sideBySide, setSideBySide] = useState<{
+    open: boolean;
+    left: { version: number; controls: any[] };
+    right: { version: number; controls: any[] };
+  }>({ open: false, left: { version: 0, controls: [] }, right: { version: 0, controls: [] } });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['history-projects', user?.id],
@@ -132,10 +138,21 @@ const History: React.FC = () => {
 
   const openDiff = (fromIdx: number) => {
     if (fromIdx <= 0 || fromIdx >= versions.length) return;
-    const toVer = versions[0]; // current
+    const toVer = versions[0];
     const fromVer = versions[fromIdx];
     const entries = buildDiff(fromVer, toVer);
     setDiffModal({ open: true, fromVersion: fromVer.version, toVersion: toVer.version, entries });
+  };
+
+  const openSideBySide = (fromIdx: number) => {
+    if (fromIdx <= 0 || fromIdx >= versions.length) return;
+    const toVer = versions[0];
+    const fromVer = versions[fromIdx];
+    setSideBySide({
+      open: true,
+      left: { version: fromVer.version, controls: fromVer.controls_snapshot || [] },
+      right: { version: toVer.version, controls: toVer.controls_snapshot || [] },
+    });
   };
 
   return (
@@ -205,6 +222,9 @@ const History: React.FC = () => {
                     <div className="flex gap-2">
                       {i > 0 && (
                         <>
+                          <Button variant="outline" size="sm" onClick={() => openSideBySide(i)}>
+                            <Columns3 className="h-3.5 w-3.5 mr-1" />{t.history.sideBySide.compareSideBySide}
+                          </Button>
                           <Button variant="outline" size="sm" onClick={() => openDiff(i)}>
                             <GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}
                           </Button>
@@ -264,6 +284,13 @@ const History: React.FC = () => {
         fromVersion={diffModal.fromVersion}
         toVersion={diffModal.toVersion}
         diffEntries={diffModal.entries}
+      />
+
+      <SideBySideCompare
+        open={sideBySide.open}
+        onOpenChange={(open) => setSideBySide(prev => ({ ...prev, open }))}
+        leftVersion={sideBySide.left}
+        rightVersion={sideBySide.right}
       />
     </div>
   );
