@@ -222,6 +222,9 @@ const History: React.FC = () => {
                     <div className="flex gap-2">
                       {i > 0 && (
                         <>
+                          <Button variant="outline" size="sm" onClick={() => openSideBySide(i)}>
+                            <Columns3 className="h-3.5 w-3.5 mr-1" />{t.history.sideBySide.compareSideBySide}
+                          </Button>
                           <Button variant="outline" size="sm" onClick={() => openDiff(i)}>
                             <GitCompare className="h-3.5 w-3.5 mr-1" />{t.history.compare}
                           </Button>
