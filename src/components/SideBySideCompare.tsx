@@ -5,7 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
-import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight } from 'lucide-react';
+import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ControlSnapshot {
@@ -40,6 +41,70 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
 }) => {
   const { t } = useI18n();
   const [filter, setFilter] = useState<FilterTab>('all');
+
+  const exportPdf = () => {
+    const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const changeColors: Record<string, { border: string; bg: string; label: string }> = {
+      added: { border: '#10b981', bg: '#ecfdf5', label: 'Added' },
+      removed: { border: '#ef4444', bg: '#fef2f2', label: 'Removed' },
+      modified: { border: '#f59e0b', bg: '#fffbeb', label: 'Modified' },
+      unchanged: { border: '#e2e8f0', bg: '#ffffff', label: 'Unchanged' },
+    };
+
+    const renderControl = (c: ControlSnapshot | undefined, changeType: string, side: 'left' | 'right') => {
+      if (!c) return `<td style="padding:8px;border:1px dashed #e2e8f0;color:#999;text-align:center;vertical-align:middle">—</td>`;
+      const color = changeColors[changeType];
+      const highlightField = (field: string) => {
+        const other = side === 'left' ? rightMap.get(c.control_id) : leftMap.get(c.control_id);
+        if (!other || !c) return '';
+        return c[field] !== other[field] ? `color:${side === 'left' ? '#d97706' : '#059669'};font-weight:600` : '';
+      };
+      return `<td style="padding:10px;border-left:3px solid ${color.border};background:${color.bg};vertical-align:top">
+        <div style="font-size:9px;color:#888;font-family:monospace;margin-bottom:2px">${c.control_id} ${c.criticality ? `· <strong>${c.criticality.toUpperCase()}</strong>` : ''}</div>
+        <div style="font-size:12px;font-weight:600;margin-bottom:4px;${highlightField('title')}">${c.title}</div>
+        ${c.description ? `<div style="font-size:10px;color:#666;margin-bottom:4px;${highlightField('description')}">${c.description}</div>` : ''}
+        <div style="font-size:9px;color:#888">${c.review_status || ''} ${c.category ? `· ${c.category}` : ''}</div>
+      </td>`;
+    };
+
+    let rows = '';
+    for (const id of filteredIds) {
+      const left = leftMap.get(id);
+      const right = rightMap.get(id);
+      const ct = getChangeType(id);
+      rows += `<tr>${renderControl(left, ct, 'left')}${renderControl(right, ct, 'right')}</tr>`;
+    }
+
+    const html = `<html><head><style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,sans-serif;color:#1a1a2e;padding:30px}
+      h1{font-size:20px;margin-bottom:4px}
+      .sub{font-size:11px;color:#666;margin-bottom:20px}
+      .summary{display:flex;gap:16px;margin-bottom:20px;font-size:11px}
+      .summary span{padding:3px 10px;border-radius:12px;font-weight:600}
+      table{width:100%;border-collapse:collapse;table-layout:fixed}
+      th{padding:8px;text-align:left;font-size:10px;text-transform:uppercase;color:#666;border-bottom:2px solid #e2e8f0;letter-spacing:.5px}
+      td{word-wrap:break-word}
+      tr{page-break-inside:avoid}
+      @media print{body{padding:15px}}
+    </style></head><body>
+      <h1>Side-by-Side Comparison</h1>
+      <p class="sub">Version ${leftVersion.version} → Version ${rightVersion.version} · Generated ${now}</p>
+      <div class="summary">
+        <span style="background:#ecfdf5;color:#059669">+ ${added.length} Added</span>
+        <span style="background:#fef2f2;color:#dc2626">− ${removed.length} Removed</span>
+        <span style="background:#fffbeb;color:#d97706">↔ ${modified.length} Modified</span>
+        <span style="background:#f8fafc;color:#666">= ${unchanged.length} Unchanged</span>
+      </div>
+      <table>
+        <thead><tr><th style="width:50%">Version ${leftVersion.version} (${leftVersion.controls.length} controls)</th><th style="width:50%">Version ${rightVersion.version} (${rightVersion.controls.length} controls)</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body></html>`;
+
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.onload = () => w.print(); }
+  };
 
   const { allIds, leftMap, rightMap, added, removed, modified, unchanged } = useMemo(() => {
     const lMap = new Map(leftVersion.controls.map(c => [c.control_id, c]));
@@ -113,7 +178,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
               <div className="h-10 w-10 rounded-full gold-gradient flex items-center justify-center">
                 <Columns3 className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div>
+              <div className="flex-1">
                 <DialogTitle className="text-lg font-display font-semibold">
                   {t.history.sideBySide.title}
                 </DialogTitle>
@@ -121,6 +186,9 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                   {t.history.sideBySide.subtitle}
                 </DialogDescription>
               </div>
+              <Button variant="outline" size="sm" onClick={exportPdf}>
+                <FileText className="h-3.5 w-3.5 mr-1.5" />Export PDF
+              </Button>
             </div>
           </DialogHeader>
 
