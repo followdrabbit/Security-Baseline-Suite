@@ -9,6 +9,7 @@ import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ControlSnapshot {
   control_id: string;
