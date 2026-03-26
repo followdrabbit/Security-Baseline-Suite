@@ -12,7 +12,7 @@ import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2 } from 'lucide-react';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3 } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
@@ -36,6 +36,11 @@ const History: React.FC = () => {
   const [diffModal, setDiffModal] = useState<{ open: boolean; fromVersion: number; toVersion: number; entries: DiffEntry[] }>({
     open: false, fromVersion: 0, toVersion: 0, entries: [],
   });
+  const [sideBySide, setSideBySide] = useState<{
+    open: boolean;
+    left: { version: number; controls: any[] };
+    right: { version: number; controls: any[] };
+  }>({ open: false, left: { version: 0, controls: [] }, right: { version: 0, controls: [] } });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['history-projects', user?.id],
