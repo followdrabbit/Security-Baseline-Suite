@@ -9,6 +9,7 @@ import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ControlSnapshot {
   control_id: string;
@@ -180,9 +181,24 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
     return left[field] !== right[field];
   };
 
+  const DiffTooltip: React.FC<{ left?: ControlSnapshot; right?: ControlSnapshot; field: string; label: string; children: React.ReactNode }> = ({ left, right, field, label, children }) => {
+    if (!isFieldChanged(left, right, field)) return <>{children}</>;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild><span className="cursor-help border-b border-dashed border-current">{children}</span></TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs space-y-1">
+          <p className="font-semibold text-muted-foreground">{label}</p>
+          <p className="text-red-400 line-through">{left?.[field] || '—'}</p>
+          <p className="text-emerald-400">{right?.[field] || '—'}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden border-border/50 shadow-2xl">
+        <TooltipProvider delayDuration={200}>
         <div className="p-6 pb-4 border-b border-border/50">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-1">
@@ -283,19 +299,25 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                           <span className="text-[10px] font-mono text-muted-foreground">{left.control_id}</span>
                           {left.criticality && <StatusBadge status={left.criticality} type="criticality" />}
                         </div>
-                        <p className={`text-xs font-medium mb-1 ${isFieldChanged(left, right, 'title') ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
-                          {left.title}
-                        </p>
-                        {left.description && (
-                          <p className={`text-[11px] line-clamp-2 ${isFieldChanged(left, right, 'description') ? 'text-amber-500/80' : 'text-muted-foreground'}`}>
-                            {left.description}
+                        <DiffTooltip left={left} right={right} field="title" label="Title">
+                          <p className={`text-xs font-medium mb-1 ${isFieldChanged(left, right, 'title') ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
+                            {left.title}
                           </p>
+                        </DiffTooltip>
+                        {left.description && (
+                          <DiffTooltip left={left} right={right} field="description" label="Description">
+                            <p className={`text-[11px] line-clamp-2 ${isFieldChanged(left, right, 'description') ? 'text-amber-500/80' : 'text-muted-foreground'}`}>
+                              {left.description}
+                            </p>
+                          </DiffTooltip>
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           {left.review_status && (
-                            <Badge variant="outline" className={`text-[9px] ${isFieldChanged(left, right, 'review_status') ? 'border-amber-500/50 text-amber-600' : ''}`}>
-                              {left.review_status}
-                            </Badge>
+                            <DiffTooltip left={left} right={right} field="review_status" label="Review Status">
+                              <Badge variant="outline" className={`text-[9px] ${isFieldChanged(left, right, 'review_status') ? 'border-amber-500/50 text-amber-600' : ''}`}>
+                                {left.review_status}
+                              </Badge>
+                            </DiffTooltip>
                           )}
                           {left.category && (
                             <span className="text-[9px] text-muted-foreground">{left.category}</span>
@@ -318,19 +340,25 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                           <span className="text-[10px] font-mono text-muted-foreground">{right.control_id}</span>
                           {right.criticality && <StatusBadge status={right.criticality} type="criticality" />}
                         </div>
-                        <p className={`text-xs font-medium mb-1 ${isFieldChanged(left, right, 'title') ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
-                          {right.title}
-                        </p>
-                        {right.description && (
-                          <p className={`text-[11px] line-clamp-2 ${isFieldChanged(left, right, 'description') ? 'text-emerald-500/80' : 'text-muted-foreground'}`}>
-                            {right.description}
+                        <DiffTooltip left={left} right={right} field="title" label="Title">
+                          <p className={`text-xs font-medium mb-1 ${isFieldChanged(left, right, 'title') ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                            {right.title}
                           </p>
+                        </DiffTooltip>
+                        {right.description && (
+                          <DiffTooltip left={left} right={right} field="description" label="Description">
+                            <p className={`text-[11px] line-clamp-2 ${isFieldChanged(left, right, 'description') ? 'text-emerald-500/80' : 'text-muted-foreground'}`}>
+                              {right.description}
+                            </p>
+                          </DiffTooltip>
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           {right.review_status && (
-                            <Badge variant="outline" className={`text-[9px] ${isFieldChanged(left, right, 'review_status') ? 'border-emerald-500/50 text-emerald-600' : ''}`}>
-                              {right.review_status}
-                            </Badge>
+                            <DiffTooltip left={left} right={right} field="review_status" label="Review Status">
+                              <Badge variant="outline" className={`text-[9px] ${isFieldChanged(left, right, 'review_status') ? 'border-emerald-500/50 text-emerald-600' : ''}`}>
+                                {right.review_status}
+                              </Badge>
+                            </DiffTooltip>
                           )}
                           {right.category && (
                             <span className="text-[9px] text-muted-foreground">{right.category}</span>
@@ -348,6 +376,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
             })}
           </div>
         </ScrollArea>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );
