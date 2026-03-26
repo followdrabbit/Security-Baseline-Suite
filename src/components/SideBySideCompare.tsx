@@ -5,7 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
-import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight } from 'lucide-react';
+import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ControlSnapshot {
