@@ -217,20 +217,31 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
             </div>
           </div>
 
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterTab)} className="mt-4">
-            <TabsList className="h-8">
-              <TabsTrigger value="all" className="text-xs px-3 h-6">All ({allIds.length})</TabsTrigger>
-              <TabsTrigger value="added" className="text-xs px-3 h-6">
-                <Plus className="h-3 w-3 mr-1 text-emerald-500" />{t.history.diff.added} ({added.length})
-              </TabsTrigger>
-              <TabsTrigger value="removed" className="text-xs px-3 h-6">
-                <Minus className="h-3 w-3 mr-1 text-red-500" />{t.history.diff.removed} ({removed.length})
-              </TabsTrigger>
-              <TabsTrigger value="modified" className="text-xs px-3 h-6">
-                <ArrowLeftRight className="h-3 w-3 mr-1 text-amber-500" />{t.history.diff.modified} ({modified.length})
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-3 mt-4">
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterTab)} className="flex-1">
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs px-3 h-6">All ({allIds.length})</TabsTrigger>
+                <TabsTrigger value="added" className="text-xs px-3 h-6">
+                  <Plus className="h-3 w-3 mr-1 text-emerald-500" />{t.history.diff.added} ({added.length})
+                </TabsTrigger>
+                <TabsTrigger value="removed" className="text-xs px-3 h-6">
+                  <Minus className="h-3 w-3 mr-1 text-red-500" />{t.history.diff.removed} ({removed.length})
+                </TabsTrigger>
+                <TabsTrigger value="modified" className="text-xs px-3 h-6">
+                  <ArrowLeftRight className="h-3 w-3 mr-1 text-amber-500" />{t.history.diff.modified} ({modified.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="relative w-48">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search controls..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
         </div>
 
         <ScrollArea className="max-h-[calc(90vh-260px)]">
