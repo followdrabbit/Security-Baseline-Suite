@@ -285,6 +285,13 @@ const History: React.FC = () => {
         toVersion={diffModal.toVersion}
         diffEntries={diffModal.entries}
       />
+
+      <SideBySideCompare
+        open={sideBySide.open}
+        onOpenChange={(open) => setSideBySide(prev => ({ ...prev, open }))}
+        leftVersion={sideBySide.left}
+        rightVersion={sideBySide.right}
+      />
     </div>
   );
 };
