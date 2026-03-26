@@ -178,7 +178,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
               <div className="h-10 w-10 rounded-full gold-gradient flex items-center justify-center">
                 <Columns3 className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div>
+              <div className="flex-1">
                 <DialogTitle className="text-lg font-display font-semibold">
                   {t.history.sideBySide.title}
                 </DialogTitle>
@@ -186,6 +186,9 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                   {t.history.sideBySide.subtitle}
                 </DialogDescription>
               </div>
+              <Button variant="outline" size="sm" onClick={exportPdf}>
+                <FileText className="h-3.5 w-3.5 mr-1.5" />Export PDF
+              </Button>
             </div>
           </DialogHeader>
 
