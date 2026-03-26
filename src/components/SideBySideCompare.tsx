@@ -136,14 +136,23 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
   }, [leftVersion, rightVersion]);
 
   const filteredIds = useMemo(() => {
+    let ids: string[];
     switch (filter) {
-      case 'added': return added;
-      case 'removed': return removed;
-      case 'modified': return modified;
-      case 'unchanged': return unchanged;
-      default: return allIds;
+      case 'added': ids = added; break;
+      case 'removed': ids = removed; break;
+      case 'modified': ids = modified; break;
+      case 'unchanged': ids = unchanged; break;
+      default: ids = allIds;
     }
-  }, [filter, allIds, added, removed, modified, unchanged]);
+    if (!search.trim()) return ids;
+    const q = search.toLowerCase();
+    return ids.filter(id => {
+      const l = leftMap.get(id);
+      const r = rightMap.get(id);
+      return (l?.title?.toLowerCase().includes(q) || l?.control_id?.toLowerCase().includes(q) ||
+              r?.title?.toLowerCase().includes(q) || r?.control_id?.toLowerCase().includes(q));
+    });
+  }, [filter, search, allIds, added, removed, modified, unchanged, leftMap, rightMap]);
 
   const getChangeType = (id: string) => {
     if (added.includes(id)) return 'added';
