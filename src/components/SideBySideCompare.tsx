@@ -5,9 +5,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
-import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText } from 'lucide-react';
+import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 interface ControlSnapshot {
   control_id: string;
@@ -41,6 +42,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
 }) => {
   const { t } = useI18n();
   const [filter, setFilter] = useState<FilterTab>('all');
+  const [search, setSearch] = useState('');
 
   const exportPdf = () => {
     const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -134,14 +136,23 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
   }, [leftVersion, rightVersion]);
 
   const filteredIds = useMemo(() => {
+    let ids: string[];
     switch (filter) {
-      case 'added': return added;
-      case 'removed': return removed;
-      case 'modified': return modified;
-      case 'unchanged': return unchanged;
-      default: return allIds;
+      case 'added': ids = added; break;
+      case 'removed': ids = removed; break;
+      case 'modified': ids = modified; break;
+      case 'unchanged': ids = unchanged; break;
+      default: ids = allIds;
     }
-  }, [filter, allIds, added, removed, modified, unchanged]);
+    if (!search.trim()) return ids;
+    const q = search.toLowerCase();
+    return ids.filter(id => {
+      const l = leftMap.get(id);
+      const r = rightMap.get(id);
+      return (l?.title?.toLowerCase().includes(q) || l?.control_id?.toLowerCase().includes(q) ||
+              r?.title?.toLowerCase().includes(q) || r?.control_id?.toLowerCase().includes(q));
+    });
+  }, [filter, search, allIds, added, removed, modified, unchanged, leftMap, rightMap]);
 
   const getChangeType = (id: string) => {
     if (added.includes(id)) return 'added';
@@ -206,20 +217,31 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
             </div>
           </div>
 
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterTab)} className="mt-4">
-            <TabsList className="h-8">
-              <TabsTrigger value="all" className="text-xs px-3 h-6">All ({allIds.length})</TabsTrigger>
-              <TabsTrigger value="added" className="text-xs px-3 h-6">
-                <Plus className="h-3 w-3 mr-1 text-emerald-500" />{t.history.diff.added} ({added.length})
-              </TabsTrigger>
-              <TabsTrigger value="removed" className="text-xs px-3 h-6">
-                <Minus className="h-3 w-3 mr-1 text-red-500" />{t.history.diff.removed} ({removed.length})
-              </TabsTrigger>
-              <TabsTrigger value="modified" className="text-xs px-3 h-6">
-                <ArrowLeftRight className="h-3 w-3 mr-1 text-amber-500" />{t.history.diff.modified} ({modified.length})
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-3 mt-4">
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterTab)} className="flex-1">
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs px-3 h-6">All ({allIds.length})</TabsTrigger>
+                <TabsTrigger value="added" className="text-xs px-3 h-6">
+                  <Plus className="h-3 w-3 mr-1 text-emerald-500" />{t.history.diff.added} ({added.length})
+                </TabsTrigger>
+                <TabsTrigger value="removed" className="text-xs px-3 h-6">
+                  <Minus className="h-3 w-3 mr-1 text-red-500" />{t.history.diff.removed} ({removed.length})
+                </TabsTrigger>
+                <TabsTrigger value="modified" className="text-xs px-3 h-6">
+                  <ArrowLeftRight className="h-3 w-3 mr-1 text-amber-500" />{t.history.diff.modified} ({modified.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="relative w-48">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search controls..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
         </div>
 
         <ScrollArea className="max-h-[calc(90vh-260px)]">
