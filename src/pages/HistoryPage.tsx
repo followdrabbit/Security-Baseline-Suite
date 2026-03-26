@@ -138,10 +138,21 @@ const History: React.FC = () => {
 
   const openDiff = (fromIdx: number) => {
     if (fromIdx <= 0 || fromIdx >= versions.length) return;
-    const toVer = versions[0]; // current
+    const toVer = versions[0];
     const fromVer = versions[fromIdx];
     const entries = buildDiff(fromVer, toVer);
     setDiffModal({ open: true, fromVersion: fromVer.version, toVersion: toVer.version, entries });
+  };
+
+  const openSideBySide = (fromIdx: number) => {
+    if (fromIdx <= 0 || fromIdx >= versions.length) return;
+    const toVer = versions[0];
+    const fromVer = versions[fromIdx];
+    setSideBySide({
+      open: true,
+      left: { version: fromVer.version, controls: fromVer.controls_snapshot || [] },
+      right: { version: toVer.version, controls: toVer.controls_snapshot || [] },
+    });
   };
 
   return (
