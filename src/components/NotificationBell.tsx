@@ -82,7 +82,7 @@ const NotificationBell: React.FC = () => {
                 return (
                   <div
                     key={n.id}
-                    className={`p-3 text-sm transition-colors cursor-pointer hover:bg-accent/50 ${
+                    className={`group p-3 text-sm transition-colors cursor-pointer hover:bg-accent/50 ${
                       !n.is_read ? 'bg-accent/20' : ''
                     }`}
                     onClick={() => {
