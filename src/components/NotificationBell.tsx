@@ -63,8 +63,7 @@ const NotificationBell: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
-                onClick={() => clearAll.mutate()}
+                onClick={() => setConfirmClear(true)}
               >
                 <Trash2 className="h-3 w-3" />
                 Clear
