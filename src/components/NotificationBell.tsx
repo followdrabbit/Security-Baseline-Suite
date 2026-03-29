@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,7 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 
 const NotificationBell: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const statusColors: Record<string, string> = {
@@ -45,17 +45,30 @@ const NotificationBell: React.FC = () => {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <h4 className="text-sm font-semibold">Notifications</h4>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs gap-1"
-              onClick={() => markAllAsRead.mutate()}
-            >
-              <CheckCheck className="h-3 w-3" />
-              Mark all read
-            </Button>
-          )}
+          <div className="flex gap-1">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1"
+                onClick={() => markAllAsRead.mutate()}
+              >
+                <CheckCheck className="h-3 w-3" />
+                Read all
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+                onClick={() => clearAll.mutate()}
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="max-h-80">
           {notifications.length === 0 ? (
@@ -69,7 +82,7 @@ const NotificationBell: React.FC = () => {
                 return (
                   <div
                     key={n.id}
-                    className={`p-3 text-sm transition-colors cursor-pointer hover:bg-accent/50 ${
+                    className={`group p-3 text-sm transition-colors cursor-pointer hover:bg-accent/50 ${
                       !n.is_read ? 'bg-accent/20' : ''
                     }`}
                     onClick={() => {
@@ -90,6 +103,15 @@ const NotificationBell: React.FC = () => {
                       {!n.is_read && (
                         <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
                       )}
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification.mutate(n.id);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 );
