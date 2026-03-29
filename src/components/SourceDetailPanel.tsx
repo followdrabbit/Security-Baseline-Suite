@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
-import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash, RefreshCw } from 'lucide-react';
+import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash, RefreshCw, FileDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -63,6 +64,51 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
   const [reprocessModel, setReprocessModel] = useState(source.extraction_model || 'google/gemini-2.5-flash');
   const [contentView, setContentView] = useState<'extracted' | 'raw' | 'compare'>('extracted');
   const queryClient = useQueryClient();
+
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const baseName = source.name?.replace(/[^a-zA-Z0-9_-]/g, '_') || 'source';
+
+  const exportAsTxt = (type: 'extracted' | 'raw') => {
+    const content = type === 'raw' ? source.raw_content : source.extracted_content;
+    if (!content) return toast.error('No content available');
+    downloadFile(content, `${baseName}_${type}.txt`, 'text/plain');
+    toast.success(`Downloaded ${type} content as TXT`);
+  };
+
+  const exportAsJson = (type: 'extracted' | 'raw') => {
+    const content = type === 'raw' ? source.raw_content : source.extracted_content;
+    if (!content) return toast.error('No content available');
+    const json = JSON.stringify({
+      name: source.name,
+      type: source.type,
+      url: source.url || undefined,
+      extraction_model: source.extraction_model || undefined,
+      extraction_tokens: source.extraction_tokens || undefined,
+      processed_at: source.processed_at || undefined,
+      content_type: type,
+      content,
+    }, null, 2);
+    downloadFile(json, `${baseName}_${type}.json`, 'application/json');
+    toast.success(`Downloaded ${type} content as JSON`);
+  };
+
+  const exportAsCsv = (type: 'extracted' | 'raw') => {
+    const content = type === 'raw' ? source.raw_content : source.extracted_content;
+    if (!content) return toast.error('No content available');
+    const escapeCsv = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const csv = `name,type,model,content_type,content\n${escapeCsv(source.name)},${escapeCsv(source.type)},${escapeCsv(source.extraction_model || '')},${escapeCsv(type)},${escapeCsv(content)}`;
+    downloadFile(csv, `${baseName}_${type}.csv`, 'text/csv');
+    toast.success(`Downloaded ${type} content as CSV`);
+  };
 
   const reprocessMutation = useMutation({
     mutationFn: async () => {
@@ -208,9 +254,44 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground truncate pr-2">{source.name}</h3>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={generateAuditPdf} title="Export Audit PDF">
-            <Download className="h-3.5 w-3.5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Download Content">
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Extracted Content</p>
+              <DropdownMenuItem onClick={() => exportAsTxt('extracted')} disabled={!hasExtractedContent} className="text-xs gap-2">
+                <FileDown className="h-3.5 w-3.5" /> Download TXT
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportAsJson('extracted')} disabled={!hasExtractedContent} className="text-xs gap-2">
+                <FileDown className="h-3.5 w-3.5" /> Download JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportAsCsv('extracted')} disabled={!hasExtractedContent} className="text-xs gap-2">
+                <FileDown className="h-3.5 w-3.5" /> Download CSV
+              </DropdownMenuItem>
+              {hasRawContent && (
+                <>
+                  <DropdownMenuSeparator />
+                  <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Raw Content</p>
+                  <DropdownMenuItem onClick={() => exportAsTxt('raw')} className="text-xs gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download TXT
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAsJson('raw')} className="text-xs gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAsCsv('raw')} className="text-xs gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download CSV
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={generateAuditPdf} className="text-xs gap-2">
+                <FileText className="h-3.5 w-3.5" /> Audit Report (PDF)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="sm"
