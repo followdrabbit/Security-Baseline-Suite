@@ -61,7 +61,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-full" />
                 )}
                 <item.icon className={cn("h-3.5 w-3.5 shrink-0", isActive && "text-primary")} />
-                <span className="truncate">{item.title}</span>
+                <span className="truncate"><HighlightTocText text={item.title} highlight={search} /></span>
               </button>
             );
           })}
