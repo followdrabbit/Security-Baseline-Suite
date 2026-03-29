@@ -53,11 +53,35 @@ const STATUS_COLORS: Record<string, string> = {
 interface SourceDetailPanelProps {
   source: any;
   onClose: () => void;
+  onReprocessed?: () => void;
 }
 
-const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }) => {
+const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, onReprocessed }) => {
   const [activeTab, setActiveTab] = useState('info');
   const [showRaw, setShowRaw] = useState(false);
+  const [showReprocess, setShowReprocess] = useState(false);
+  const [reprocessModel, setReprocessModel] = useState(source.extraction_model || 'google/gemini-2.5-flash');
+  const queryClient = useQueryClient();
+
+  const reprocessMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('reprocess-source', {
+        body: { sourceId: source.id, model: reprocessModel, maxTokens: 65000 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Source reprocessed successfully');
+      setShowReprocess(false);
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+      onReprocessed?.();
+    },
+    onError: (err: any) => {
+      toast.error(`Reprocessing failed: ${err.message}`);
+    },
+  });
 
   const extractionMethod = source.extraction_method || 'none';
   const hasRawContent = !!source.raw_content;
