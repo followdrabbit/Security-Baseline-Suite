@@ -118,9 +118,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   versions: VersionEntry[];
+  liveControls?: any[];
 }
 
-const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions }) => {
+const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, liveControls }) => {
   const { t } = useI18n();
   const [leftId, setLeftId] = useState<string>('');
   const [rightId, setRightId] = useState<string>('');
@@ -128,16 +129,46 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions }) 
   const [filterType, setFilterType] = useState<'all' | ChangeType>('all');
   const [searchText, setSearchText] = useState('');
 
-  // Auto-select when only 2 versions
-  React.useEffect(() => {
-    if (versions.length >= 2 && !leftId && !rightId) {
-      setLeftId(versions[versions.length - 1].id); // oldest
-      setRightId(versions[0].id); // newest
-    }
-  }, [versions, leftId, rightId]);
+  // Build entries including Live option
+  const allEntries: VersionEntry[] = useMemo(() => {
+    const live: VersionEntry | null = liveControls ? {
+      id: '__live__',
+      version: 0,
+      published_at: null,
+      control_count: liveControls.length,
+      controls_snapshot: liveControls.map((c: any) => ({
+        control_id: c.controlId || c.control_id,
+        title: c.title,
+        description: c.description,
+        criticality: c.criticality,
+        review_status: c.reviewStatus || c.review_status,
+        category: c.category,
+        applicability: c.applicability,
+        security_risk: c.securityRisk || c.security_risk,
+        automation: c.automation,
+        default_behavior_limitations: c.defaultBehaviorLimitations || c.default_behavior_limitations,
+        framework_mappings: c.frameworkMappings || c.framework_mappings,
+        references: c.references,
+        reviewer_notes: c.reviewerNotes || c.reviewer_notes,
+        confidence_score: c.confidenceScore || c.confidence_score,
+      })),
+    } : null;
+    return live ? [...versions, live] : [...versions];
+  }, [versions, liveControls]);
 
-  const leftVersion = versions.find(v => v.id === leftId);
-  const rightVersion = versions.find(v => v.id === rightId);
+  // Auto-select
+  React.useEffect(() => {
+    if (allEntries.length >= 2 && !leftId && !rightId) {
+      const published = allEntries.filter(v => v.id !== '__live__');
+      if (published.length >= 1) {
+        setLeftId(published[published.length - 1].id);
+        setRightId(allEntries[0].id === '__live__' ? '__live__' : published[0].id);
+      }
+    }
+  }, [allEntries, leftId, rightId]);
+
+  const leftVersion = allEntries.find(v => v.id === leftId);
+  const rightVersion = allEntries.find(v => v.id === rightId);
 
   const diffs = useMemo(() => {
     if (!leftVersion || !rightVersion) return [];
