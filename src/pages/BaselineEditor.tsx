@@ -244,18 +244,79 @@ const BaselineEditor: React.FC = () => {
     updateStatusMutation.mutate({ id, status });
   };
 
-  const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll', controlId?: string) => {
+  const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll' | 'publish', controlId?: string) => {
     const control = controlId ? controls.find(c => c.id === controlId) : undefined;
     setConfirmModal({
       open: true,
       variant,
       controlId,
-      controlLabel: control ? `${control.controlId} — ${control.title}` : undefined,
+      controlLabel: variant === 'publish' 
+        ? `${(selectedProjectObj as any)?.name} — v${((selectedProjectObj as any)?.current_version || 0) + 1}`
+        : control ? `${control.controlId} — ${control.title}` : undefined,
     });
   };
 
+  // Publish version mutation
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || selectedProject === 'all') throw new Error('Select a project');
+      const proj = projects.find((p: any) => p.id === selectedProject) as any;
+      const newVersion = (proj?.current_version || 0) + 1;
+
+      // Get full controls for snapshot
+      const { data: controlsData } = await supabase
+        .from('controls')
+        .select('*')
+        .eq('project_id', selectedProject);
+
+      // Get full sources for snapshot
+      const { data: sourcesData } = await supabase
+        .from('sources')
+        .select('*')
+        .eq('project_id', selectedProject);
+
+      // Create the version snapshot
+      const { error: versionError } = await supabase
+        .from('baseline_versions')
+        .insert({
+          project_id: selectedProject,
+          user_id: user.id,
+          version: newVersion,
+          control_count: controlsData?.length || 0,
+          controls_snapshot: (controlsData || []) as any,
+          sources_snapshot: (sourcesData || []) as any,
+          project_snapshot: proj as any,
+          status: 'published',
+          changes_summary: `Published version ${newVersion} with ${controlsData?.length || 0} controls and ${sourcesData?.length || 0} sources`,
+          published_at: new Date().toISOString(),
+        });
+      if (versionError) throw versionError;
+
+      // Update project current_version
+      const { error: projError } = await supabase
+        .from('projects')
+        .update({ current_version: newVersion, status: 'approved' })
+        .eq('id', selectedProject);
+      if (projError) throw projError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baseline-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['baseline-controls'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-versions'] });
+      const proj = projects.find((p: any) => p.id === selectedProject) as any;
+      const ver = (proj?.current_version || 0) + 1;
+      toast({ title: `🚀 ${t.toasts.published}`, description: `v${ver} ${t.toasts.publishedDesc}` });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to publish version.', variant: 'destructive' });
+    },
+  });
+
   const handleConfirm = () => {
-    if (confirmModal.variant === 'approveAll') {
+    if (confirmModal.variant === 'publish') {
+      publishMutation.mutate();
+    } else if (confirmModal.variant === 'approveAll') {
       bulkApproveMutation.mutate();
       toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
     } else if (confirmModal.controlId) {
