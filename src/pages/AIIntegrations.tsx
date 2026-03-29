@@ -165,6 +165,7 @@ const AIIntegrations: React.FC = () => {
                 enabled: s.enabled,
                 apiKey: s.api_key_encrypted || '',
                 selectedModel: s.selected_model,
+                maxTokens: (s.extra_config as any)?.max_tokens || 65000,
                 connectionStatus: s.api_key_encrypted ? 'connected' : 'idle',
                 isDefault: s.is_default,
               };
