@@ -106,11 +106,13 @@ async function extractTextFromPdfWithAI(
 
   const result = await response.json();
   const extractedText = result.choices?.[0]?.message?.content || "";
+  const tokensUsed = result.usage?.total_tokens || result.usage?.completion_tokens || null;
 
   return {
     text: extractedText,
     preview: extractedText.substring(0, 500),
     confidence: extractedText.length > 100 ? 0.85 : extractedText.length > 20 ? 0.6 : 0.3,
+    tokensUsed,
   };
 }
 
@@ -153,11 +155,13 @@ async function structureTextWithAI(
 
   const result = await response.json();
   const structuredText = result.choices?.[0]?.message?.content || rawText;
+  const tokensUsed = result.usage?.total_tokens || result.usage?.completion_tokens || null;
 
   return {
     text: structuredText,
     preview: structuredText.substring(0, 500),
     confidence: structuredText.length > 100 ? 0.8 : 0.5,
+    tokensUsed,
   };
 }
 
