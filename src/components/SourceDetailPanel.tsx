@@ -135,6 +135,8 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }
   <div class="info-item"><div class="info-label">Confidence</div><div class="info-value">${source.confidence != null ? `${Math.round(source.confidence * 100)}%` : '—'}</div></div>
   <div class="info-item"><div class="info-label">Origin</div><div class="info-value">${escHtml(source.origin || '—')}</div></div>
   <div class="info-item"><div class="info-label">Extraction Method</div><div class="info-value">${EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}</div></div>
+  <div class="info-item"><div class="info-label">AI Model</div><div class="info-value">${source.extraction_model ? source.extraction_model.replace('google/', '').replace('openai/', '') : '—'}</div></div>
+  <div class="info-item"><div class="info-label">Tokens Used</div><div class="info-value">${source.extraction_tokens != null ? source.extraction_tokens.toLocaleString() : '—'}</div></div>
   <div class="info-item"><div class="info-label">Added At</div><div class="info-value">${fmtDate(addedAt)}</div></div>
   <div class="info-item"><div class="info-label">Processed At</div><div class="info-value">${fmtDate(processedAt)}</div></div>
   <div class="info-item"><div class="info-label">Processing Duration</div><div class="info-value">${duration}</div></div>
