@@ -661,12 +661,241 @@ const Documentation: React.FC = () => {
     },
   ];
 
-  const filteredSections = sections.filter(s =>
-    !search || s.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const searchLower = search.toLowerCase();
+  const filteredSections = sections.filter(s => {
+    const matchesCategory = activeCategory === 'all' || s.category === activeCategory;
+    const matchesSearch = !search ||
+      s.title.toLowerCase().includes(searchLower) ||
+      s.keywords.toLowerCase().includes(searchLower);
+    return matchesCategory && matchesSearch;
+  });
 
-  const activeContent = sections.find(s => s.id === activeSection);
-  const activeIndex = sections.findIndex(s => s.id === activeSection);
+  const activeContent = filteredSections.find(s => s.id === activeSection) || filteredSections[0];
+  const activeIndex = filteredSections.findIndex(s => s.id === activeContent?.id);
+
+  const handleTocSelect = (id: string) => {
+    setActiveSection(id);
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const tocItems = filteredSections.map(s => ({ id: s.id, icon: s.icon, title: s.title }));
+
+  const categoryCounts = Object.keys(categoryConfig).reduce((acc, cat) => {
+    acc[cat] = sections.filter(s => {
+      const matchesSearch = !search ||
+        s.title.toLowerCase().includes(searchLower) ||
+        s.keywords.toLowerCase().includes(searchLower);
+      return s.category === cat && matchesSearch;
+    }).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const getMatchSnippet = (s: DocSection): string | null => {
+    if (!search) return null;
+    const words = s.keywords.split(' ');
+    const matched = words.filter(w => w.toLowerCase().includes(searchLower));
+    return matched.length > 0 ? matched.slice(0, 4).join(', ') : null;
+  };
+
+  return (
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
+      <DocTableOfContents
+        items={tocItems}
+        activeId={activeContent?.id ?? null}
+        onSelect={handleTocSelect}
+        search={search}
+      />
+
+      <div className="flex-1 min-w-0 max-w-4xl">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl gold-gradient flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{d.title}</h1>
+              <p className="text-sm text-muted-foreground">{d.subtitle}</p>
+            </div>
+          </div>
+
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={d.searchPlaceholder}
+              value={search}
+              onChange={e => {
+                const val = e.target.value;
+                setSearch(val);
+                if (val) {
+                  const matches = sections.filter(s =>
+                    s.title.toLowerCase().includes(val.toLowerCase()) ||
+                    s.keywords.toLowerCase().includes(val.toLowerCase())
+                  );
+                  if (matches.length === 1) setActiveSection(matches[0].id);
+                }
+              }}
+              className="pl-9"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Category filter bar */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                activeCategory === 'all'
+                  ? 'bg-primary/10 text-primary border-primary/30 shadow-sm'
+                  : 'bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50'
+              )}
+            >
+              All ({sections.filter(s => !search || s.title.toLowerCase().includes(searchLower) || s.keywords.toLowerCase().includes(searchLower)).length})
+            </button>
+            {(Object.entries(categoryConfig) as [DocCategory, typeof categoryConfig[DocCategory]][]).map(([key, config]) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(activeCategory === key ? 'all' : key)}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                  activeCategory === key
+                    ? `${config.color} shadow-sm`
+                    : 'bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50',
+                  categoryCounts[key] === 0 && 'opacity-40 pointer-events-none'
+                )}
+              >
+                {config.label} ({categoryCounts[key]})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search results preview */}
+        {search && filteredSections.length > 0 && (
+          <div className="mb-4 bg-muted/20 border border-border/50 rounded-lg p-3 space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              <Search className="h-3 w-3 inline mr-1" />
+              {filteredSections.length} result{filteredSections.length !== 1 ? 's' : ''} for "<HighlightText text={search} highlight={search} />"
+            </p>
+            {filteredSections.map(s => {
+              const snippet = getMatchSnippet(s);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => handleTocSelect(s.id)}
+                  className={cn(
+                    "w-full text-left flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-xs",
+                    activeContent?.id === s.id
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted/50 text-foreground"
+                  )}
+                >
+                  <s.icon className="h-3.5 w-3.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium"><HighlightText text={s.title} highlight={search} /></span>
+                    {snippet && (
+                      <span className="block text-[10px] text-muted-foreground mt-0.5 truncate">
+                        Keywords: <HighlightText text={snippet} highlight={search} />
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="outline" className={cn("text-[9px] shrink-0", categoryConfig[s.category].color)}>
+                    {categoryConfig[s.category].label}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Active Section Content */}
+        <AnimatePresence mode="wait">
+          {activeContent && (
+            <motion.div
+              key={activeContent.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="bg-card border border-border rounded-xl shadow-premium overflow-hidden"
+            >
+              <div className="p-6 lg:p-8">
+                <div className="mb-8 pb-6 border-b border-border/50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <activeContent.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-xl font-display font-semibold text-foreground">
+                          <HighlightText text={activeContent.title} highlight={search} />
+                        </h2>
+                        {activeContent.badge && <Badge variant="secondary" className="text-[10px]">{activeContent.badge}</Badge>}
+                        <Badge variant="outline" className={cn("text-[9px] ml-auto", categoryConfig[activeContent.category].color)}>
+                          {categoryConfig[activeContent.category].label}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm">{activeContent.content}</div>
+              </div>
+
+              {/* Bottom navigation */}
+              <div className="border-t border-border/50 px-6 lg:px-8 py-4 bg-muted/20 flex items-center justify-between">
+                <button
+                  onClick={() => activeIndex > 0 && handleTocSelect(filteredSections[activeIndex - 1].id)}
+                  disabled={activeIndex <= 0}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">{activeIndex > 0 ? filteredSections[activeIndex - 1].title : ''}</span>
+                  <span className="sm:hidden">Previous</span>
+                </button>
+
+                <span className="text-xs text-muted-foreground tabular-nums">{activeIndex + 1} / {filteredSections.length}</span>
+
+                <button
+                  onClick={() => activeIndex < filteredSections.length - 1 && handleTocSelect(filteredSections[activeIndex + 1].id)}
+                  disabled={activeIndex >= filteredSections.length - 1}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="hidden sm:inline">{activeIndex < filteredSections.length - 1 ? filteredSections[activeIndex + 1].title : ''}</span>
+                  <span className="sm:hidden">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {search && filteredSections.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">{d.noResults} "{search}"</p>
+            <button
+              onClick={() => { setSearch(''); setActiveCategory('all'); }}
+              className="mt-3 text-xs text-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Documentation;
 
   const handleTocSelect = (id: string) => {
     setActiveSection(id);
