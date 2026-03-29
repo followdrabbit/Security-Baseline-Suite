@@ -97,7 +97,7 @@ const BaselineEditor: React.FC = () => {
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
-    variant: 'approve' | 'reject' | 'restore' | 'approveAll';
+    variant: 'approve' | 'reject' | 'restore' | 'approveAll' | 'publish';
     controlId?: string;
     controlLabel?: string;
   }>({ open: false, variant: 'approve' });
