@@ -41,8 +41,8 @@ async function extractContentWithAI(
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-  // Truncate HTML to avoid token limits (keep first ~60k chars)
-  const truncatedHtml = html.length > 60000 ? html.substring(0, 60000) + "\n[... truncated]" : html;
+  // Send more HTML to AI for better extraction (up to ~500k chars)
+  const truncatedHtml = html.length > 500000 ? html.substring(0, 500000) + "\n[... truncated]" : html;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -55,15 +55,15 @@ async function extractContentWithAI(
       messages: [
         {
           role: "system",
-          content: `You are a web content extraction specialist focused on security documentation. Extract ALL meaningful text content from the HTML, removing navigation, ads, footers, and boilerplate. Preserve structure with markdown formatting (headings, lists, tables, code blocks). Focus on technical content, security guidelines, best practices, configurations, and recommendations. Output ONLY the extracted content in clean markdown.`,
+          content: `You are a web content extraction specialist focused on security documentation. Extract ALL meaningful text content from the HTML, removing navigation, ads, footers, and boilerplate. Preserve structure with markdown formatting (headings, lists, tables, code blocks). Focus on technical content, security guidelines, best practices, configurations, and recommendations. Output ONLY the extracted content in clean markdown. Extract EVERYTHING — do not summarize, abbreviate, or skip any content.`,
         },
         {
           role: "user",
-          content: `Extract the main content from this web page (URL: ${url}, Title: "${title}"):\n\n${truncatedHtml}`,
+          content: `Extract ALL main content from this web page (URL: ${url}, Title: "${title}"). Do not skip or summarize any sections:\n\n${truncatedHtml}`,
         },
       ],
       temperature: 0.1,
-      max_tokens: 16000,
+      max_tokens: 65000,
     }),
   });
 

@@ -78,18 +78,18 @@ async function extractTextFromPdfWithAI(
       messages: [
         {
           role: "system",
-          content: `You are a document text extraction specialist. Extract ALL text content from the provided document preserving structure (headings, lists, tables, paragraphs). Output ONLY the extracted text, no commentary. For tables, use markdown table format. For lists, use bullet points. Preserve section headings with markdown # syntax.`,
+          content: `You are a document text extraction specialist. Extract ALL text content from the provided document preserving structure (headings, lists, tables, paragraphs). Output ONLY the extracted text, no commentary. For tables, use markdown table format. For lists, use bullet points. Preserve section headings with markdown # syntax. Extract EVERYTHING — do not summarize, abbreviate, or skip any content. Include every page, section, appendix, and footnote.`,
         },
         {
           role: "user",
           content: [
-            { type: "text", text: `Extract all text content from this PDF document: "${fileName}"` },
+            { type: "text", text: `Extract ALL text content from this PDF document: "${fileName}". Do not skip or summarize any sections — output the complete text.` },
             { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
           ],
         },
       ],
       temperature: 0.1,
-      max_tokens: 16000,
+      max_tokens: 65000,
     }),
   });
 
@@ -127,15 +127,15 @@ async function structureTextWithAI(
       messages: [
         {
           role: "system",
-          content: `You are a document text structuring specialist. Given raw extracted text from a document, clean it up and organize it with proper markdown formatting (headings, lists, tables, paragraphs). Output ONLY the structured text, no commentary.`,
+          content: `You are a document text structuring specialist. Given raw extracted text from a document, clean it up and organize it with proper markdown formatting (headings, lists, tables, paragraphs). Output ONLY the structured text, no commentary. Preserve ALL content — do not summarize or skip any sections.`,
         },
         {
           role: "user",
-          content: `Structure and clean the following raw text extracted from "${fileName}":\n\n${rawText}`,
+          content: `Structure and clean the following raw text extracted from "${fileName}". Preserve all content completely:\n\n${rawText}`,
         },
       ],
       temperature: 0.1,
-      max_tokens: 16000,
+      max_tokens: 65000,
     }),
   });
 
