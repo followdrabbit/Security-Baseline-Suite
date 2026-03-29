@@ -377,6 +377,24 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
                       {EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}
                     </span>
                   </div>
+                  {source.extraction_model && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">AI Model</span>
+                      <span className="font-medium text-foreground text-right max-w-[180px] truncate flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-warning" />
+                        {source.extraction_model.replace('google/', '').replace('openai/', '')}
+                      </span>
+                    </div>
+                  )}
+                  {source.extraction_tokens != null && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tokens Used</span>
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Hash className="h-3 w-3 text-info" />
+                        {source.extraction_tokens.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                   {processedAt && addedAt && (
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Duration</span>
