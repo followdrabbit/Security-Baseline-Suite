@@ -474,6 +474,7 @@ const AIIntegrations: React.FC = () => {
                       <p className="text-[10px] text-muted-foreground">
                         Recomendado: 16k (rápido), 65k (padrão), 128k+ (documentos longos)
                       </p>
+                    </div>
 
                     {provider.id === 'azure_openai' && (
                       <div className="space-y-1.5">
