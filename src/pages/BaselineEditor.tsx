@@ -103,6 +103,7 @@ const BaselineEditor: React.FC = () => {
     controlLabel?: string;
   }>({ open: false, variant: 'approve' });
   const [viewingVersionId, setViewingVersionId] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // Fetch projects with controls
   const { data: projects = [] } = useQuery({
