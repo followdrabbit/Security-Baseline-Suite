@@ -880,17 +880,31 @@ const Dashboard: React.FC = () => {
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.controls}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.confidence}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.lastUpdated}</th>
+                      <th className="py-3 px-4 w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredProjects.map((proj) => (
-                      <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
+                      <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer group">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
                         <td className="py-3 px-4"><StatusBadge status={proj.status as any} type="project" /></td>
                         <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.control_count || 0}</td>
                         <td className="py-3 px-4">{(proj.avg_confidence || 0) > 0 ? <ConfidenceScore score={proj.avg_confidence || 0} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
                         <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updated_at).toLocaleDateString()}</td>
+                        <td className="py-3 px-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: proj.id, name: proj.name });
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
