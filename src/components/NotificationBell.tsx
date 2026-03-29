@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,7 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 
 const NotificationBell: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const statusColors: Record<string, string> = {
