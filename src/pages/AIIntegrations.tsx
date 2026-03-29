@@ -189,6 +189,7 @@ const AIIntegrations: React.FC = () => {
         api_key_encrypted: config.apiKey,
         selected_model: config.selectedModel,
         is_default: config.isDefault,
+        extra_config: { max_tokens: config.maxTokens },
       });
       toast({ title: '✅ Configuração salva', description: 'Configuração persistida com sucesso' });
     } catch (err) {
