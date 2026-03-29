@@ -230,7 +230,7 @@ const BaselineEditor: React.FC = () => {
     },
   });
 
-  const filtered = useMemo(() => controls.filter(c => {
+  const filtered = useMemo(() => activeControls.filter(c => {
     if (selectedProject !== 'all' && c.projectId !== selectedProject) return false;
     if (search && !c.title.toLowerCase().includes(search.toLowerCase()) && !c.controlId.toLowerCase().includes(search.toLowerCase())) return false;
     if (critFilter !== 'all' && c.criticality !== critFilter) return false;
@@ -242,7 +242,7 @@ const BaselineEditor: React.FC = () => {
       if (!c.threatScenarios?.some(ts => ts.likelihood === likelihoodFilter)) return false;
     }
     return true;
-  }), [controls, selectedProject, search, critFilter, statusFilter, strideFilter, likelihoodFilter]);
+  }), [activeControls, selectedProject, search, critFilter, statusFilter, strideFilter, likelihoodFilter]);
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<string, ControlItem[]> = {};
