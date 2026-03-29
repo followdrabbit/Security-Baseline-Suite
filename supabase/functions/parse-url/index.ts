@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
 
       // Extract content with AI
       console.log("Extracting content with AI for:", title);
-      const aiResult = await extractContentWithAI(rawHtml, normalizedUrl, title);
+      const aiResult = await extractContentWithAI(rawHtml, normalizedUrl, title, model, maxTokens);
 
       const { data: updated } = await supabase
         .from("sources")
