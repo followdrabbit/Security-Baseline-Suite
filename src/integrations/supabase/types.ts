@@ -307,6 +307,39 @@ export type Database = {
           },
         ]
       }
+      source_activity_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          new_status: string
+          previous_status: string | null
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          new_status: string
+          previous_status?: string | null
+          source_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string
+          previous_status?: string | null
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sources: {
         Row: {
           added_at: string
