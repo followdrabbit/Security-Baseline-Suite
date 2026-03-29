@@ -69,6 +69,97 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }
     enabled: activeTab === 'audit',
   });
 
+  const generateAuditPdf = () => {
+    const fmtDate = (d: string | null) => d ? format(new Date(d), 'dd/MM/yyyy HH:mm:ss') : '—';
+    const duration = processedAt && addedAt
+      ? (() => {
+          const ms = new Date(processedAt).getTime() - new Date(addedAt).getTime();
+          if (ms < 1000) return `${ms}ms`;
+          if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+          return `${(ms / 60000).toFixed(1)}min`;
+        })()
+      : '—';
+
+    const escHtml = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const timelineHtml = activityLogs.length > 0
+      ? activityLogs.map((log: any) => {
+          const isCreated = log.event_type === 'created';
+          return `<tr>
+            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${fmtDate(log.created_at)}</td>
+            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;">${isCreated ? 'Source Created' : `${(log.previous_status || '—').toUpperCase()} → ${log.new_status.toUpperCase()}`}</td>
+            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${log.event_type}</td>
+          </tr>`;
+        }).join('')
+      : '<tr><td colspan="3" style="padding:12px;text-align:center;color:#9ca3af;font-style:italic;">No activity logs recorded</td></tr>';
+
+    const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>Audit Report — ${escHtml(source.name)}</title>
+<style>
+  @media print { body { margin: 0; } .no-print { display: none; } }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f2937; max-width: 800px; margin: 0 auto; padding: 40px 32px; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #111827; }
+  h2 { font-size: 15px; margin: 32px 0 12px; color: #111827; border-bottom: 2px solid #d4a853; padding-bottom: 6px; }
+  h3 { font-size: 13px; margin: 24px 0 8px; color: #374151; }
+  .subtitle { font-size: 12px; color: #6b7280; margin-bottom: 24px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge-processed { background: #d1fae5; color: #065f46; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-extracting { background: #dbeafe; color: #1e40af; }
+  .badge-failed { background: #fee2e2; color: #991b1b; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  th { text-align: left; padding: 8px 12px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0; }
+  .info-item { background: #f9fafb; border-radius: 8px; padding: 12px; }
+  .info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 4px; }
+  .info-value { font-size: 13px; font-weight: 600; color: #111827; }
+  .content-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 8px 0; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow: hidden; }
+  .content-block.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; text-align: center; }
+  .print-btn { position: fixed; top: 16px; right: 16px; padding: 8px 20px; background: #d4a853; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .print-btn:hover { background: #c49a40; }
+</style>
+</head><body>
+<button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
+
+<h1>📋 Source Audit Report</h1>
+<p class="subtitle">Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')} — Aureum Baseline Studio</p>
+
+<h2>Source Information</h2>
+<div class="info-grid">
+  <div class="info-item"><div class="info-label">Name</div><div class="info-value">${escHtml(source.name)}</div></div>
+  <div class="info-item"><div class="info-label">Type</div><div class="info-value">${source.type?.toUpperCase() || '—'} ${source.file_type ? `(${source.file_type.toUpperCase()})` : ''}</div></div>
+  <div class="info-item"><div class="info-label">Status</div><div class="info-value"><span class="badge badge-${source.status}">${source.status?.toUpperCase()}</span></div></div>
+  <div class="info-item"><div class="info-label">Confidence</div><div class="info-value">${source.confidence != null ? `${Math.round(source.confidence * 100)}%` : '—'}</div></div>
+  <div class="info-item"><div class="info-label">Origin</div><div class="info-value">${escHtml(source.origin || '—')}</div></div>
+  <div class="info-item"><div class="info-label">Extraction Method</div><div class="info-value">${EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}</div></div>
+  <div class="info-item"><div class="info-label">Added At</div><div class="info-value">${fmtDate(addedAt)}</div></div>
+  <div class="info-item"><div class="info-label">Processed At</div><div class="info-value">${fmtDate(processedAt)}</div></div>
+  <div class="info-item"><div class="info-label">Processing Duration</div><div class="info-value">${duration}</div></div>
+  <div class="info-item"><div class="info-label">Storage</div><div class="info-value">Raw: ${hasRawContent ? `${(source.raw_content.length / 1024).toFixed(1)} KB` : '—'} / Extracted: ${hasExtractedContent ? `${(source.extracted_content.length / 1024).toFixed(1)} KB` : '—'}</div></div>
+</div>
+
+<h2>Activity Timeline</h2>
+<table>
+  <thead><tr><th>Timestamp</th><th>Event</th><th>Type</th></tr></thead>
+  <tbody>${timelineHtml}</tbody>
+</table>
+
+${hasExtractedContent ? `<h2>Extracted Content</h2><div class="content-block">${escHtml(source.extracted_content)}</div>` : ''}
+
+${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono">${escHtml(source.raw_content.length > 50000 ? source.raw_content.substring(0, 50000) + '\n\n[... truncated at 50KB ...]' : source.raw_content)}</div>` : ''}
+
+<div class="footer">Aureum Baseline Studio — Source Audit Report — ${source.name}</div>
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 16 }}
@@ -78,9 +169,14 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground truncate pr-2">{source.name}</h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground shrink-0">
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={generateAuditPdf} title="Export Audit PDF">
+            <Download className="h-3.5 w-3.5" />
+          </Button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
