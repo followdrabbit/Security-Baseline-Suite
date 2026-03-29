@@ -10,9 +10,9 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { CheckCircle2, XCircle, RotateCcw, AlertTriangle, Shield } from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, AlertTriangle, Shield, Rocket } from 'lucide-react';
 
-type ConfirmVariant = 'approve' | 'reject' | 'restore' | 'approveAll';
+type ConfirmVariant = 'approve' | 'reject' | 'restore' | 'approveAll' | 'publish';
 
 interface ConfirmationModalProps {
   open: boolean;
@@ -52,6 +52,12 @@ const variantConfig: Record<ConfirmVariant, {
   },
   approveAll: {
     icon: Shield,
+    iconClass: 'text-primary',
+    ringClass: 'ring-primary/20 bg-primary/10',
+    confirmClass: 'gold-gradient text-primary-foreground border-0 hover:opacity-90',
+  },
+  publish: {
+    icon: Rocket,
     iconClass: 'text-primary',
     ringClass: 'ring-primary/20 bg-primary/10',
     confirmClass: 'gold-gradient text-primary-foreground border-0 hover:opacity-90',
