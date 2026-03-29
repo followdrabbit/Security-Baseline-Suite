@@ -56,7 +56,7 @@ async function extractContentWithAI(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: model,
       messages: [
         {
           role: "system",
@@ -68,7 +68,7 @@ async function extractContentWithAI(
         },
       ],
       temperature: 0.1,
-      max_tokens: 65000,
+      max_tokens: maxTokens,
     }),
   });
 
