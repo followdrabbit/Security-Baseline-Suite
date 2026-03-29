@@ -33,6 +33,7 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-8 w-8">
