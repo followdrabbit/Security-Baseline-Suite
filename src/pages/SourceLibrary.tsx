@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCircle2, AlertCircle, Clock, Database, Cpu, Eye, EyeOff } from 'lucide-react';
 import HelpButton from '@/components/HelpButton';
 import { toast } from 'sonner';
+import SourceDetailPanel from '@/components/SourceDetailPanel';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 
