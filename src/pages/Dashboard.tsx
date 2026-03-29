@@ -877,6 +877,7 @@ const Dashboard: React.FC = () => {
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.project.name}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.technology}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.status}</th>
+                      <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.versioning.versionLabel}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.controls}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.confidence}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.lastUpdated}</th>
@@ -884,11 +885,24 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProjects.map((proj) => (
+                    {filteredProjects.map((proj) => {
+                      const projVersion = (proj as any).current_version || 0;
+                      return (
                       <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer group">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
                         <td className="py-3 px-4"><StatusBadge status={proj.status as any} type="project" /></td>
+                        <td className="py-3 px-4">
+                          {projVersion > 0 ? (
+                            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                              v{projVersion}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground border border-border">
+                              {t.versioning.draft}
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.control_count || 0}</td>
                         <td className="py-3 px-4">{(proj.avg_confidence || 0) > 0 ? <ConfidenceScore score={proj.avg_confidence || 0} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
                         <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updated_at).toLocaleDateString()}</td>
@@ -906,7 +920,8 @@ const Dashboard: React.FC = () => {
                           </Button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
