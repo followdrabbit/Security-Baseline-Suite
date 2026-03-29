@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
-import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash } from 'lucide-react';
+import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+const REPROCESS_MODELS: Record<string, string> = {
+  'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'google/gemini-3-flash-preview': 'Gemini 3 Flash',
+  'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+  'openai/gpt-5': 'GPT-5',
+  'openai/gpt-5-mini': 'GPT-5 Mini',
+};
 
 const EXTRACTION_METHOD_LABELS: Record<string, string> = {
   direct_text: 'Direct Text Read',
@@ -42,11 +53,35 @@ const STATUS_COLORS: Record<string, string> = {
 interface SourceDetailPanelProps {
   source: any;
   onClose: () => void;
+  onReprocessed?: () => void;
 }
 
-const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }) => {
+const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, onReprocessed }) => {
   const [activeTab, setActiveTab] = useState('info');
   const [showRaw, setShowRaw] = useState(false);
+  const [showReprocess, setShowReprocess] = useState(false);
+  const [reprocessModel, setReprocessModel] = useState(source.extraction_model || 'google/gemini-2.5-flash');
+  const queryClient = useQueryClient();
+
+  const reprocessMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('reprocess-source', {
+        body: { sourceId: source.id, model: reprocessModel, maxTokens: 65000 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Source reprocessed successfully');
+      setShowReprocess(false);
+      queryClient.invalidateQueries({ queryKey: ['sources'] });
+      onReprocessed?.();
+    },
+    onError: (err: any) => {
+      toast.error(`Reprocessing failed: ${err.message}`);
+    },
+  });
 
   const extractionMethod = source.extraction_method || 'none';
   const hasRawContent = !!source.raw_content;
@@ -175,11 +210,58 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={generateAuditPdf} title="Export Audit PDF">
             <Download className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => setShowReprocess(!showReprocess)}
+            title="Reprocess with different model"
+            disabled={reprocessMutation.isPending}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${reprocessMutation.isPending ? 'animate-spin' : ''}`} />
+          </Button>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {/* Reprocess Bar */}
+      {showReprocess && (
+        <div className="p-3 border-b border-border bg-muted/30 space-y-2">
+          <p className="text-[11px] font-medium text-foreground">Re-process with a different model</p>
+          <Select value={reprocessModel} onValueChange={setReprocessModel}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(REPROCESS_MODELS).map(([id, label]) => (
+                <SelectItem key={id} value={id} className="text-xs">
+                  {label}
+                  {id === source.extraction_model && ' (current)'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-xs flex-1 gap-1"
+              onClick={() => reprocessMutation.mutate()}
+              disabled={reprocessMutation.isPending}
+            >
+              {reprocessMutation.isPending ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> Processing...</>
+              ) : (
+                <><RefreshCw className="h-3 w-3" /> Reprocess</>
+              )}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowReprocess(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full rounded-none border-b border-border bg-muted/30 p-0 h-auto">
