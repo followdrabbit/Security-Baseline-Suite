@@ -354,6 +354,9 @@ export type Database = {
           name: string
           origin: string | null
           preview: string | null
+          previous_extracted_content: string | null
+          previous_extraction_model: string | null
+          previous_extraction_tokens: number | null
           processed_at: string | null
           project_id: string
           raw_content: string | null
@@ -376,6 +379,9 @@ export type Database = {
           name: string
           origin?: string | null
           preview?: string | null
+          previous_extracted_content?: string | null
+          previous_extraction_model?: string | null
+          previous_extraction_tokens?: number | null
           processed_at?: string | null
           project_id: string
           raw_content?: string | null
@@ -398,6 +404,9 @@ export type Database = {
           name?: string
           origin?: string | null
           preview?: string | null
+          previous_extracted_content?: string | null
+          previous_extraction_model?: string | null
+          previous_extraction_tokens?: number | null
           processed_at?: string | null
           project_id?: string
           raw_content?: string | null

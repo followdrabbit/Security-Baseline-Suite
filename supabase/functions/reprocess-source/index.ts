@@ -152,10 +152,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Set status to extracting
+    // Save current extraction as previous before overwriting
     await supabase.from("sources").update({
       status: "extracting",
       preview: `Re-processing with ${model}...`,
+      previous_extracted_content: source.extracted_content || null,
+      previous_extraction_model: source.extraction_model || null,
+      previous_extraction_tokens: source.extraction_tokens || null,
     }).eq("id", sourceId);
 
     try {

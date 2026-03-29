@@ -58,9 +58,10 @@ interface SourceDetailPanelProps {
 
 const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, onReprocessed }) => {
   const [activeTab, setActiveTab] = useState('info');
-  const [showRaw, setShowRaw] = useState(false);
+  
   const [showReprocess, setShowReprocess] = useState(false);
   const [reprocessModel, setReprocessModel] = useState(source.extraction_model || 'google/gemini-2.5-flash');
+  const [contentView, setContentView] = useState<'extracted' | 'raw' | 'compare'>('extracted');
   const queryClient = useQueryClient();
 
   const reprocessMutation = useMutation({
@@ -339,43 +340,96 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
 
         {/* Content Tab */}
         <TabsContent value="content" className="mt-0">
-          <div className="p-3 border-b border-border flex items-center justify-between">
-            <span className="text-xs font-medium text-foreground">
-              {showRaw ? 'Raw Content' : 'Extracted Content'}
+          <div className="p-3 border-b border-border flex items-center justify-between gap-1">
+            <span className="text-xs font-medium text-foreground shrink-0">
+              {contentView === 'raw' ? 'Raw Content' : contentView === 'compare' ? 'Compare' : 'Extracted Content'}
             </span>
-            {hasRawContent && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] px-2 gap-1"
-                onClick={() => setShowRaw(!showRaw)}
-              >
-                {showRaw ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                {showRaw ? 'Show Extracted' : 'Show Raw'}
-              </Button>
-            )}
-          </div>
-          <ScrollArea className="h-[300px]">
-            <div className="p-4">
-              {showRaw ? (
-                hasRawContent ? (
-                  <pre className="text-[11px] text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed break-all">
-                    {source.raw_content}
-                  </pre>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">No raw content stored for this source.</p>
-                )
-              ) : (
-                hasExtractedContent ? (
-                  <div className="text-[11px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                    {source.extracted_content}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">No extracted content yet. Processing may still be in progress.</p>
-                )
+            <div className="flex items-center gap-1">
+              {source.previous_extracted_content && (
+                <Button
+                  variant={contentView === 'compare' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-6 text-[10px] px-2 gap-1"
+                  onClick={() => setContentView(contentView === 'compare' ? 'extracted' : 'compare')}
+                >
+                  <ArrowRight className="h-3 w-3" />
+                  {contentView === 'compare' ? 'Single' : 'Compare'}
+                </Button>
+              )}
+              {hasRawContent && contentView !== 'compare' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] px-2 gap-1"
+                  onClick={() => setContentView(contentView === 'raw' ? 'extracted' : 'raw')}
+                >
+                  {contentView === 'raw' ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  {contentView === 'raw' ? 'Extracted' : 'Raw'}
+                </Button>
               )}
             </div>
-          </ScrollArea>
+          </div>
+
+          {contentView === 'compare' && source.previous_extracted_content ? (
+            <div className="flex flex-col h-[360px]">
+              {/* Compare headers */}
+              <div className="grid grid-cols-2 border-b border-border text-[10px] font-medium">
+                <div className="p-2 bg-destructive/5 text-destructive border-r border-border flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  {source.previous_extraction_model
+                    ? source.previous_extraction_model.replace('google/', '').replace('openai/', '')
+                    : 'Previous'}
+                  {source.previous_extraction_tokens != null && (
+                    <span className="text-muted-foreground ml-auto">{source.previous_extraction_tokens.toLocaleString()} tok</span>
+                  )}
+                </div>
+                <div className="p-2 bg-success/5 text-success flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  {source.extraction_model
+                    ? source.extraction_model.replace('google/', '').replace('openai/', '')
+                    : 'Current'}
+                  {source.extraction_tokens != null && (
+                    <span className="text-muted-foreground ml-auto">{source.extraction_tokens.toLocaleString()} tok</span>
+                  )}
+                </div>
+              </div>
+              {/* Compare content */}
+              <div className="grid grid-cols-2 flex-1 overflow-hidden">
+                <ScrollArea className="h-full border-r border-border">
+                  <div className="p-3 text-[10px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                    {source.previous_extracted_content}
+                  </div>
+                </ScrollArea>
+                <ScrollArea className="h-full">
+                  <div className="p-3 text-[10px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                    {source.extracted_content}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          ) : (
+            <ScrollArea className="h-[300px]">
+              <div className="p-4">
+                {contentView === 'raw' ? (
+                  hasRawContent ? (
+                    <pre className="text-[11px] text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed break-all">
+                      {source.raw_content}
+                    </pre>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No raw content stored for this source.</p>
+                  )
+                ) : (
+                  hasExtractedContent ? (
+                    <div className="text-[11px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                      {source.extracted_content}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No extracted content yet. Processing may still be in progress.</p>
+                  )
+                )}
+              </div>
+            </ScrollArea>
+          )}
         </TabsContent>
 
         {/* Audit Tab */}
