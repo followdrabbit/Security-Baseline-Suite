@@ -15,12 +15,14 @@ const NotificationBell: React.FC = () => {
     rejected: 'text-red-400',
     pending: 'text-amber-400',
     reviewed: 'text-blue-400',
+    source_processed: 'text-primary',
   };
 
-  const getStatusFromTitle = (title: string) => {
-    if (title.includes('approved')) return 'approved';
-    if (title.includes('rejected')) return 'rejected';
-    if (title.includes('reviewed')) return 'reviewed';
+  const getStatusFromNotification = (n: { title: string; type: string }) => {
+    if (n.type === 'source_processed') return 'source_processed';
+    if (n.title.includes('approved')) return 'approved';
+    if (n.title.includes('rejected')) return 'rejected';
+    if (n.title.includes('reviewed')) return 'reviewed';
     return 'pending';
   };
 
@@ -59,7 +61,7 @@ const NotificationBell: React.FC = () => {
           ) : (
             <div className="divide-y divide-border">
               {notifications.map((n) => {
-                const status = getStatusFromTitle(n.title);
+                const status = getStatusFromNotification(n);
                 return (
                   <div
                     key={n.id}

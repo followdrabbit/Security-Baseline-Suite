@@ -303,6 +303,9 @@ const translations = {
       createBackup: 'Create Backup',
       restoreBackup: 'Restore from Backup',
       saved: 'Settings saved successfully',
+      notifications: 'Notifications',
+      notifySourceProcessed: 'Notify when source is processed',
+      notifySourceProcessedDesc: 'Receive a notification when a source finishes processing',
     },
     tooltips: {
       criticality: 'The severity level of the security control. Critical controls must be implemented immediately.',
@@ -990,6 +993,9 @@ const translations = {
       createBackup: 'Criar Backup',
       restoreBackup: 'Restaurar de Backup',
       saved: 'Configurações salvas com sucesso',
+      notifications: 'Notificações',
+      notifySourceProcessed: 'Notificar quando fonte for processada',
+      notifySourceProcessedDesc: 'Receba uma notificação quando uma fonte terminar de ser processada',
     },
     tooltips: {
       criticality: 'O nível de severidade do controle de segurança. Controles críticos devem ser implementados imediatamente.',
@@ -1677,6 +1683,9 @@ const translations = {
       createBackup: 'Crear Backup',
       restoreBackup: 'Restaurar de Backup',
       saved: 'Configuración guardada con éxito',
+      notifications: 'Notificaciones',
+      notifySourceProcessed: 'Notificar cuando la fuente esté procesada',
+      notifySourceProcessedDesc: 'Reciba una notificación cuando una fuente termine de procesarse',
     },
     tooltips: {
       criticality: 'El nivel de severidad del control de seguridad. Los controles críticos deben implementarse de inmediato.',
