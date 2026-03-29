@@ -273,6 +273,8 @@ Deno.serve(async (req) => {
             preview: aiResult.preview,
             confidence: aiResult.confidence,
             processed_at: new Date().toISOString(),
+            extraction_model: model,
+            extraction_tokens: aiResult.tokensUsed,
           })
           .eq("id", source.id).select().single();
 
@@ -340,6 +342,8 @@ Deno.serve(async (req) => {
             preview: structured.preview,
             confidence: structured.confidence,
             processed_at: new Date().toISOString(),
+            extraction_model: model,
+            extraction_tokens: structured.tokensUsed,
           })
           .eq("id", source.id).select().single();
 
