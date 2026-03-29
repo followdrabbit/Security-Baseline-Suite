@@ -33,10 +33,15 @@ async function fetchAndExtractUrl(url: string): Promise<{ rawHtml: string; title
 /**
  * Use AI to extract structured content from HTML
  */
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_MAX_TOKENS = 65000;
+
 async function extractContentWithAI(
   html: string,
   url: string,
   title: string,
+  model: string = DEFAULT_MODEL,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
 ): Promise<{ text: string; preview: string; confidence: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
