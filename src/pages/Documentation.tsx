@@ -436,25 +436,34 @@ const Documentation: React.FC = () => {
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
   const isScrollingRef = useRef(false);
 
-  // Scroll spy using IntersectionObserver
+  // Scroll spy using scroll event
   useEffect(() => {
-    const sectionEls = filtered.map(s => document.getElementById(`doc-section-${s.id}`)).filter(Boolean) as HTMLElement[];
-    if (!sectionEls.length) return;
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isScrollingRef.current) return;
-        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          const id = visible[0].target.id.replace('doc-section-', '');
-          setActiveTocId(id);
+    const handleScroll = () => {
+      if (isScrollingRef.current) return;
+      let bestId: string | null = null;
+      let bestTop = -Infinity;
+
+      for (const s of filtered) {
+        const el = document.getElementById(`doc-section-${s.id}`);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        // Pick the last section whose top has scrolled past 130px from viewport top
+        if (rect.top <= 130 && rect.top > bestTop) {
+          bestTop = rect.top;
+          bestId = s.id;
         }
-      },
-      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
-    );
+      }
+      if (bestId) {
+        setActiveTocId(bestId);
+      }
+    };
 
-    sectionEls.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => mainEl.removeEventListener('scroll', handleScroll);
   }, [filtered]);
 
   const handleTocSelect = (id: string) => {
