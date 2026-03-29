@@ -61,6 +61,7 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
   const [showRaw, setShowRaw] = useState(false);
   const [showReprocess, setShowReprocess] = useState(false);
   const [reprocessModel, setReprocessModel] = useState(source.extraction_model || 'google/gemini-2.5-flash');
+  const [contentView, setContentView] = useState<'extracted' | 'raw' | 'compare'>('extracted');
   const queryClient = useQueryClient();
 
   const reprocessMutation = useMutation({
