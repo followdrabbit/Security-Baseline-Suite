@@ -16,13 +16,42 @@ import DocCallout from '@/components/docs/DocCallout';
 import DocFeatureGrid from '@/components/docs/DocFeatureGrid';
 import DocStepList from '@/components/docs/DocStepList';
 
+type DocCategory = 'getting-started' | 'core' | 'ai' | 'management' | 'advanced';
+
+const categoryConfig: Record<DocCategory, { label: string; color: string }> = {
+  'getting-started': { label: 'Getting Started', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+  'core': { label: 'Core Features', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  'ai': { label: 'AI & Automation', color: 'bg-violet-500/10 text-violet-600 border-violet-500/20' },
+  'management': { label: 'Management', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  'advanced': { label: 'Advanced', color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
+};
+
 interface DocSection {
   id: string;
   icon: React.ElementType;
   title: string;
   badge?: string;
+  category: DocCategory;
+  keywords: string;
   content: React.ReactNode;
 }
+
+const HighlightText: React.FC<{ text: string; highlight: string }> = ({ text, highlight }) => {
+  if (!highlight.trim()) return <>{text}</>;
+  const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-primary/20 text-primary font-semibold rounded-sm px-0.5">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+};
 
 const SectionHeader: React.FC<{ title: string; subtitle?: string; icon: React.ElementType; badge?: string }> = ({ title, subtitle, icon: Icon, badge }) => (
   <div className="mb-8 pb-6 border-b border-border/50">
@@ -85,6 +114,8 @@ const Documentation: React.FC = () => {
   const sections: DocSection[] = [
     {
       id: 'overview', icon: Shield, title: d.overviewTitle,
+      category: 'getting-started',
+      keywords: 'overview architecture pipeline traceability governance capabilities multi-language security',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.overviewDesc}</p>
@@ -124,6 +155,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'getting-started', icon: Zap, title: d.gettingStartedTitle, badge: d.gettingStartedBadge,
+      category: 'getting-started',
+      keywords: 'quick start register login create project sources rules pipeline review workflow tutorial',
       content: (
         <div className="space-y-6">
           <DocCallout variant="tip" title="Quick Start">
@@ -147,6 +180,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'dashboard', icon: LayoutDashboard, title: d.dashboardTitle,
+      category: 'core',
+      keywords: 'dashboard metrics projects activity trends statistics overview quick actions',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.dashboardDesc}</p>
@@ -180,6 +215,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'new-project', icon: Plus, title: d.newProjectTitle,
+      category: 'core',
+      keywords: 'new project create technology vendor version category tags setup configuration',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.newProjectDesc}</p>
@@ -211,6 +248,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'sources', icon: Library, title: d.sourcesTitle,
+      category: 'core',
+      keywords: 'sources library url document upload extract content CIS NIST OWASP benchmark',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.sourcesDesc}</p>
@@ -248,6 +287,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'rules', icon: Settings2, title: d.rulesTitle,
+      category: 'ai',
+      keywords: 'rules templates structure writing risk criticality deduplication mapping threat scenarios',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.rulesDesc}</p>
@@ -280,6 +321,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'workspace', icon: Cpu, title: d.workspaceTitle,
+      category: 'ai',
+      keywords: 'workspace pipeline stages ingestion extraction normalization grouping deduplication generation AI',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.workspaceDesc}</p>
@@ -301,6 +344,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'editor', icon: FileEdit, title: d.editorTitle,
+      category: 'core',
+      keywords: 'editor baseline controls review approve reject adjust confidence STRIDE filters mind map',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.editorDesc}</p>
@@ -347,6 +392,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'traceability', icon: GitBranch, title: d.traceabilityTitle,
+      category: 'advanced',
+      keywords: 'traceability frameworks NIST ISO CIS MITRE PCI SOC GDPR radar chart mapping export',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.traceabilityDesc}</p>
@@ -375,6 +422,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'history', icon: History, title: d.historyTitle,
+      category: 'advanced',
+      keywords: 'history versions side-by-side comparison diff restore snapshots audit trail',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.historyDesc}</p>
@@ -400,6 +449,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'export-import', icon: ArrowUpDown, title: d.exportTitle,
+      category: 'advanced',
+      keywords: 'export import JSON markdown PDF CSV backup format download upload',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.exportDesc}</p>
@@ -428,6 +479,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'ai-integrations', icon: Brain, title: d.aiTitle,
+      category: 'ai',
+      keywords: 'AI integrations providers GPT Gemini Claude model API key configuration default',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.aiDesc}</p>
@@ -455,6 +508,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'teams', icon: Users, title: d.teamsTitle,
+      category: 'management',
+      keywords: 'teams collaboration roles members shared projects notifications invite',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.teamsDesc}</p>
@@ -474,6 +529,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'notifications', icon: Bell, title: d.notificationsTitle,
+      category: 'management',
+      keywords: 'notifications alerts badge read unread types updates',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.notificationsDesc}</p>
@@ -490,6 +547,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'settings', icon: Settings, title: d.settingsTitle,
+      category: 'management',
+      keywords: 'settings language output theme tooltips format AI strictness backup preferences',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.settingsDesc}</p>
@@ -518,6 +577,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'mindmap', icon: Eye, title: d.mindmapTitle,
+      category: 'advanced',
+      keywords: 'mind map visualization controls categories nodes zoom pan filters toolbar interactive',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.mindmapDesc}</p>
@@ -541,6 +602,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'security', icon: Lock, title: d.securityTitle,
+      category: 'advanced',
+      keywords: 'security authentication RLS isolation snapshots encryption keys audit compliance enterprise',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.securityDesc}</p>
@@ -563,6 +626,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'shortcuts', icon: Zap, title: d.tipsTitle,
+      category: 'getting-started',
+      keywords: 'tips shortcuts productivity best practices recommendations optimization workflow',
       content: (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -575,6 +640,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'faq', icon: MessageCircleQuestion, title: d.faqTitle,
+      category: 'getting-started',
+      keywords: 'FAQ frequently asked questions help support troubleshooting answers common',
       content: (
         <div className="space-y-4">
           {([1,2,3,4,5,6,7,8,9,10] as const).map(n => (
