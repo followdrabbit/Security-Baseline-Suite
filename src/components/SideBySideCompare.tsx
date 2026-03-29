@@ -173,6 +173,14 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
     return { allIds, leftMap: lMap, rightMap: rMap, added, removed, modified, unchanged };
   }, [leftVersion, rightVersion]);
 
+  const criticalities = useMemo(() => {
+    const set = new Set<string>();
+    [...leftVersion.controls, ...rightVersion.controls].forEach(c => {
+      if (c.criticality) set.add(c.criticality);
+    });
+    return Array.from(set).sort();
+  }, [leftVersion, rightVersion]);
+
   const filteredIds = useMemo(() => {
     let ids: string[];
     switch (filter) {
@@ -182,6 +190,13 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
       case 'unchanged': ids = unchanged; break;
       default: ids = allIds;
     }
+    if (criticalityFilter !== 'all') {
+      ids = ids.filter(id => {
+        const l = leftMap.get(id);
+        const r = rightMap.get(id);
+        return l?.criticality === criticalityFilter || r?.criticality === criticalityFilter;
+      });
+    }
     if (!search.trim()) return ids;
     const q = search.toLowerCase();
     return ids.filter(id => {
@@ -190,7 +205,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
       return (l?.title?.toLowerCase().includes(q) || l?.control_id?.toLowerCase().includes(q) ||
               r?.title?.toLowerCase().includes(q) || r?.control_id?.toLowerCase().includes(q));
     });
-  }, [filter, search, allIds, added, removed, modified, unchanged, leftMap, rightMap]);
+  }, [filter, search, criticalityFilter, allIds, added, removed, modified, unchanged, leftMap, rightMap]);
 
   const getChangeType = (id: string) => {
     if (added.includes(id)) return 'added';
