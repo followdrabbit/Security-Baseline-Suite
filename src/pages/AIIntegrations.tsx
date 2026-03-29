@@ -108,6 +108,7 @@ interface ProviderConfig {
   enabled: boolean;
   apiKey: string;
   selectedModel: string;
+  maxTokens: number;
   connectionStatus: 'idle' | 'testing' | 'connected' | 'failed';
   isDefault: boolean;
 }
