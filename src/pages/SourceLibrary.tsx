@@ -420,7 +420,11 @@ const SourceLibrary: React.FC = () => {
 
         {/* Preview panel */}
         {previewSource && (
-          <SourceDetailPanel source={previewSource} onClose={() => setPreviewId(null)} />
+          <SourceDetailPanel
+            source={previewSource}
+            onClose={() => setPreviewId(null)}
+            onReprocessed={() => queryClient.invalidateQueries({ queryKey: ['sources'] })}
+          />
         )}
       </div>
 
