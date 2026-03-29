@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const aiResult = await extractTextFromPdfWithAI(arrayBuffer, fileName);
+        const aiResult = await extractTextFromPdfWithAI(arrayBuffer, fileName, model, maxTokens);
         const { data: updated } = await supabase
           .from("sources")
           .update({
@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        const structured = await structureTextWithAI(rawText, fileName);
+        const structured = await structureTextWithAI(rawText, fileName, model, maxTokens);
         const { data: updated } = await supabase
           .from("sources")
           .update({
