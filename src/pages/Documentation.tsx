@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import {
   BookOpen, LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch,
-  History, ArrowUpDown, Brain, Users, Settings, Shield, Search, ChevronRight,
-  ChevronDown, Zap, Target, Lock, Eye, Bell, HelpCircle, MessageCircleQuestion,
+  History, ArrowUpDown, Brain, Users, Settings, Shield, Search,
+  Zap, Target, Lock, Eye, Bell, HelpCircle, MessageCircleQuestion,
+  FileText, Globe, Layers, BarChart3, Download, Upload, Key, MousePointerClick,
+  ChevronLeft, ChevronRight, Sparkles,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import DocTableOfContents from '@/components/docs/DocTableOfContents';
+import DocCallout from '@/components/docs/DocCallout';
+import DocFeatureGrid from '@/components/docs/DocFeatureGrid';
+import DocStepList from '@/components/docs/DocStepList';
 
 interface DocSection {
   id: string;
@@ -19,64 +24,50 @@ interface DocSection {
   content: React.ReactNode;
 }
 
-const SectionCard: React.FC<{ section: DocSection; isOpen: boolean; onToggle: () => void }> = ({ section, isOpen, onToggle }) => (
-  <motion.div
-    id={`doc-section-${section.id}`}
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-card border border-border rounded-lg shadow-premium overflow-hidden"
-  >
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center gap-3 p-5 text-left hover:bg-muted/30 transition-colors"
-    >
-      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <section.icon className="h-4 w-4 text-primary" />
+const SectionHeader: React.FC<{ title: string; subtitle?: string; icon: React.ElementType; badge?: string }> = ({ title, subtitle, icon: Icon, badge }) => (
+  <div className="mb-8 pb-6 border-b border-border/50">
+    <div className="flex items-center gap-3 mb-2">
+      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+        <Icon className="h-5 w-5 text-primary" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">{section.title}</span>
-          {section.badge && <Badge variant="secondary" className="text-[10px]">{section.badge}</Badge>}
+          <h2 className="text-xl font-display font-semibold text-foreground">{title}</h2>
+          {badge && <Badge variant="secondary" className="text-[10px]">{badge}</Badge>}
         </div>
+        {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
-      {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-    </button>
-    {isOpen && (
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: 'auto', opacity: 1 }}
-        transition={{ duration: 0.2 }}
-        className="px-5 pb-5 border-t border-border"
-      >
-        <div className="pt-4 prose-sm text-muted-foreground space-y-3 max-w-none text-sm leading-relaxed">
-          {section.content}
-        </div>
-      </motion.div>
-    )}
-  </motion.div>
-);
-
-const Step: React.FC<{ n: number; title: string; children: React.ReactNode }> = ({ n, title, children }) => (
-  <div className="flex gap-3">
-    <div className="h-6 w-6 rounded-full gold-gradient flex items-center justify-center shrink-0 mt-0.5">
-      <span className="text-[10px] font-bold text-primary-foreground">{n}</span>
-    </div>
-    <div>
-      <p className="text-foreground font-medium text-sm">{title}</p>
-      <div className="text-muted-foreground text-xs mt-1">{children}</div>
     </div>
   </div>
 );
 
-const Tip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-primary/5 border border-primary/20 rounded-md p-3 flex items-start gap-2">
-    <Zap className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-    <span className="text-xs text-foreground">{children}</span>
+const SubSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div className="mb-6">
+    <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+      <div className="h-1 w-1 rounded-full bg-primary" />
+      {title}
+    </h3>
+    <div className="text-sm text-muted-foreground leading-relaxed space-y-3">{children}</div>
   </div>
 );
 
-const Li: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <li><strong className="text-foreground">{label}</strong> {children}</li>
+const FeatureItem: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex gap-3 py-2 border-b border-border/30 last:border-0">
+    <span className="text-sm font-medium text-foreground whitespace-nowrap">{label}</span>
+    <span className="text-sm text-muted-foreground">{children}</span>
+  </div>
+);
+
+const KeyboardShortcut: React.FC<{ keys: string }> = ({ keys }) => (
+  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border rounded text-muted-foreground">{keys}</kbd>
+);
+
+const StatusPill: React.FC<{ color: string; label: string; desc: string }> = ({ color, label, desc }) => (
+  <div className="flex items-center gap-3 py-2">
+    <span className={`h-2 w-2 rounded-full ${color}`} />
+    <span className="text-sm font-medium text-foreground min-w-[100px]">{label}</span>
+    <span className="text-sm text-muted-foreground">{desc}</span>
+  </div>
 );
 
 const Documentation: React.FC = () => {
@@ -84,344 +75,517 @@ const Documentation: React.FC = () => {
   const location = useLocation();
   const d = (t as any).docs;
   const [search, setSearch] = useState('');
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['overview']));
+  const [activeSection, setActiveSection] = useState('overview');
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
-    if (hash) {
-      setOpenSections(new Set([hash]));
-      setTimeout(() => {
-        document.getElementById(`doc-section-${hash}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
+    if (hash) setActiveSection(hash);
   }, [location.hash]);
-
-  const toggle = (id: string) => {
-    setOpenSections(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
 
   const sections: DocSection[] = [
     {
       id: 'overview', icon: Shield, title: d.overviewTitle,
       content: (
-        <>
-          <p>{d.overviewDesc}</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-            {[
-              { icon: Target, label: d.overviewPipeline, desc: d.overviewPipelineDesc },
-              { icon: GitBranch, label: d.overviewTraceability, desc: d.overviewTraceabilityDesc },
-              { icon: Lock, label: d.overviewGovernance, desc: d.overviewGovernanceDesc },
-            ].map(f => (
-              <div key={f.label} className="bg-muted/50 rounded-md p-3 text-center">
-                <f.icon className="h-5 w-5 text-primary mx-auto mb-1.5" />
-                <p className="text-xs font-semibold text-foreground">{f.label}</p>
-                <p className="text-[11px] text-muted-foreground">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.overviewDesc}</p>
+
+          <DocFeatureGrid features={[
+            { icon: Target, title: d.overviewPipeline, description: d.overviewPipelineDesc },
+            { icon: GitBranch, title: d.overviewTraceability, description: d.overviewTraceabilityDesc },
+            { icon: Lock, title: d.overviewGovernance, description: d.overviewGovernanceDesc },
+          ]} />
+
+          <DocCallout variant="info" title="Architecture">
+            Aureum uses a multi-stage AI pipeline that processes evidence sources through ingestion, extraction, normalization, grouping, deduplication, and baseline composition — all backed by immutable version snapshots for full auditability.
+          </DocCallout>
+
+          <SubSection title="Key Capabilities">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { icon: Cpu, label: 'AI-Powered Generation', desc: 'Automated control creation from diverse sources' },
+                { icon: GitBranch, label: 'Full Traceability', desc: 'Source → Control → Framework mapping' },
+                { icon: History, label: 'Version Control', desc: 'Immutable snapshots with diff comparison' },
+                { icon: Users, label: 'Team Collaboration', desc: 'Shared projects with role-based access' },
+                { icon: Globe, label: 'Multi-Language', desc: 'Interface and output in EN, PT-BR, ES' },
+                { icon: Shield, label: 'Enterprise Security', desc: 'RLS, encrypted keys, audit trails' },
+              ].map(item => (
+                <div key={item.label} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
+                  <item.icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SubSection>
+        </div>
       ),
     },
     {
       id: 'getting-started', icon: Zap, title: d.gettingStartedTitle, badge: d.gettingStartedBadge,
       content: (
-        <div className="space-y-4">
-          <Step n={1} title={d.step1Title}>{d.step1Desc}</Step>
-          <Step n={2} title={d.step2Title}>{d.step2Desc}</Step>
-          <Step n={3} title={d.step3Title}>{d.step3Desc}</Step>
-          <Step n={4} title={d.step4Title}>{d.step4Desc}</Step>
-          <Step n={5} title={d.step5Title}>{d.step5Desc}</Step>
-          <Step n={6} title={d.step6Title}>{d.step6Desc}</Step>
-          <Tip>{d.demoTip}</Tip>
+        <div className="space-y-6">
+          <DocCallout variant="tip" title="Quick Start">
+            {d.demoTip}
+          </DocCallout>
+
+          <DocStepList steps={[
+            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth → Register → Check email → Confirm' },
+            { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard → "Create New Baseline" → Fill fields → Save' },
+            { title: d.step3Title, description: d.step3Desc, detail: 'Source Library → Add URL or Upload → Wait for extraction' },
+            { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates → Select template → Customize fields' },
+            { title: d.step5Title, description: d.step5Desc, detail: 'AI Workspace → Start Pipeline → Monitor stages' },
+            { title: d.step6Title, description: d.step6Desc, detail: 'Baseline Editor → Review → Approve/Reject/Adjust' },
+          ]} />
+
+          <DocCallout variant="example" title="Example Workflow">
+            Creating an AWS S3 baseline: Create project "AWS S3 Hardening 2025" → Add CIS Benchmark URL + AWS Security Guide PDF → Use "Balanced" template → Run pipeline → Review 45 generated controls → Approve baseline → Export as PDF for audit.
+          </DocCallout>
         </div>
       ),
     },
     {
       id: 'dashboard', icon: LayoutDashboard, title: d.dashboardTitle,
       content: (
-        <>
-          <p>{d.dashboardDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.dashboardMetrics}>{d.dashboardMetricsDesc}</Li>
-            <Li label={d.dashboardRecent}>{d.dashboardRecentDesc}</Li>
-            <Li label={d.dashboardActivity}>{d.dashboardActivityDesc}</Li>
-            <Li label={d.dashboardTrends}>{d.dashboardTrendsDesc}</Li>
-            <Li label={d.dashboardQuick}>{d.dashboardQuickDesc}</Li>
-          </ul>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.dashboardDesc}</p>
+
+          <SubSection title="Metrics Panel">
+            <div className="space-y-1">
+              <FeatureItem label={d.dashboardMetrics}>{d.dashboardMetricsDesc}</FeatureItem>
+              <FeatureItem label={d.dashboardRecent}>{d.dashboardRecentDesc}</FeatureItem>
+              <FeatureItem label={d.dashboardActivity}>{d.dashboardActivityDesc}</FeatureItem>
+              <FeatureItem label={d.dashboardTrends}>{d.dashboardTrendsDesc}</FeatureItem>
+              <FeatureItem label={d.dashboardQuick}>{d.dashboardQuickDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">
+            The dashboard updates in real-time. Use the trend charts to identify patterns — a declining confidence score may indicate sources need updating.
+          </DocCallout>
+
+          <SubSection title="Quick Actions">
+            <div className="flex flex-wrap gap-2">
+              {['Create New Baseline', 'Import Project', 'View All Projects'].map(action => (
+                <div key={action} className="px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-xs font-medium text-primary flex items-center gap-2">
+                  <MousePointerClick className="h-3 w-3" />
+                  {action}
+                </div>
+              ))}
+            </div>
+          </SubSection>
+        </div>
       ),
     },
     {
       id: 'new-project', icon: Plus, title: d.newProjectTitle,
       content: (
-        <>
-          <p>{d.newProjectDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.newProjectName}>{d.newProjectNameDesc}</Li>
-            <Li label={d.newProjectTech}>{d.newProjectTechDesc}</Li>
-            <Li label={d.newProjectVendor}>{d.newProjectVendorDesc}</Li>
-            <Li label={d.newProjectVersion}>{d.newProjectVersionDesc}</Li>
-            <Li label={d.newProjectCategory}>{d.newProjectCategoryDesc}</Li>
-            <Li label={d.newProjectLang}>{d.newProjectLangDesc}</Li>
-            <Li label={d.newProjectTags}>{d.newProjectTagsDesc}</Li>
-          </ul>
-          <Tip>{d.newProjectTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.newProjectDesc}</p>
+
+          <SubSection title="Required Fields">
+            <div className="space-y-1">
+              <FeatureItem label={d.newProjectName}>{d.newProjectNameDesc}</FeatureItem>
+              <FeatureItem label={d.newProjectTech}>{d.newProjectTechDesc}</FeatureItem>
+              <FeatureItem label={d.newProjectVendor}>{d.newProjectVendorDesc}</FeatureItem>
+              <FeatureItem label={d.newProjectVersion}>{d.newProjectVersionDesc}</FeatureItem>
+              <FeatureItem label={d.newProjectCategory}>{d.newProjectCategoryDesc}</FeatureItem>
+              <FeatureItem label={d.newProjectLang}>{d.newProjectLangDesc}</FeatureItem>
+              <FeatureItem label={d.newProjectTags}>{d.newProjectTagsDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">{d.newProjectTip}</DocCallout>
+
+          <DocCallout variant="example" title="Example Project Setup">
+            <strong>Name:</strong> "Kubernetes Production Baseline 2025"<br/>
+            <strong>Technology:</strong> Kubernetes<br/>
+            <strong>Vendor:</strong> CNCF<br/>
+            <strong>Version:</strong> 1.29<br/>
+            <strong>Category:</strong> Cloud / Container Orchestration<br/>
+            <strong>Tags:</strong> production, critical-infra, compliance
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'sources', icon: Library, title: d.sourcesTitle,
       content: (
-        <>
-          <p>{d.sourcesDesc}</p>
-          <p className="font-medium text-foreground mt-2">{d.sourcesTypesTitle}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.sourcesUrl}>{d.sourcesUrlDesc}</Li>
-            <Li label={d.sourcesDoc}>{d.sourcesDocDesc}</Li>
-          </ul>
-          <p className="font-medium text-foreground mt-2">{d.sourcesStatusTitle}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.sourcesPending}>{d.sourcesPendingDesc}</Li>
-            <Li label={d.sourcesExtracting}>{d.sourcesExtractingDesc}</Li>
-            <Li label={d.sourcesNormalized}>{d.sourcesNormalizedDesc}</Li>
-            <Li label={d.sourcesProcessed}>{d.sourcesProcessedDesc}</Li>
-            <Li label={d.sourcesFailed}>{d.sourcesFailedDesc}</Li>
-          </ul>
-          <Tip>{d.sourcesTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.sourcesDesc}</p>
+
+          <SubSection title={d.sourcesTypesTitle}>
+            <DocFeatureGrid columns={2} features={[
+              { icon: Globe, title: 'URL Sources', description: d.sourcesUrlDesc },
+              { icon: FileText, title: 'Document Sources', description: d.sourcesDocDesc },
+            ]} />
+          </SubSection>
+
+          <SubSection title={d.sourcesStatusTitle}>
+            <div className="bg-muted/20 rounded-lg p-4 border border-border/30 space-y-1">
+              <StatusPill color="bg-amber-400" label={d.sourcesPending} desc={d.sourcesPendingDesc} />
+              <StatusPill color="bg-blue-400" label={d.sourcesExtracting} desc={d.sourcesExtractingDesc} />
+              <StatusPill color="bg-cyan-400" label={d.sourcesNormalized} desc={d.sourcesNormalizedDesc} />
+              <StatusPill color="bg-emerald-400" label={d.sourcesProcessed} desc={d.sourcesProcessedDesc} />
+              <StatusPill color="bg-red-400" label={d.sourcesFailed} desc={d.sourcesFailedDesc} />
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">{d.sourcesTip}</DocCallout>
+
+          <DocCallout variant="example" title="Recommended Sources">
+            <ul className="list-disc pl-4 space-y-1 mt-1">
+              <li>CIS Benchmarks (e.g., CIS AWS Foundations)</li>
+              <li>NIST Special Publications (800-53, 800-171)</li>
+              <li>Vendor hardening guides (AWS, Azure, GCP)</li>
+              <li>OWASP Testing Guide, ASVS</li>
+              <li>ISO 27001 / 27002 control catalogs</li>
+            </ul>
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'rules', icon: Settings2, title: d.rulesTitle,
       content: (
-        <>
-          <p>{d.rulesDesc}</p>
-          <p className="font-medium text-foreground mt-2">{d.rulesFieldsTitle}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.rulesStructure}>{d.rulesStructureDesc}</Li>
-            <Li label={d.rulesWriting}>{d.rulesWritingDesc}</Li>
-            <Li label={d.rulesRisk}>{d.rulesRiskDesc}</Li>
-            <Li label={d.rulesCriticality}>{d.rulesCriticalityDesc}</Li>
-            <Li label={d.rulesDedup}>{d.rulesDedupDesc}</Li>
-            <Li label={d.rulesMapping}>{d.rulesMappingDesc}</Li>
-            <Li label={d.rulesThreat}>{d.rulesThreatDesc}</Li>
-          </ul>
-          <Tip>{d.rulesTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.rulesDesc}</p>
+
+          <SubSection title={d.rulesFieldsTitle}>
+            <div className="space-y-1">
+              <FeatureItem label={d.rulesStructure}>{d.rulesStructureDesc}</FeatureItem>
+              <FeatureItem label={d.rulesWriting}>{d.rulesWritingDesc}</FeatureItem>
+              <FeatureItem label={d.rulesRisk}>{d.rulesRiskDesc}</FeatureItem>
+              <FeatureItem label={d.rulesCriticality}>{d.rulesCriticalityDesc}</FeatureItem>
+              <FeatureItem label={d.rulesDedup}>{d.rulesDedupDesc}</FeatureItem>
+              <FeatureItem label={d.rulesMapping}>{d.rulesMappingDesc}</FeatureItem>
+              <FeatureItem label={d.rulesThreat}>{d.rulesThreatDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">{d.rulesTip}</DocCallout>
+
+          <SubSection title="Criticality Scale">
+            <div className="bg-muted/20 rounded-lg p-4 border border-border/30 space-y-1">
+              <StatusPill color="bg-red-500" label="Critical" desc="Immediate risk — must be implemented. Exploitation leads to full compromise." />
+              <StatusPill color="bg-orange-500" label="High" desc="Significant risk — prioritize implementation. Major impact if exploited." />
+              <StatusPill color="bg-amber-400" label="Medium" desc="Moderate risk — plan implementation. Moderate impact on security." />
+              <StatusPill color="bg-blue-400" label="Low" desc="Minor risk — implement as resources allow." />
+              <StatusPill color="bg-slate-400" label="Informational" desc="Best practice — no direct risk but improves posture." />
+            </div>
+          </SubSection>
+        </div>
       ),
     },
     {
       id: 'workspace', icon: Cpu, title: d.workspaceTitle,
       content: (
-        <>
-          <p>{d.workspaceDesc}</p>
-          <div className="space-y-2 mt-2">
-            {(d.workspaceStages as [string, string][]).map(([stage, desc]: [string, string], i: number) => (
-              <div key={stage} className="flex items-start gap-2">
-                <span className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">{i + 1}</span>
-                <div>
-                  <span className="text-xs font-semibold text-foreground">{stage}</span>
-                  <span className="text-xs text-muted-foreground ml-1">— {desc}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <Tip>{d.workspaceTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.workspaceDesc}</p>
+
+          <SubSection title="Pipeline Stages">
+            <DocStepList steps={(d.workspaceStages as [string, string][]).map(([stage, desc]) => ({
+              title: stage,
+              description: desc,
+            }))} />
+          </SubSection>
+
+          <DocCallout variant="tip">{d.workspaceTip}</DocCallout>
+
+          <DocCallout variant="warning" title="Important">
+            Make sure you have at least one AI provider configured in AI Integrations before running the pipeline. The generation quality depends on the model and source quality.
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'editor', icon: FileEdit, title: d.editorTitle,
       content: (
-        <>
-          <p>{d.editorDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.editorView}>{d.editorViewDesc}</Li>
-            <Li label={d.editorStride}>{d.editorStrideDesc}</Li>
-            <Li label={d.editorConfidence}>{d.editorConfidenceDesc}</Li>
-            <Li label={d.editorStatus}>{d.editorStatusDesc}</Li>
-            <Li label={d.editorNotes}>{d.editorNotesDesc}</Li>
-            <Li label={d.editorMindmap}>{d.editorMindmapDesc}</Li>
-          </ul>
-          <p className="font-medium text-foreground mt-2">{d.editorFiltersTitle}</p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li>{d.editorFilter1}</li>
-            <li>{d.editorFilter2}</li>
-            <li>{d.editorFilter3}</li>
-            <li>{d.editorFilter4}</li>
-          </ul>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.editorDesc}</p>
+
+          <SubSection title="Control Details">
+            <div className="space-y-1">
+              <FeatureItem label={d.editorView}>{d.editorViewDesc}</FeatureItem>
+              <FeatureItem label={d.editorStride}>{d.editorStrideDesc}</FeatureItem>
+              <FeatureItem label={d.editorConfidence}>{d.editorConfidenceDesc}</FeatureItem>
+              <FeatureItem label={d.editorStatus}>{d.editorStatusDesc}</FeatureItem>
+              <FeatureItem label={d.editorNotes}>{d.editorNotesDesc}</FeatureItem>
+              <FeatureItem label={d.editorMindmap}>{d.editorMindmapDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <SubSection title={d.editorFiltersTitle}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {[d.editorFilter1, d.editorFilter2, d.editorFilter3, d.editorFilter4].map((filter: string, i: number) => (
+                <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-muted/20 border border-border/30">
+                  <Search className="h-3 w-3 text-primary shrink-0" />
+                  <span className="text-xs text-muted-foreground">{filter}</span>
+                </div>
+              ))}
+            </div>
+          </SubSection>
+
+          <SubSection title="Review Workflow">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              {['Pending', '→', 'Reviewed', '→', 'Approved / Rejected / Adjusted'].map((item, i) => (
+                item === '→' ? (
+                  <ChevronRight key={i} className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <span key={i} className="px-3 py-1.5 rounded-full bg-muted/40 border border-border/50 font-medium text-foreground">{item}</span>
+                )
+              ))}
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">
+            Start reviewing controls with the lowest confidence scores first — they are most likely to need manual adjustment.
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'traceability', icon: GitBranch, title: d.traceabilityTitle,
       content: (
-        <>
-          <p>{d.traceabilityDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.traceabilityFrameworks}>{d.traceabilityFrameworksDesc}</Li>
-            <Li label={d.traceabilityRadar}>{d.traceabilityRadarDesc}</Li>
-            <Li label={d.traceabilityCards}>{d.traceabilityCardsDesc}</Li>
-            <Li label={d.traceabilityFilters}>{d.traceabilityFiltersDesc}</Li>
-            <Li label={d.traceabilityExport}>{d.traceabilityExportDesc}</Li>
-          </ul>
-          <Tip>{d.traceabilityTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.traceabilityDesc}</p>
+
+          <SubSection title="Features">
+            <div className="space-y-1">
+              <FeatureItem label={d.traceabilityFrameworks}>{d.traceabilityFrameworksDesc}</FeatureItem>
+              <FeatureItem label={d.traceabilityRadar}>{d.traceabilityRadarDesc}</FeatureItem>
+              <FeatureItem label={d.traceabilityCards}>{d.traceabilityCardsDesc}</FeatureItem>
+              <FeatureItem label={d.traceabilityFilters}>{d.traceabilityFiltersDesc}</FeatureItem>
+              <FeatureItem label={d.traceabilityExport}>{d.traceabilityExportDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <SubSection title="Supported Frameworks">
+            <div className="flex flex-wrap gap-2">
+              {['NIST 800-53', 'ISO 27001', 'CIS Controls', 'MITRE ATT&CK', 'PCI DSS', 'SOC 2', 'GDPR'].map(fw => (
+                <span key={fw} className="px-2.5 py-1 rounded-full bg-primary/5 border border-primary/20 text-xs font-medium text-primary">{fw}</span>
+              ))}
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">{d.traceabilityTip}</DocCallout>
+        </div>
       ),
     },
     {
       id: 'history', icon: History, title: d.historyTitle,
       content: (
-        <>
-          <p>{d.historyDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.historyVersions}>{d.historyVersionsDesc}</Li>
-            <Li label={d.historySideBySide}>{d.historySideBySideDesc}</Li>
-            <Li label={d.historyStats}>{d.historyStatsDesc}</Li>
-            <Li label={d.historyFilters}>{d.historyFiltersDesc}</Li>
-            <Li label={d.historyExport}>{d.historyExportDesc}</Li>
-            <Li label={d.historyRestore}>{d.historyRestoreDesc}</Li>
-          </ul>
-          <Tip>{d.historyTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.historyDesc}</p>
+
+          <SubSection title="Features">
+            <div className="space-y-1">
+              <FeatureItem label={d.historyVersions}>{d.historyVersionsDesc}</FeatureItem>
+              <FeatureItem label={d.historySideBySide}>{d.historySideBySideDesc}</FeatureItem>
+              <FeatureItem label={d.historyStats}>{d.historyStatsDesc}</FeatureItem>
+              <FeatureItem label={d.historyFilters}>{d.historyFiltersDesc}</FeatureItem>
+              <FeatureItem label={d.historyExport}>{d.historyExportDesc}</FeatureItem>
+              <FeatureItem label={d.historyRestore}>{d.historyRestoreDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="warning" title="Before Restoring">
+            Always create a snapshot of the current version before restoring an older one. While the system creates automatic backups, it's good practice to have an explicit save point.
+          </DocCallout>
+
+          <DocCallout variant="tip">{d.historyTip}</DocCallout>
+        </div>
       ),
     },
     {
       id: 'export-import', icon: ArrowUpDown, title: d.exportTitle,
       content: (
-        <>
-          <p>{d.exportDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.exportJson}>{d.exportJsonDesc}</Li>
-            <Li label={d.exportMarkdown}>{d.exportMarkdownDesc}</Li>
-            <Li label={d.exportPdf}>{d.exportPdfDesc}</Li>
-            <Li label={d.exportCsv}>{d.exportCsvDesc}</Li>
-          </ul>
-          <Tip>{d.exportTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.exportDesc}</p>
+
+          <SubSection title="Export Formats">
+            <DocFeatureGrid columns={2} features={[
+              { icon: FileText, title: 'JSON', description: d.exportJsonDesc },
+              { icon: FileText, title: 'Markdown', description: d.exportMarkdownDesc },
+              { icon: Download, title: 'PDF', description: d.exportPdfDesc },
+              { icon: Layers, title: 'CSV', description: d.exportCsvDesc },
+            ]} />
+          </SubSection>
+
+          <DocCallout variant="tip">{d.exportTip}</DocCallout>
+
+          <DocCallout variant="example" title="Format Guide">
+            <ul className="list-disc pl-4 space-y-1 mt-1">
+              <li><strong>JSON</strong> — Best for backups and importing into other instances</li>
+              <li><strong>Markdown</strong> — Ideal for documentation wikis (Confluence, Notion, GitHub)</li>
+              <li><strong>PDF</strong> — Use for formal audit reports and management presentations</li>
+              <li><strong>CSV</strong> — Perfect for spreadsheet analysis and custom reporting</li>
+            </ul>
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'ai-integrations', icon: Brain, title: d.aiTitle,
       content: (
-        <>
-          <p>{d.aiDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.aiProviders}>{d.aiProvidersDesc}</Li>
-            <Li label={d.aiModel}>{d.aiModelDesc}</Li>
-            <Li label={d.aiTest}>{d.aiTestDesc}</Li>
-            <Li label={d.aiDefault}>{d.aiDefaultDesc}</Li>
-          </ul>
-          <Tip>{d.aiTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.aiDesc}</p>
+
+          <SubSection title="Configuration">
+            <div className="space-y-1">
+              <FeatureItem label={d.aiProviders}>{d.aiProvidersDesc}</FeatureItem>
+              <FeatureItem label={d.aiModel}>{d.aiModelDesc}</FeatureItem>
+              <FeatureItem label={d.aiTest}>{d.aiTestDesc}</FeatureItem>
+              <FeatureItem label={d.aiDefault}>{d.aiDefaultDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">{d.aiTip}</DocCallout>
+
+          <DocCallout variant="info" title="Model Recommendations">
+            <ul className="list-disc pl-4 space-y-1 mt-1">
+              <li><strong>GPT-5 / Gemini Pro</strong> — Best for complex baselines with many sources</li>
+              <li><strong>GPT-5 Mini / Gemini Flash</strong> — Good balance of speed and quality</li>
+              <li><strong>Claude</strong> — Excellent for detailed, well-structured control descriptions</li>
+            </ul>
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'teams', icon: Users, title: d.teamsTitle,
       content: (
-        <>
-          <p>{d.teamsDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.teamsCreate}>{d.teamsCreateDesc}</Li>
-            <Li label={d.teamsRoles}>{d.teamsRolesDesc}</Li>
-            <Li label={d.teamsShared}>{d.teamsSharedDesc}</Li>
-            <Li label={d.teamsNotifications}>{d.teamsNotificationsDesc}</Li>
-          </ul>
-          <Tip>{d.teamsTip}</Tip>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.teamsDesc}</p>
+
+          <SubSection title="Features">
+            <div className="space-y-1">
+              <FeatureItem label={d.teamsCreate}>{d.teamsCreateDesc}</FeatureItem>
+              <FeatureItem label={d.teamsRoles}>{d.teamsRolesDesc}</FeatureItem>
+              <FeatureItem label={d.teamsShared}>{d.teamsSharedDesc}</FeatureItem>
+              <FeatureItem label={d.teamsNotifications}>{d.teamsNotificationsDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">{d.teamsTip}</DocCallout>
+        </div>
       ),
     },
     {
       id: 'notifications', icon: Bell, title: d.notificationsTitle,
       content: (
-        <>
-          <p>{d.notificationsDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.notificationsTypes}>{d.notificationsTypesDesc}</Li>
-            <Li label={d.notificationsBadge}>{d.notificationsBadgeDesc}</Li>
-            <Li label={d.notificationsRead}>{d.notificationsReadDesc}</Li>
-          </ul>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.notificationsDesc}</p>
+
+          <SubSection title="Details">
+            <div className="space-y-1">
+              <FeatureItem label={d.notificationsTypes}>{d.notificationsTypesDesc}</FeatureItem>
+              <FeatureItem label={d.notificationsBadge}>{d.notificationsBadgeDesc}</FeatureItem>
+              <FeatureItem label={d.notificationsRead}>{d.notificationsReadDesc}</FeatureItem>
+            </div>
+          </SubSection>
+        </div>
       ),
     },
     {
       id: 'settings', icon: Settings, title: d.settingsTitle,
       content: (
-        <>
-          <p>{d.settingsDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.settingsLang}>{d.settingsLangDesc}</Li>
-            <Li label={d.settingsOutput}>{d.settingsOutputDesc}</Li>
-            <Li label={d.settingsTheme}>{d.settingsThemeDesc}</Li>
-            <Li label={d.settingsTooltips}>{d.settingsTooltipsDesc}</Li>
-            <Li label={d.settingsFormat}>{d.settingsFormatDesc}</Li>
-            <Li label={d.settingsAi}>{d.settingsAiDesc}</Li>
-            <Li label={d.settingsBackup}>{d.settingsBackupDesc}</Li>
-          </ul>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.settingsDesc}</p>
+
+          <SubSection title="Options">
+            <div className="space-y-1">
+              <FeatureItem label={d.settingsLang}>{d.settingsLangDesc}</FeatureItem>
+              <FeatureItem label={d.settingsOutput}>{d.settingsOutputDesc}</FeatureItem>
+              <FeatureItem label={d.settingsTheme}>{d.settingsThemeDesc}</FeatureItem>
+              <FeatureItem label={d.settingsTooltips}>{d.settingsTooltipsDesc}</FeatureItem>
+              <FeatureItem label={d.settingsFormat}>{d.settingsFormatDesc}</FeatureItem>
+              <FeatureItem label={d.settingsAi}>{d.settingsAiDesc}</FeatureItem>
+              <FeatureItem label={d.settingsBackup}>{d.settingsBackupDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="info" title="AI Strictness Levels">
+            <ul className="list-disc pl-4 space-y-1 mt-1">
+              <li><strong>Conservative</strong> — Higher precision, fewer controls. Best for audit-critical baselines.</li>
+              <li><strong>Balanced</strong> — Good mix of coverage and precision. Recommended default.</li>
+              <li><strong>Aggressive</strong> — Maximum coverage, may include more speculative controls.</li>
+            </ul>
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'mindmap', icon: Eye, title: d.mindmapTitle,
       content: (
-        <>
-          <p>{d.mindmapDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.mindmapRoot}>{d.mindmapRootDesc}</Li>
-            <Li label={d.mindmapCategory}>{d.mindmapCategoryDesc}</Li>
-            <Li label={d.mindmapControl}>{d.mindmapControlDesc}</Li>
-            <Li label={d.mindmapInteract}>{d.mindmapInteractDesc}</Li>
-            <Li label={d.mindmapFilters}>{d.mindmapFiltersDesc}</Li>
-            <Li label={d.mindmapToolbar}>{d.mindmapToolbarDesc}</Li>
-          </ul>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.mindmapDesc}</p>
+
+          <SubSection title="Components">
+            <div className="space-y-1">
+              <FeatureItem label={d.mindmapRoot}>{d.mindmapRootDesc}</FeatureItem>
+              <FeatureItem label={d.mindmapCategory}>{d.mindmapCategoryDesc}</FeatureItem>
+              <FeatureItem label={d.mindmapControl}>{d.mindmapControlDesc}</FeatureItem>
+              <FeatureItem label={d.mindmapInteract}>{d.mindmapInteractDesc}</FeatureItem>
+              <FeatureItem label={d.mindmapFilters}>{d.mindmapFiltersDesc}</FeatureItem>
+              <FeatureItem label={d.mindmapToolbar}>{d.mindmapToolbarDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="tip">
+            Use the mind map for a high-level overview of your baseline structure. Click any control node to see its full details in the side panel.
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'security', icon: Lock, title: d.securityTitle,
       content: (
-        <>
-          <p>{d.securityDesc}</p>
-          <ul className="list-disc pl-4 space-y-1.5">
-            <Li label={d.securityAuth}>{d.securityAuthDesc}</Li>
-            <Li label={d.securityRls}>{d.securityRlsDesc}</Li>
-            <Li label={d.securityIsolation}>{d.securityIsolationDesc}</Li>
-            <Li label={d.securitySnapshots}>{d.securitySnapshotsDesc}</Li>
-            <Li label={d.securityKeys}>{d.securityKeysDesc}</Li>
-          </ul>
-        </>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground leading-relaxed">{d.securityDesc}</p>
+
+          <SubSection title="Security Layers">
+            <div className="space-y-1">
+              <FeatureItem label={d.securityAuth}>{d.securityAuthDesc}</FeatureItem>
+              <FeatureItem label={d.securityRls}>{d.securityRlsDesc}</FeatureItem>
+              <FeatureItem label={d.securityIsolation}>{d.securityIsolationDesc}</FeatureItem>
+              <FeatureItem label={d.securitySnapshots}>{d.securitySnapshotsDesc}</FeatureItem>
+              <FeatureItem label={d.securityKeys}>{d.securityKeysDesc}</FeatureItem>
+            </div>
+          </SubSection>
+
+          <DocCallout variant="success" title="Compliance Ready">
+            Aureum's security architecture is designed for enterprise compliance. Immutable version snapshots, full audit trails, and row-level security ensure your baseline data meets regulatory requirements.
+          </DocCallout>
+        </div>
       ),
     },
     {
       id: 'shortcuts', icon: Zap, title: d.tipsTitle,
       content: (
-        <div className="space-y-2">
-          <Tip>{d.tip1}</Tip>
-          <Tip>{d.tip2}</Tip>
-          <Tip>{d.tip3}</Tip>
-          <Tip>{d.tip4}</Tip>
-          <Tip>{d.tip5}</Tip>
-          <Tip>{d.tip6}</Tip>
-          <Tip>{d.tip7}</Tip>
-          <Tip>{d.tip8}</Tip>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[d.tip1, d.tip2, d.tip3, d.tip4, d.tip5, d.tip6, d.tip7, d.tip8].map((tip: string, i: number) => (
+              <DocCallout key={i} variant="tip">{tip}</DocCallout>
+            ))}
+          </div>
         </div>
       ),
     },
     {
       id: 'faq', icon: MessageCircleQuestion, title: d.faqTitle,
       content: (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {([1,2,3,4,5,6,7,8,9,10] as const).map(n => (
-            <div key={n} className="bg-muted/40 rounded-md p-3">
-              <p className="text-foreground font-medium text-sm flex items-start gap-2">
-                <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                {(d as any)[`faq${n}Q`]}
-              </p>
-              <p className="text-muted-foreground text-xs mt-1.5 ml-6">{(d as any)[`faq${n}A`]}</p>
+            <div key={n} className="bg-muted/20 border border-border/30 rounded-lg overflow-hidden">
+              <div className="p-4">
+                <p className="text-sm font-semibold text-foreground flex items-start gap-2.5">
+                  <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  {(d as any)[`faq${n}Q`]}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2 ml-6.5 leading-relaxed">{(d as any)[`faq${n}A`]}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -429,112 +593,109 @@ const Documentation: React.FC = () => {
     },
   ];
 
-  const filtered = sections.filter(s =>
+  const filteredSections = sections.filter(s =>
     !search || s.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const [activeTocId, setActiveTocId] = useState<string | null>(null);
-  const isScrollingRef = useRef(false);
-
-  // Scroll spy using scroll event
-  useEffect(() => {
-    const mainEl = document.querySelector('main');
-    if (!mainEl) return;
-
-    const handleScroll = () => {
-      if (isScrollingRef.current) return;
-      let bestId: string | null = null;
-      let bestTop = -Infinity;
-
-      for (const s of filtered) {
-        const el = document.getElementById(`doc-section-${s.id}`);
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        // Pick the last section whose top has scrolled past 130px from viewport top
-        if (rect.top <= 130 && rect.top > bestTop) {
-          bestTop = rect.top;
-          bestId = s.id;
-        }
-      }
-      if (bestId) {
-        setActiveTocId(bestId);
-      }
-    };
-
-    mainEl.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => mainEl.removeEventListener('scroll', handleScroll);
-  }, [filtered]);
+  const activeContent = sections.find(s => s.id === activeSection);
+  const activeIndex = sections.findIndex(s => s.id === activeSection);
 
   const handleTocSelect = (id: string) => {
-    setOpenSections(prev => new Set(prev).add(id));
-    setActiveTocId(id);
-    isScrollingRef.current = true;
-    setTimeout(() => {
-      document.getElementById(`doc-section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => { isScrollingRef.current = false; }, 600);
-    }, 100);
+    setActiveSection(id);
+    // Scroll to top of content
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // If search is active, filter the TOC items
+  const tocItems = (search ? filteredSections : sections).map(s => ({ id: s.id, icon: s.icon, title: s.title }));
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
       <DocTableOfContents
-        items={sections.map(s => ({ id: s.id, icon: s.icon, title: s.title }))}
-        activeId={activeTocId}
+        items={tocItems}
+        activeId={activeSection}
         onSelect={handleTocSelect}
       />
 
-      <div className="flex-1 min-w-0 space-y-6 max-w-4xl">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="h-9 w-9 rounded-lg gold-gradient flex items-center justify-center">
-              <BookOpen className="h-4.5 w-4.5 text-primary-foreground" />
+      <div className="flex-1 min-w-0 max-w-4xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-10 w-10 rounded-xl gold-gradient flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{d.title}</h1>
               <p className="text-sm text-muted-foreground">{d.subtitle}</p>
             </div>
           </div>
-        </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={d.searchPlaceholder}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setOpenSections(new Set(sections.map(s => s.id)))}
-            className="text-xs text-primary hover:underline"
-          >
-            {d.expandAll}
-          </button>
-          <span className="text-muted-foreground text-xs">•</span>
-          <button
-            onClick={() => setOpenSections(new Set())}
-            className="text-xs text-primary hover:underline"
-          >
-            {d.collapseAll}
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {filtered.map(section => (
-            <SectionCard
-              key={section.id}
-              section={section}
-              isOpen={openSections.has(section.id)}
-              onToggle={() => toggle(section.id)}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={d.searchPlaceholder}
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                // If search matches one section, auto-select it
+                const matches = sections.filter(s => s.title.toLowerCase().includes(e.target.value.toLowerCase()));
+                if (matches.length === 1) setActiveSection(matches[0].id);
+              }}
+              className="pl-9"
             />
-          ))}
+          </div>
         </div>
 
-        {filtered.length === 0 && (
+        {/* Active Section Content */}
+        <AnimatePresence mode="wait">
+          {activeContent && (
+            <motion.div
+              key={activeContent.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="bg-card border border-border rounded-xl shadow-premium overflow-hidden"
+            >
+              <div className="p-6 lg:p-8">
+                <SectionHeader
+                  title={activeContent.title}
+                  icon={activeContent.icon}
+                  badge={activeContent.badge}
+                />
+                <div className="text-sm">{activeContent.content}</div>
+              </div>
+
+              {/* Bottom navigation */}
+              <div className="border-t border-border/50 px-6 lg:px-8 py-4 bg-muted/20 flex items-center justify-between">
+                <button
+                  onClick={() => activeIndex > 0 && handleTocSelect(sections[activeIndex - 1].id)}
+                  disabled={activeIndex <= 0}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">{activeIndex > 0 ? sections[activeIndex - 1].title : ''}</span>
+                  <span className="sm:hidden">Previous</span>
+                </button>
+
+                <span className="text-xs text-muted-foreground tabular-nums">{activeIndex + 1} / {sections.length}</span>
+
+                <button
+                  onClick={() => activeIndex < sections.length - 1 && handleTocSelect(sections[activeIndex + 1].id)}
+                  disabled={activeIndex >= sections.length - 1}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="hidden sm:inline">{activeIndex < sections.length - 1 ? sections[activeIndex + 1].title : ''}</span>
+                  <span className="sm:hidden">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {search && filteredSections.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
             <p className="text-sm">{d.noResults} "{search}"</p>
