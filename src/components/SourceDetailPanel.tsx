@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
-import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe } from 'lucide-react';
+import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +17,26 @@ const EXTRACTION_METHOD_LABELS: Record<string, string> = {
   ai_url_extraction: 'AI Web Content Extraction',
   unsupported: 'Unsupported Format',
   none: 'None',
+};
+
+const STATUS_ICONS: Record<string, React.ReactNode> = {
+  created: <Plus className="h-3 w-3" />,
+  pending: <Clock className="h-3 w-3" />,
+  extracting: <Loader2 className="h-3 w-3" />,
+  processed: <CheckCircle2 className="h-3 w-3" />,
+  failed: <AlertCircle className="h-3 w-3" />,
+  validated: <CheckCircle2 className="h-3 w-3" />,
+  normalized: <CheckCircle2 className="h-3 w-3" />,
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  created: 'bg-info/10 text-info',
+  pending: 'bg-warning/10 text-warning',
+  extracting: 'bg-primary/10 text-primary',
+  processed: 'bg-success/10 text-success',
+  failed: 'bg-destructive/10 text-destructive',
+  validated: 'bg-success/10 text-success',
+  normalized: 'bg-info/10 text-info',
 };
 
 interface SourceDetailPanelProps {
@@ -31,6 +53,21 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }
   const hasExtractedContent = !!source.extracted_content;
   const processedAt = source.processed_at;
   const addedAt = source.added_at;
+
+  // Fetch activity logs for this source
+  const { data: activityLogs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ['source-activity-logs', source.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('source_activity_logs' as any)
+        .select('*')
+        .eq('source_id', source.id)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: activeTab === 'audit',
+  });
 
   return (
     <motion.div
@@ -144,62 +181,124 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }
         </TabsContent>
 
         {/* Audit Tab */}
-        <TabsContent value="audit" className="p-4 space-y-4 text-xs mt-0">
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Database className="h-3 w-3 text-primary" />
-              </div>
+        <TabsContent value="audit" className="mt-0">
+          <ScrollArea className="h-[420px]">
+            <div className="p-4 space-y-4 text-xs">
+              {/* Activity Timeline */}
               <div>
-                <p className="font-medium text-foreground">Source Added</p>
-                <p className="text-muted-foreground mt-0.5">
-                  {addedAt ? format(new Date(addedAt), 'dd/MM/yyyy HH:mm:ss') : '—'}
-                </p>
-              </div>
-            </div>
+                <h4 className="font-semibold text-foreground text-[11px] uppercase tracking-wider mb-3">Activity Log</h4>
+                {logsLoading ? (
+                  <div className="flex items-center gap-2 text-muted-foreground py-4 justify-center">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Loading logs...</span>
+                  </div>
+                ) : activityLogs.length === 0 ? (
+                  <p className="text-muted-foreground italic text-center py-4">
+                    No activity logs yet. Upload a new source to see status transitions here.
+                  </p>
+                ) : (
+                  <div className="relative">
+                    {/* Timeline line */}
+                    <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border" />
 
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Cpu className="h-3 w-3 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Extraction Method</p>
-                <p className="text-muted-foreground mt-0.5">
-                  {EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}
-                </p>
-              </div>
-            </div>
+                    <div className="space-y-0">
+                      {activityLogs.map((log: any, index: number) => {
+                        const isCreated = log.event_type === 'created';
+                        const statusColor = STATUS_COLORS[log.new_status] || 'bg-muted text-muted-foreground';
+                        const icon = isCreated
+                          ? STATUS_ICONS.created
+                          : STATUS_ICONS[log.new_status] || <ArrowRight className="h-3 w-3" />;
 
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Clock className="h-3 w-3 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Processed At</p>
-                <p className="text-muted-foreground mt-0.5">
-                  {processedAt ? format(new Date(processedAt), 'dd/MM/yyyy HH:mm:ss') : 'Not processed yet'}
-                </p>
-              </div>
-            </div>
-          </div>
+                        return (
+                          <div key={log.id} className="relative flex items-start gap-3 pb-4 last:pb-0">
+                            {/* Timeline dot */}
+                            <div className={`relative z-10 mt-0.5 h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${statusColor}`}>
+                              {icon}
+                            </div>
 
-          <div className="border-t border-border pt-3 space-y-2">
-            <h4 className="font-semibold text-foreground text-[11px] uppercase tracking-wider">Storage Summary</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-muted/40 rounded-md p-2">
-                <p className="text-[10px] text-muted-foreground">Raw Content</p>
-                <p className="font-medium text-foreground">
-                  {hasRawContent ? `${(source.raw_content.length / 1024).toFixed(1)} KB` : '—'}
-                </p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {isCreated ? (
+                                  <span className="font-medium text-foreground">Source created</span>
+                                ) : (
+                                  <>
+                                    <StatusBadge status={log.previous_status || 'unknown'} />
+                                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                    <StatusBadge status={log.new_status} />
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss')}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="bg-muted/40 rounded-md p-2">
-                <p className="text-[10px] text-muted-foreground">Extracted Content</p>
-                <p className="font-medium text-foreground">
-                  {hasExtractedContent ? `${(source.extracted_content.length / 1024).toFixed(1)} KB` : '—'}
-                </p>
+
+              {/* Summary section */}
+              <div className="border-t border-border pt-3 space-y-3">
+                <h4 className="font-semibold text-foreground text-[11px] uppercase tracking-wider">Summary</h4>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Added</span>
+                    <span className="font-medium text-foreground">
+                      {addedAt ? format(new Date(addedAt), 'dd/MM/yyyy HH:mm:ss') : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Processed</span>
+                    <span className="font-medium text-foreground">
+                      {processedAt ? format(new Date(processedAt), 'dd/MM/yyyy HH:mm:ss') : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Method</span>
+                    <span className="font-medium text-foreground text-right max-w-[180px] truncate">
+                      {EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}
+                    </span>
+                  </div>
+                  {processedAt && addedAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Duration</span>
+                      <span className="font-medium text-foreground">
+                        {(() => {
+                          const ms = new Date(processedAt).getTime() - new Date(addedAt).getTime();
+                          if (ms < 1000) return `${ms}ms`;
+                          if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+                          return `${(ms / 60000).toFixed(1)}min`;
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Storage */}
+              <div className="border-t border-border pt-3 space-y-2">
+                <h4 className="font-semibold text-foreground text-[11px] uppercase tracking-wider">Storage</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-muted/40 rounded-md p-2">
+                    <p className="text-[10px] text-muted-foreground">Raw Content</p>
+                    <p className="font-medium text-foreground">
+                      {hasRawContent ? `${(source.raw_content.length / 1024).toFixed(1)} KB` : '—'}
+                    </p>
+                  </div>
+                  <div className="bg-muted/40 rounded-md p-2">
+                    <p className="text-[10px] text-muted-foreground">Extracted</p>
+                    <p className="font-medium text-foreground">
+                      {hasExtractedContent ? `${(source.extracted_content.length / 1024).toFixed(1)} KB` : '—'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
         </TabsContent>
       </Tabs>
     </motion.div>
