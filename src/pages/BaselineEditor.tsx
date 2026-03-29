@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import VersionCompareModal from '@/components/VersionCompareModal';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import HelpButton from '@/components/HelpButton';
