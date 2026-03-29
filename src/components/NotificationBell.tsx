@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const statusColors: Record<string, string> = {
     approved: 'text-emerald-400',
