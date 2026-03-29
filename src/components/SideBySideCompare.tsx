@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -270,34 +271,63 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
             </div>
           </div>
 
-          {/* Summary statistics */}
-          <div className="grid grid-cols-4 gap-2 mt-4">
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
-              <Plus className="h-4 w-4 text-emerald-500" />
-              <div>
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 leading-none">{added.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{t.history.diff.added}</p>
-              </div>
+          {/* Summary statistics with donut chart */}
+          <div className="flex items-center gap-4 mt-4 rounded-lg border border-border/50 bg-muted/10 p-3">
+            <div className="w-24 h-24 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: t.history.diff.added, value: added.length, color: '#10b981' },
+                      { name: t.history.diff.removed, value: removed.length, color: '#ef4444' },
+                      { name: t.history.diff.modified, value: modified.length, color: '#f59e0b' },
+                      { name: 'Unchanged', value: unchanged.length, color: '#94a3b8' },
+                    ].filter(d => d.value > 0)}
+                    cx="50%" cy="50%"
+                    innerRadius={24} outerRadius={40}
+                    paddingAngle={3}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    {[
+                      { color: '#10b981' },
+                      { color: '#ef4444' },
+                      { color: '#f59e0b' },
+                      { color: '#94a3b8' },
+                    ].filter((_, i) => [added.length, removed.length, modified.length, unchanged.length][i] > 0)
+                      .map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                  </Pie>
+                  <RechartsTooltip
+                    contentStyle={{ fontSize: '11px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+                  />
+                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-sm font-bold">
+                    {allIds.length}
+                  </text>
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
-              <Minus className="h-4 w-4 text-red-500" />
-              <div>
-                <p className="text-lg font-bold text-red-600 dark:text-red-400 leading-none">{removed.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{t.history.diff.removed}</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="text-xs text-muted-foreground">{t.history.diff.added}</span>
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 ml-auto">{added.length}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-              <ArrowLeftRight className="h-4 w-4 text-amber-500" />
-              <div>
-                <p className="text-lg font-bold text-amber-600 dark:text-amber-400 leading-none">{modified.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{t.history.diff.modified}</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="text-xs text-muted-foreground">{t.history.diff.removed}</span>
+                <span className="text-sm font-bold text-red-600 dark:text-red-400 ml-auto">{removed.length}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-              <span className="h-4 w-4 text-muted-foreground text-center text-sm font-bold">=</span>
-              <div>
-                <p className="text-lg font-bold text-foreground leading-none">{unchanged.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Unchanged</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <span className="text-xs text-muted-foreground">{t.history.diff.modified}</span>
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400 ml-auto">{modified.length}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                <span className="text-xs text-muted-foreground">Unchanged</span>
+                <span className="text-sm font-bold text-foreground ml-auto">{unchanged.length}</span>
               </div>
             </div>
           </div>
