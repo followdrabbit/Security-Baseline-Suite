@@ -125,7 +125,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
       `Status (v${leftVersion.version})`, `Status (v${rightVersion.version})`,
       `Category (v${leftVersion.version})`, `Category (v${rightVersion.version})`];
     const rows = [headers.join(',')];
-    for (const id of allIds) {
+    for (const id of filteredIds) {
       const l = leftMap.get(id);
       const r = rightMap.get(id);
       const ct = getChangeType(id);
