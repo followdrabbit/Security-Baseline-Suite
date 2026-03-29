@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -101,6 +101,7 @@ const BaselineEditor: React.FC = () => {
     controlId?: string;
     controlLabel?: string;
   }>({ open: false, variant: 'approve' });
+  const [viewingVersionId, setViewingVersionId] = useState<string | null>(null);
 
   // Fetch projects with controls
   const { data: projects = [] } = useQuery({
@@ -152,6 +153,37 @@ const BaselineEditor: React.FC = () => {
     enabled: !!user,
   });
 
+  // Fetch published versions for version history
+  const { data: publishedVersions = [] } = useQuery({
+    queryKey: ['baseline-versions', user?.id, selectedProject],
+    queryFn: async () => {
+      if (selectedProject === 'all') return [];
+      const { data, error } = await supabase
+        .from('baseline_versions')
+        .select('id, version, published_at, control_count, status, controls_snapshot, sources_snapshot, project_snapshot, changes_summary')
+        .eq('project_id', selectedProject)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && selectedProject !== 'all',
+  });
+
+  // Get the snapshot controls when viewing a published version
+  const viewingVersion = publishedVersions.find((v: any) => v.id === viewingVersionId);
+  const snapshotControls = useMemo(() => {
+    if (!viewingVersion) return null;
+    const snapshot = viewingVersion.controls_snapshot as any[];
+    if (!Array.isArray(snapshot)) return [];
+    return snapshot.map(mapDbControlToControlItem);
+  }, [viewingVersion]);
+
+  const isViewingSnapshot = viewingVersionId !== null && snapshotControls !== null;
+
+  // Use snapshot controls when viewing a version, otherwise live controls
+  const activeControls = isViewingSnapshot ? snapshotControls : controls;
+
   // Update review status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -198,7 +230,7 @@ const BaselineEditor: React.FC = () => {
     },
   });
 
-  const filtered = useMemo(() => controls.filter(c => {
+  const filtered = useMemo(() => activeControls.filter(c => {
     if (selectedProject !== 'all' && c.projectId !== selectedProject) return false;
     if (search && !c.title.toLowerCase().includes(search.toLowerCase()) && !c.controlId.toLowerCase().includes(search.toLowerCase())) return false;
     if (critFilter !== 'all' && c.criticality !== critFilter) return false;
@@ -210,7 +242,7 @@ const BaselineEditor: React.FC = () => {
       if (!c.threatScenarios?.some(ts => ts.likelihood === likelihoodFilter)) return false;
     }
     return true;
-  }), [controls, selectedProject, search, critFilter, statusFilter, strideFilter, likelihoodFilter]);
+  }), [activeControls, selectedProject, search, critFilter, statusFilter, strideFilter, likelihoodFilter]);
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<string, ControlItem[]> = {};
@@ -358,8 +390,31 @@ const BaselineEditor: React.FC = () => {
           <HelpButton section="editor" />
         </div>
         <div className="flex items-center gap-3">
+          {/* Version selector */}
+          {selectedProject !== 'all' && publishedVersions.length > 0 && (
+            <Select
+              value={viewingVersionId || 'live'}
+              onValueChange={(val) => setViewingVersionId(val === 'live' ? null : val)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <History className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="live">
+                  {t.versioning.liveVersion}
+                </SelectItem>
+                {publishedVersions.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    v{v.version} — {v.published_at ? new Date(v.published_at).toLocaleDateString() : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Version indicator */}
-          {selectedProject !== 'all' && (
+          {selectedProject !== 'all' && !isViewingSnapshot && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-muted/60 border border-border text-muted-foreground">
                 v{currentVersion > 0 ? currentVersion : '—'}
@@ -376,18 +431,22 @@ const BaselineEditor: React.FC = () => {
               )}
             </div>
           )}
-          <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
-            <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
-          </Button>
-          <Button
-            size="sm"
-            className="gold-gradient text-primary-foreground hover:opacity-90"
-            disabled={!canPublish || publishMutation.isPending}
-            onClick={() => requestConfirm('publish')}
-          >
-            <Rocket className="h-4 w-4 mr-1.5" />
-            {t.versioning.publishVersion}
-          </Button>
+          {!isViewingSnapshot && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
+                <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
+              </Button>
+              <Button
+                size="sm"
+                className="gold-gradient text-primary-foreground hover:opacity-90"
+                disabled={!canPublish || publishMutation.isPending}
+                onClick={() => requestConfirm('publish')}
+              >
+                <Rocket className="h-4 w-4 mr-1.5" />
+                {t.versioning.publishVersion}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -422,9 +481,43 @@ const BaselineEditor: React.FC = () => {
         </motion.div>
       )}
 
+      {/* Read-only snapshot banner */}
+      {isViewingSnapshot && viewingVersion && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg border border-primary/30 bg-primary/5"
+        >
+          <Lock className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-sm font-semibold text-foreground">
+              v{viewingVersion.version}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+              {t.versioning.readOnly}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t.versioning.viewingSnapshot} — {t.versioning.publishedOn} {viewingVersion.published_at ? new Date(viewingVersion.published_at).toLocaleString() : ''}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 border border-border text-muted-foreground">
+              {viewingVersion.control_count} {t.versioning.controlsCount}
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 px-3 text-xs"
+            onClick={() => setViewingVersionId(null)}
+          >
+            <ArrowRight className="h-3.5 w-3.5 mr-1" />
+            {t.versioning.backToLive}
+          </Button>
+        </motion.div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={selectedProject} onValueChange={setSelectedProject}>
+        <Select value={selectedProject} onValueChange={(v) => { setSelectedProject(v); setViewingVersionId(null); }}>
           <SelectTrigger className="w-[220px]">
             <Layers className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
             <SelectValue placeholder={t.editor.selectBaseline} />
@@ -576,6 +669,7 @@ const BaselineEditor: React.FC = () => {
                           key={control.id}
                           control={control}
                           isExpanded={expandedIds.includes(control.id)}
+                          readOnly={isViewingSnapshot}
                           onToggle={() => toggleExpand(control.id)}
                           onApprove={() => requestConfirm('approve', control.id)}
                           onReject={() => requestConfirm('reject', control.id)}
@@ -614,6 +708,7 @@ const BaselineEditor: React.FC = () => {
 interface ControlCardProps {
   control: ControlItem;
   isExpanded: boolean;
+  readOnly?: boolean;
   onToggle: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -624,7 +719,7 @@ interface ControlCardProps {
 }
 
 const ControlCard: React.FC<ControlCardProps> = ({
-  control, isExpanded, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, onSaveNotes, t,
+  control, isExpanded, readOnly, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, onSaveNotes, t,
 }) => (
   <motion.div layout className="bg-card border border-border rounded-lg shadow-premium overflow-hidden">
     <button
@@ -771,6 +866,7 @@ const ControlCard: React.FC<ControlCardProps> = ({
               )}
             </div>
 
+            {!readOnly && (
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
               <Textarea
@@ -785,7 +881,16 @@ const ControlCard: React.FC<ControlCardProps> = ({
                 }}
               />
             </div>
+            )}
 
+            {readOnly && control.reviewerNotes && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
+                <p className="text-sm text-foreground/80 leading-relaxed bg-muted/30 rounded p-2.5 border border-border/50">{control.reviewerNotes}</p>
+              </div>
+            )}
+
+            {!readOnly && (
             <div className="flex gap-2 pt-2 border-t border-border/50">
               <Button size="sm" variant="outline" onClick={onApprove} className="text-success border-success/30 hover:bg-success/10">
                 <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{t.editor.approve}
@@ -800,6 +905,7 @@ const ControlCard: React.FC<ControlCardProps> = ({
                 {t.editor.markReviewed}
               </Button>
             </div>
+            )}
           </div>
         </motion.div>
       )}
