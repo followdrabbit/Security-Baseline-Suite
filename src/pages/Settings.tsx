@@ -128,6 +128,25 @@ const Settings: React.FC = () => {
         </div>
       ),
     },
+    {
+      icon: BellRing, title: t.settings.notifications,
+      content: (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">{t.settings.notifySourceProcessed}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t.settings.notifySourceProcessedDesc}</p>
+          </div>
+          <Switch
+            checked={notifySourceProcessed}
+            onCheckedChange={(checked) => {
+              updatePreference.mutate({ notify_source_processed: checked }, {
+                onSuccess: () => toast.success(t.settings.saved),
+              });
+            }}
+          />
+        </div>
+      ),
+    },
   ];
 
   return (
