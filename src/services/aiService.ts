@@ -21,6 +21,16 @@ export const aiConfigService = {
     return (data || []) as AIProviderConfig[];
   },
 
+  getDefault: async (): Promise<AIProviderConfig | null> => {
+    const { data, error } = await supabase
+      .from('ai_provider_configs')
+      .select('*')
+      .eq('is_default', true)
+      .maybeSingle();
+    if (error) throw error;
+    return data as AIProviderConfig | null;
+  },
+
   upsert: async (config: {
     provider_id: string;
     enabled: boolean;
