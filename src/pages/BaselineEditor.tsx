@@ -153,6 +153,37 @@ const BaselineEditor: React.FC = () => {
     enabled: !!user,
   });
 
+  // Fetch published versions for version history
+  const { data: publishedVersions = [] } = useQuery({
+    queryKey: ['baseline-versions', user?.id, selectedProject],
+    queryFn: async () => {
+      if (selectedProject === 'all') return [];
+      const { data, error } = await supabase
+        .from('baseline_versions')
+        .select('id, version, published_at, control_count, status, controls_snapshot, sources_snapshot, project_snapshot, changes_summary')
+        .eq('project_id', selectedProject)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && selectedProject !== 'all',
+  });
+
+  // Get the snapshot controls when viewing a published version
+  const viewingVersion = publishedVersions.find((v: any) => v.id === viewingVersionId);
+  const snapshotControls = useMemo(() => {
+    if (!viewingVersion) return null;
+    const snapshot = viewingVersion.controls_snapshot as any[];
+    if (!Array.isArray(snapshot)) return [];
+    return snapshot.map(mapDbControlToControlItem);
+  }, [viewingVersion]);
+
+  const isViewingSnapshot = viewingVersionId !== null && snapshotControls !== null;
+
+  // Use snapshot controls when viewing a version, otherwise live controls
+  const activeControls = isViewingSnapshot ? snapshotControls : controls;
+
   // Update review status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
