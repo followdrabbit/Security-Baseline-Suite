@@ -127,6 +127,7 @@ const AIIntegrations: React.FC = () => {
         enabled: p.id === 'lovable_ai',
         apiKey: '',
         selectedModel: p.defaultModel,
+        maxTokens: 65000,
         connectionStatus: p.id === 'lovable_ai' ? 'connected' : 'idle',
         isDefault: p.id === 'lovable_ai',
       };
