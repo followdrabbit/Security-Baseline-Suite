@@ -108,13 +108,28 @@ const BaselineEditor: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, technology, status, control_count')
+        .select('id, name, technology, status, control_count, current_version')
         .gt('control_count', 0)
         .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Fetch sources for the selected project (for snapshot)
+  const { data: projectSources = [] } = useQuery({
+    queryKey: ['baseline-sources', user?.id, selectedProject],
+    queryFn: async () => {
+      if (selectedProject === 'all') return [];
+      const { data, error } = await supabase
+        .from('sources')
+        .select('*')
+        .eq('project_id', selectedProject);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && selectedProject !== 'all',
   });
 
   // Fetch controls
