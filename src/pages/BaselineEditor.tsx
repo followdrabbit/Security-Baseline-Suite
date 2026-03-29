@@ -481,6 +481,40 @@ const BaselineEditor: React.FC = () => {
         </motion.div>
       )}
 
+      {/* Read-only snapshot banner */}
+      {isViewingSnapshot && viewingVersion && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg border border-primary/30 bg-primary/5"
+        >
+          <Lock className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-sm font-semibold text-foreground">
+              v{viewingVersion.version}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+              {t.versioning.readOnly}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t.versioning.viewingSnapshot} — {t.versioning.publishedOn} {viewingVersion.published_at ? new Date(viewingVersion.published_at).toLocaleString() : ''}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 border border-border text-muted-foreground">
+              {viewingVersion.control_count} {t.versioning.controlsCount}
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 px-3 text-xs"
+            onClick={() => setViewingVersionId(null)}
+          >
+            <ArrowRight className="h-3.5 w-3.5 mr-1" />
+            {t.versioning.backToLive}
+          </Button>
+        </motion.div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={selectedProject} onValueChange={setSelectedProject}>
