@@ -707,6 +707,7 @@ const BaselineEditor: React.FC = () => {
 interface ControlCardProps {
   control: ControlItem;
   isExpanded: boolean;
+  readOnly?: boolean;
   onToggle: () => void;
   onApprove: () => void;
   onReject: () => void;
@@ -717,7 +718,7 @@ interface ControlCardProps {
 }
 
 const ControlCard: React.FC<ControlCardProps> = ({
-  control, isExpanded, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, onSaveNotes, t,
+  control, isExpanded, readOnly, onToggle, onApprove, onReject, onAdjust, onMarkReviewed, onSaveNotes, t,
 }) => (
   <motion.div layout className="bg-card border border-border rounded-lg shadow-premium overflow-hidden">
     <button
@@ -864,6 +865,7 @@ const ControlCard: React.FC<ControlCardProps> = ({
               )}
             </div>
 
+            {!readOnly && (
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
               <Textarea
@@ -878,7 +880,16 @@ const ControlCard: React.FC<ControlCardProps> = ({
                 }}
               />
             </div>
+            )}
 
+            {readOnly && control.reviewerNotes && (
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">{t.editor.reviewerNotes}</label>
+                <p className="text-sm text-foreground/80 leading-relaxed bg-muted/30 rounded p-2.5 border border-border/50">{control.reviewerNotes}</p>
+              </div>
+            )}
+
+            {!readOnly && (
             <div className="flex gap-2 pt-2 border-t border-border/50">
               <Button size="sm" variant="outline" onClick={onApprove} className="text-success border-success/30 hover:bg-success/10">
                 <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{t.editor.approve}
@@ -893,6 +904,7 @@ const ControlCard: React.FC<ControlCardProps> = ({
                 {t.editor.markReviewed}
               </Button>
             </div>
+            )}
           </div>
         </motion.div>
       )}
