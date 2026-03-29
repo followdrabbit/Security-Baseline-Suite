@@ -709,6 +709,14 @@ const BaselineEditor: React.FC = () => {
         cancelLabel={t.common.cancel}
         onConfirm={handleConfirm}
       />
+
+      {publishedVersions.length >= 2 && (
+        <VersionCompareModal
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          versions={publishedVersions as any}
+        />
+      )}
     </div>
   );
 };
