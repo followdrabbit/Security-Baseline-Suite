@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
+import DocAssistant from '@/components/DocAssistant';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import AppSidebar from './AppSidebar';
 import { useI18n } from '@/contexts/I18nContext';
@@ -88,6 +89,7 @@ const AppLayout: React.FC = () => {
           <main className="flex-1 overflow-auto">
             <Outlet />
           </main>
+          <DocAssistant />
         </div>
       </div>
     </SidebarProvider>
