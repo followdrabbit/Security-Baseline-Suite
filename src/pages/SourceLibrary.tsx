@@ -207,6 +207,10 @@ const SourceLibrary: React.FC = () => {
     setUrlLoading(true);
 
     try {
+      const defaultConfig = await aiConfigService.getDefault();
+      const model = resolveModelId(defaultConfig);
+      const maxTokens = resolveMaxTokens(defaultConfig);
+
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-url`,
@@ -216,7 +220,7 @@ const SourceLibrary: React.FC = () => {
             Authorization: `Bearer ${currentSession?.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ url: urlInput.trim(), projectId: selectedProjectId }),
+          body: JSON.stringify({ url: urlInput.trim(), projectId: selectedProjectId, model, maxTokens }),
         }
       );
 
