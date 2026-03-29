@@ -6,11 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/**
- * Extract raw text from DOCX/PPTX XML files (they are ZIP archives with XML inside).
- */
 async function extractTextFromOfficeXml(fileBytes: ArrayBuffer, fileType: string): Promise<string> {
-  // @ts-ignore: Deno supports fflate via esm.sh
   const { unzipSync } = await import("https://esm.sh/fflate@0.8.2");
 
   const uint8 = new Uint8Array(fileBytes);
@@ -25,48 +21,33 @@ async function extractTextFromOfficeXml(fileBytes: ArrayBuffer, fileType: string
   let rawText = "";
 
   if (fileType === "docx" || fileType === "doc") {
-    // Extract text from word/document.xml
     for (const [path, data] of Object.entries(files)) {
       if (path.startsWith("word/") && path.endsWith(".xml")) {
         const xml = decoder.decode(data);
-        // Extract text between <w:t> tags
         const matches = xml.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g);
         const parts: string[] = [];
-        for (const m of matches) {
-          parts.push(m[1]);
-        }
-        if (parts.length > 0) {
-          rawText += parts.join(" ") + "\n";
-        }
+        for (const m of matches) parts.push(m[1]);
+        if (parts.length > 0) rawText += parts.join(" ") + "\n";
       }
     }
   } else if (fileType === "pptx" || fileType === "ppt") {
-    // Extract text from ppt/slides/slideN.xml
     const slideEntries = Object.entries(files)
       .filter(([path]) => path.startsWith("ppt/slides/slide") && path.endsWith(".xml"))
       .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
-
-    for (const [path, data] of slideEntries) {
+    for (const [, data] of slideEntries) {
       const xml = decoder.decode(data);
       const matches = xml.matchAll(/<a:t>([^<]*)<\/a:t>/g);
       const parts: string[] = [];
-      for (const m of matches) {
-        parts.push(m[1]);
-      }
-      if (parts.length > 0) {
-        rawText += `--- Slide ---\n${parts.join(" ")}\n\n`;
-      }
+      for (const m of matches) parts.push(m[1]);
+      if (parts.length > 0) rawText += `--- Slide ---\n${parts.join(" ")}\n\n`;
     }
   } else if (fileType === "xlsx" || fileType === "xls") {
-    // Extract shared strings from xl/sharedStrings.xml
     for (const [path, data] of Object.entries(files)) {
       if (path === "xl/sharedStrings.xml") {
         const xml = decoder.decode(data);
         const matches = xml.matchAll(/<t[^>]*>([^<]*)<\/t>/g);
         const parts: string[] = [];
-        for (const m of matches) {
-          parts.push(m[1]);
-        }
+        for (const m of matches) parts.push(m[1]);
         rawText += parts.join(", ");
       }
     }
@@ -75,9 +56,6 @@ async function extractTextFromOfficeXml(fileBytes: ArrayBuffer, fileType: string
   return rawText.trim();
 }
 
-/**
- * Use Lovable AI to extract structured text from a PDF (native Gemini support)
- */
 async function extractTextFromPdfWithAI(
   fileBytes: ArrayBuffer,
   fileName: string,
@@ -131,9 +109,6 @@ async function extractTextFromPdfWithAI(
   };
 }
 
-/**
- * Use Lovable AI to structure raw extracted text from Office documents
- */
 async function structureTextWithAI(
   rawText: string,
   fileName: string,
@@ -165,13 +140,8 @@ async function structureTextWithAI(
   });
 
   if (!response.ok) {
-    // If AI structuring fails, just use raw text
     console.error("AI structuring failed, using raw text");
-    return {
-      text: rawText,
-      preview: rawText.substring(0, 500),
-      confidence: 0.6,
-    };
+    return { text: rawText, preview: rawText.substring(0, 500), confidence: 0.6 };
   }
 
   const result = await response.json();
@@ -193,8 +163,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -207,8 +176,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -218,50 +186,51 @@ Deno.serve(async (req) => {
 
     if (!file || !projectId) {
       return new Response(JSON.stringify({ error: "Missing file or projectId" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const fileName = file.name;
     const fileType = fileName.split(".").pop()?.toLowerCase() || "";
     const storagePath = `${user.id}/${projectId}/${Date.now()}-${fileName}`;
-
     const arrayBuffer = await file.arrayBuffer();
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from("source-documents")
-      .upload(storagePath, arrayBuffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+      .upload(storagePath, arrayBuffer, { contentType: file.type, upsert: false });
 
     if (uploadError) {
       return new Response(JSON.stringify({ error: `Upload failed: ${uploadError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const textFormats = ["txt", "md", "csv", "json", "html"];
     const officeFormats = ["docx", "doc", "pptx", "ppt", "xlsx", "xls"];
+    const now = new Date().toISOString();
 
     let extractedText = "";
+    let rawContent = "";
     let preview = "";
     let confidence = 0;
     let status = "pending";
+    let extractionMethod = "none";
 
     // --- Plain text formats ---
     if (textFormats.includes(fileType)) {
-      extractedText = new TextDecoder().decode(arrayBuffer);
+      rawContent = new TextDecoder().decode(arrayBuffer);
+      extractedText = rawContent;
       preview = extractedText.substring(0, 500);
       confidence = 0.95;
       status = "processed";
+      extractionMethod = "direct_text";
     }
-    // --- PDF: use Gemini native PDF support ---
+    // --- PDF ---
     else if (fileType === "pdf") {
-      // Insert as extracting first
+      rawContent = `[Binary PDF file: ${fileName}, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB]`;
+      extractionMethod = "ai_gemini_pdf";
+
       const { data: source, error: insertError } = await supabase
         .from("sources")
         .insert({
@@ -269,7 +238,9 @@ Deno.serve(async (req) => {
           name: fileName, file_name: fileName, file_type: fileType,
           status: "extracting", origin: "Upload",
           preview: `Extracting text from ${fileName}...`,
-          extracted_content: null, confidence: 0, tags: [fileType], url: storagePath,
+          extracted_content: null, raw_content: rawContent,
+          confidence: 0, tags: [fileType], url: storagePath,
+          extraction_method: extractionMethod,
         })
         .select().single();
 
@@ -283,7 +254,13 @@ Deno.serve(async (req) => {
         const aiResult = await extractTextFromPdfWithAI(arrayBuffer, fileName);
         const { data: updated } = await supabase
           .from("sources")
-          .update({ status: "processed", extracted_content: aiResult.text, preview: aiResult.preview, confidence: aiResult.confidence })
+          .update({
+            status: "processed",
+            extracted_content: aiResult.text,
+            preview: aiResult.preview,
+            confidence: aiResult.confidence,
+            processed_at: new Date().toISOString(),
+          })
           .eq("id", source.id).select().single();
 
         return new Response(JSON.stringify({ source: updated || source }), {
@@ -301,8 +278,10 @@ Deno.serve(async (req) => {
         });
       }
     }
-    // --- Office formats: extract XML text then structure with AI ---
+    // --- Office formats ---
     else if (officeFormats.includes(fileType)) {
+      extractionMethod = "office_xml_ai";
+
       const { data: source, error: insertError } = await supabase
         .from("sources")
         .insert({
@@ -310,7 +289,9 @@ Deno.serve(async (req) => {
           name: fileName, file_name: fileName, file_type: fileType,
           status: "extracting", origin: "Upload",
           preview: `Extracting text from ${fileName}...`,
-          extracted_content: null, confidence: 0, tags: [fileType], url: storagePath,
+          extracted_content: null, raw_content: null,
+          confidence: 0, tags: [fileType], url: storagePath,
+          extraction_method: extractionMethod,
         })
         .select().single();
 
@@ -322,6 +303,10 @@ Deno.serve(async (req) => {
 
       try {
         const rawText = await extractTextFromOfficeXml(arrayBuffer, fileType);
+
+        // Store raw extracted XML text
+        await supabase.from("sources").update({ raw_content: rawText || null }).eq("id", source.id);
+
         if (!rawText) {
           await supabase.from("sources").update({
             status: "pending",
@@ -333,11 +318,16 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Structure with AI
         const structured = await structureTextWithAI(rawText, fileName);
         const { data: updated } = await supabase
           .from("sources")
-          .update({ status: "processed", extracted_content: structured.text, preview: structured.preview, confidence: structured.confidence })
+          .update({
+            status: "processed",
+            extracted_content: structured.text,
+            preview: structured.preview,
+            confidence: structured.confidence,
+            processed_at: new Date().toISOString(),
+          })
           .eq("id", source.id).select().single();
 
         return new Response(JSON.stringify({ source: updated || source }), {
@@ -357,7 +347,9 @@ Deno.serve(async (req) => {
     }
     // --- Unknown formats ---
     else {
+      rawContent = `[Unsupported format: ${fileName}, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB]`;
       preview = `Document uploaded: ${fileName} (${fileType.toUpperCase()}, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB)`;
+      extractionMethod = "unsupported";
     }
 
     // Insert for text formats and unknown formats
@@ -367,7 +359,11 @@ Deno.serve(async (req) => {
         project_id: projectId, user_id: user.id, type: "document",
         name: fileName, file_name: fileName, file_type: fileType,
         status, origin: "Upload", preview,
-        extracted_content: extractedText || null, confidence, tags: [fileType], url: storagePath,
+        extracted_content: extractedText || null,
+        raw_content: rawContent || null,
+        confidence, tags: [fileType], url: storagePath,
+        extraction_method: extractionMethod,
+        processed_at: status === "processed" ? now : null,
       })
       .select().single();
 

@@ -147,8 +147,10 @@ Deno.serve(async (req) => {
         origin: "URL Import",
         preview: `Fetching content from ${normalizedUrl}...`,
         extracted_content: null,
+        raw_content: null,
         confidence: 0,
         tags: ["url", parsedUrl.hostname],
+        extraction_method: "ai_url_extraction",
       })
       .select()
       .single();
