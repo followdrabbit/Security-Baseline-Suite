@@ -390,8 +390,31 @@ const BaselineEditor: React.FC = () => {
           <HelpButton section="editor" />
         </div>
         <div className="flex items-center gap-3">
+          {/* Version selector */}
+          {selectedProject !== 'all' && publishedVersions.length > 0 && (
+            <Select
+              value={viewingVersionId || 'live'}
+              onValueChange={(val) => setViewingVersionId(val === 'live' ? null : val)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <History className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="live">
+                  {t.versioning.liveVersion}
+                </SelectItem>
+                {publishedVersions.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    v{v.version} — {v.published_at ? new Date(v.published_at).toLocaleDateString() : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {/* Version indicator */}
-          {selectedProject !== 'all' && (
+          {selectedProject !== 'all' && !isViewingSnapshot && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-muted/60 border border-border text-muted-foreground">
                 v{currentVersion > 0 ? currentVersion : '—'}
@@ -408,18 +431,22 @@ const BaselineEditor: React.FC = () => {
               )}
             </div>
           )}
-          <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
-            <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
-          </Button>
-          <Button
-            size="sm"
-            className="gold-gradient text-primary-foreground hover:opacity-90"
-            disabled={!canPublish || publishMutation.isPending}
-            onClick={() => requestConfirm('publish')}
-          >
-            <Rocket className="h-4 w-4 mr-1.5" />
-            {t.versioning.publishVersion}
-          </Button>
+          {!isViewingSnapshot && (
+            <>
+              <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
+                <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
+              </Button>
+              <Button
+                size="sm"
+                className="gold-gradient text-primary-foreground hover:opacity-90"
+                disabled={!canPublish || publishMutation.isPending}
+                onClick={() => requestConfirm('publish')}
+              >
+                <Rocket className="h-4 w-4 mr-1.5" />
+                {t.versioning.publishVersion}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
