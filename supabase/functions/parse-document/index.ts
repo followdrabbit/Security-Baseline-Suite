@@ -190,6 +190,8 @@ Deno.serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const projectId = formData.get("projectId") as string;
+    const model = (formData.get("model") as string) || DEFAULT_MODEL;
+    const maxTokens = parseInt((formData.get("maxTokens") as string) || "", 10) || DEFAULT_MAX_TOKENS;
 
     if (!file || !projectId) {
       return new Response(JSON.stringify({ error: "Missing file or projectId" }), {
