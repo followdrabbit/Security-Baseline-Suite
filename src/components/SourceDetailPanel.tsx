@@ -478,14 +478,18 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
               {/* Compare content */}
               <div className="grid grid-cols-2 flex-1 overflow-hidden">
                 <ScrollArea className="h-full border-r border-border">
-                  <div className="p-3 text-[10px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                    {source.previous_extracted_content}
-                  </div>
+                  <DiffView
+                    oldText={source.previous_extracted_content}
+                    newText={source.extracted_content || ''}
+                    side="left"
+                  />
                 </ScrollArea>
                 <ScrollArea className="h-full">
-                  <div className="p-3 text-[10px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                    {source.extracted_content}
-                  </div>
+                  <DiffView
+                    oldText={source.previous_extracted_content}
+                    newText={source.extracted_content || ''}
+                    side="right"
+                  />
                 </ScrollArea>
               </div>
             </div>
