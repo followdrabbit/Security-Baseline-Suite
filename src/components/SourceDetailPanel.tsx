@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
-import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
