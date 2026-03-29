@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -433,10 +433,37 @@ const Documentation: React.FC = () => {
     !search || s.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const [activeTocId, setActiveTocId] = useState<string | null>(null);
+  const isScrollingRef = useRef(false);
+
+  // Scroll spy using IntersectionObserver
+  useEffect(() => {
+    const sectionEls = filtered.map(s => document.getElementById(`doc-section-${s.id}`)).filter(Boolean) as HTMLElement[];
+    if (!sectionEls.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrollingRef.current) return;
+        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          const id = visible[0].target.id.replace('doc-section-', '');
+          setActiveTocId(id);
+        }
+      },
+      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
+    );
+
+    sectionEls.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [filtered]);
+
   const handleTocSelect = (id: string) => {
     setOpenSections(prev => new Set(prev).add(id));
+    setActiveTocId(id);
+    isScrollingRef.current = true;
     setTimeout(() => {
       document.getElementById(`doc-section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => { isScrollingRef.current = false; }, 600);
     }, 100);
   };
 
@@ -444,7 +471,7 @@ const Documentation: React.FC = () => {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
       <DocTableOfContents
         items={sections.map(s => ({ id: s.id, icon: s.icon, title: s.title }))}
-        activeId={[...openSections][openSections.size - 1] || null}
+        activeId={activeTocId}
         onSelect={handleTocSelect}
       />
 
