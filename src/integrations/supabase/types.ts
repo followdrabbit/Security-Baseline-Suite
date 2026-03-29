@@ -64,6 +64,9 @@ export type Database = {
           created_at: string
           id: string
           project_id: string
+          project_snapshot: Json
+          published_at: string | null
+          sources_snapshot: Json
           status: string
           user_id: string
           version: number
@@ -75,6 +78,9 @@ export type Database = {
           created_at?: string
           id?: string
           project_id: string
+          project_snapshot?: Json
+          published_at?: string | null
+          sources_snapshot?: Json
           status?: string
           user_id: string
           version?: number
@@ -86,6 +92,9 @@ export type Database = {
           created_at?: string
           id?: string
           project_id?: string
+          project_snapshot?: Json
+          published_at?: string | null
+          sources_snapshot?: Json
           status?: string
           user_id?: string
           version?: number
@@ -245,6 +254,7 @@ export type Database = {
           category: string | null
           control_count: number | null
           created_at: string
+          current_version: number
           id: string
           name: string
           notes: string | null
@@ -264,6 +274,7 @@ export type Database = {
           category?: string | null
           control_count?: number | null
           created_at?: string
+          current_version?: number
           id?: string
           name: string
           notes?: string | null
@@ -283,6 +294,7 @@ export type Database = {
           category?: string | null
           control_count?: number | null
           created_at?: string
+          current_version?: number
           id?: string
           name?: string
           notes?: string | null

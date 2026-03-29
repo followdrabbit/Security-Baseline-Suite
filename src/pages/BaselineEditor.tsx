@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -97,7 +97,7 @@ const BaselineEditor: React.FC = () => {
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
-    variant: 'approve' | 'reject' | 'restore' | 'approveAll';
+    variant: 'approve' | 'reject' | 'restore' | 'approveAll' | 'publish';
     controlId?: string;
     controlLabel?: string;
   }>({ open: false, variant: 'approve' });
@@ -108,13 +108,28 @@ const BaselineEditor: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, technology, status, control_count')
+        .select('id, name, technology, status, control_count, current_version')
         .gt('control_count', 0)
         .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Fetch sources for the selected project (for snapshot)
+  const { data: projectSources = [] } = useQuery({
+    queryKey: ['baseline-sources', user?.id, selectedProject],
+    queryFn: async () => {
+      if (selectedProject === 'all') return [];
+      const { data, error } = await supabase
+        .from('sources')
+        .select('*')
+        .eq('project_id', selectedProject);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user && selectedProject !== 'all',
   });
 
   // Fetch controls
@@ -229,18 +244,79 @@ const BaselineEditor: React.FC = () => {
     updateStatusMutation.mutate({ id, status });
   };
 
-  const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll', controlId?: string) => {
+  const requestConfirm = (variant: 'approve' | 'reject' | 'approveAll' | 'publish', controlId?: string) => {
     const control = controlId ? controls.find(c => c.id === controlId) : undefined;
     setConfirmModal({
       open: true,
       variant,
       controlId,
-      controlLabel: control ? `${control.controlId} — ${control.title}` : undefined,
+      controlLabel: variant === 'publish' 
+        ? `${(selectedProjectObj as any)?.name} — v${((selectedProjectObj as any)?.current_version || 0) + 1}`
+        : control ? `${control.controlId} — ${control.title}` : undefined,
     });
   };
 
+  // Publish version mutation
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || selectedProject === 'all') throw new Error('Select a project');
+      const proj = projects.find((p: any) => p.id === selectedProject) as any;
+      const newVersion = (proj?.current_version || 0) + 1;
+
+      // Get full controls for snapshot
+      const { data: controlsData } = await supabase
+        .from('controls')
+        .select('*')
+        .eq('project_id', selectedProject);
+
+      // Get full sources for snapshot
+      const { data: sourcesData } = await supabase
+        .from('sources')
+        .select('*')
+        .eq('project_id', selectedProject);
+
+      // Create the version snapshot
+      const { error: versionError } = await supabase
+        .from('baseline_versions')
+        .insert({
+          project_id: selectedProject,
+          user_id: user.id,
+          version: newVersion,
+          control_count: controlsData?.length || 0,
+          controls_snapshot: (controlsData || []) as any,
+          sources_snapshot: (sourcesData || []) as any,
+          project_snapshot: proj as any,
+          status: 'published',
+          changes_summary: `Published version ${newVersion} with ${controlsData?.length || 0} controls and ${sourcesData?.length || 0} sources`,
+          published_at: new Date().toISOString(),
+        });
+      if (versionError) throw versionError;
+
+      // Update project current_version
+      const { error: projError } = await supabase
+        .from('projects')
+        .update({ current_version: newVersion, status: 'approved' })
+        .eq('id', selectedProject);
+      if (projError) throw projError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['baseline-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['baseline-controls'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-versions'] });
+      const proj = projects.find((p: any) => p.id === selectedProject) as any;
+      const ver = (proj?.current_version || 0) + 1;
+      toast({ title: `🚀 ${t.toasts.published}`, description: `v${ver} ${t.toasts.publishedDesc}` });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to publish version.', variant: 'destructive' });
+    },
+  });
+
   const handleConfirm = () => {
-    if (confirmModal.variant === 'approveAll') {
+    if (confirmModal.variant === 'publish') {
+      publishMutation.mutate();
+    } else if (confirmModal.variant === 'approveAll') {
       bulkApproveMutation.mutate();
       toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
     } else if (confirmModal.controlId) {
@@ -258,6 +334,15 @@ const BaselineEditor: React.FC = () => {
   const selectedProjectObj = projects.find((p: any) => p.id === selectedProject);
   const lang = locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en';
 
+  // Compute review readiness
+  const pendingCount = useMemo(() => {
+    if (selectedProject === 'all') return -1;
+    return filtered.filter(c => c.reviewStatus === 'pending').length;
+  }, [filtered, selectedProject]);
+
+  const currentVersion = (selectedProjectObj as any)?.current_version || 0;
+  const canPublish = selectedProject !== 'all' && pendingCount === 0 && filtered.length > 0;
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -272,9 +357,38 @@ const BaselineEditor: React.FC = () => {
           </div>
           <HelpButton section="editor" />
         </div>
-        <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => requestConfirm('approveAll')}>
-          <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Version indicator */}
+          {selectedProject !== 'all' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-muted/60 border border-border text-muted-foreground">
+                v{currentVersion > 0 ? currentVersion : '—'}
+              </span>
+              {currentVersion > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                  {t.versioning.published}
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-medium">
+                  {pendingCount} {t.versioning.pendingControls}
+                </span>
+              )}
+            </div>
+          )}
+          <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
+            <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
+          </Button>
+          <Button
+            size="sm"
+            className="gold-gradient text-primary-foreground hover:opacity-90"
+            disabled={!canPublish || publishMutation.isPending}
+            onClick={() => requestConfirm('publish')}
+          >
+            <Rocket className="h-4 w-4 mr-1.5" />
+            {t.versioning.publishVersion}
+          </Button>
+        </div>
       </div>
 
       {/* STRIDE filter breadcrumb from Dashboard */}
