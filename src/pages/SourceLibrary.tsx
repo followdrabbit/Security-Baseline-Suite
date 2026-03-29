@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import HelpButton from '@/components/HelpButton';
 import { toast } from 'sonner';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
@@ -205,9 +206,12 @@ const SourceLibrary: React.FC = () => {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.sources.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t.sources.subtitle}</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.sources.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.sources.subtitle}</p>
+        </div>
+        <HelpButton section="sources" />
       </div>
 
       {/* Drag overlay */}

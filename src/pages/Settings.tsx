@@ -127,9 +127,12 @@ const Settings: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.settings.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t.settings.subtitle}</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.settings.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.settings.subtitle}</p>
+        </div>
+        <HelpButton section="settings" />
       </div>
 
       <div className="space-y-4">

@@ -31,8 +31,9 @@ const NewProject: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
-      <div>
+      <div className="flex items-center gap-3">
         <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.project.new}</h1>
+        <HelpButton section="new-project" />
       </div>
 
       {/* Step indicator */}
