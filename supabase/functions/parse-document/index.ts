@@ -56,9 +56,14 @@ async function extractTextFromOfficeXml(fileBytes: ArrayBuffer, fileType: string
   return rawText.trim();
 }
 
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_MAX_TOKENS = 65000;
+
 async function extractTextFromPdfWithAI(
   fileBytes: ArrayBuffer,
   fileName: string,
+  model: string = DEFAULT_MODEL,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
 ): Promise<{ text: string; preview: string; confidence: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -74,7 +79,7 @@ async function extractTextFromPdfWithAI(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: model,
       messages: [
         {
           role: "system",
@@ -89,7 +94,7 @@ async function extractTextFromPdfWithAI(
         },
       ],
       temperature: 0.1,
-      max_tokens: 65000,
+      max_tokens: maxTokens,
     }),
   });
 
