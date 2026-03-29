@@ -475,23 +475,13 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
                   )}
                 </div>
               </div>
-              {/* Compare content */}
-              <div className="grid grid-cols-2 flex-1 overflow-hidden">
-                <ScrollArea className="h-full border-r border-border">
-                  <DiffView
-                    oldText={source.previous_extracted_content}
-                    newText={source.extracted_content || ''}
-                    side="left"
-                  />
-                </ScrollArea>
-                <ScrollArea className="h-full">
-                  <DiffView
-                    oldText={source.previous_extracted_content}
-                    newText={source.extracted_content || ''}
-                    side="right"
-                  />
-                </ScrollArea>
-              </div>
+              {/* Unified diff view */}
+              <ScrollArea className="flex-1">
+                <DiffView
+                  oldText={source.previous_extracted_content}
+                  newText={source.extracted_content || ''}
+                />
+              </ScrollArea>
             </div>
           ) : (
             <ScrollArea className="h-[300px]">
