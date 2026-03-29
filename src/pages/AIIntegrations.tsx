@@ -269,13 +269,16 @@ const AIIntegrations: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">
-          {tAI.title || 'Integrações de IA'}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {tAI.subtitle || 'Configure os provedores de IA para geração de controles e modelagem de ameaças'}
-        </p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">
+            {tAI.title || 'Integrações de IA'}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {tAI.subtitle || 'Configure os provedores de IA para geração de controles e modelagem de ameaças'}
+          </p>
+        </div>
+        <HelpButton section="ai-integrations" />
       </div>
 
       {!loading && (

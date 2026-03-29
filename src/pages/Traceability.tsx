@@ -90,11 +90,14 @@ const Traceability: React.FC = () => {
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.traceabilityPage.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-            {t.traceabilityPage.subtitle} <InfoTooltip content={t.tooltips.traceability} />
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.traceabilityPage.title}</h1>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+              {t.traceabilityPage.subtitle} <InfoTooltip content={t.tooltips.traceability} />
+            </p>
+          </div>
+          <HelpButton section="traceability" />
         </div>
         {!loading && controls.length > 0 && (
           <div className="flex items-center gap-2">
