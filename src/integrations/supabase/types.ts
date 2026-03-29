@@ -312,13 +312,16 @@ export type Database = {
           added_at: string
           confidence: number | null
           extracted_content: string | null
+          extraction_method: string | null
           file_name: string | null
           file_type: string | null
           id: string
           name: string
           origin: string | null
           preview: string | null
+          processed_at: string | null
           project_id: string
+          raw_content: string | null
           status: string
           tags: string[] | null
           type: string
@@ -329,13 +332,16 @@ export type Database = {
           added_at?: string
           confidence?: number | null
           extracted_content?: string | null
+          extraction_method?: string | null
           file_name?: string | null
           file_type?: string | null
           id?: string
           name: string
           origin?: string | null
           preview?: string | null
+          processed_at?: string | null
           project_id: string
+          raw_content?: string | null
           status?: string
           tags?: string[] | null
           type?: string
@@ -346,13 +352,16 @@ export type Database = {
           added_at?: string
           confidence?: number | null
           extracted_content?: string | null
+          extraction_method?: string | null
           file_name?: string | null
           file_type?: string | null
           id?: string
           name?: string
           origin?: string | null
           preview?: string | null
+          processed_at?: string | null
           project_id?: string
+          raw_content?: string | null
           status?: string
           tags?: string[] | null
           type?: string
