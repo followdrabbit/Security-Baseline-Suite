@@ -211,12 +211,36 @@ const Dashboard: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
+
+  const deleteProject = useMutation({
+    mutationFn: async (projectId: string) => {
+      // Delete related data first, then the project
+      await supabase.from('controls').delete().eq('project_id', projectId);
+      await supabase.from('sources').delete().eq('project_id', projectId);
+      await supabase.from('baseline_versions').delete().eq('project_id', projectId);
+      await supabase.from('notifications').delete().eq('project_id', projectId);
+      const { error } = await supabase.from('projects').delete().eq('id', projectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-controls'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-versions'] });
+      toast({ title: 'Project deleted', description: 'The project and all related data have been removed.' });
+      if (selectedProjectId === deleteTarget?.id) setSelectedProjectId('all');
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete project.', variant: 'destructive' });
+    },
+  });
 
   // Fetch real projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
