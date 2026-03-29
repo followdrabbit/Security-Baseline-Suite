@@ -46,6 +46,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
   const { t } = useI18n();
   const [filter, setFilter] = useState<FilterTab>('all');
   const [search, setSearch] = useState('');
+  const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
 
   const exportPdf = () => {
     const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
