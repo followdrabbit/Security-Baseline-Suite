@@ -334,6 +334,15 @@ const BaselineEditor: React.FC = () => {
   const selectedProjectObj = projects.find((p: any) => p.id === selectedProject);
   const lang = locale === 'pt' ? 'pt' : locale === 'es' ? 'es' : 'en';
 
+  // Compute review readiness
+  const pendingCount = useMemo(() => {
+    if (selectedProject === 'all') return -1;
+    return filtered.filter(c => c.reviewStatus === 'pending').length;
+  }, [filtered, selectedProject]);
+
+  const currentVersion = (selectedProjectObj as any)?.current_version || 0;
+  const canPublish = selectedProject !== 'all' && pendingCount === 0 && filtered.length > 0;
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -348,9 +357,38 @@ const BaselineEditor: React.FC = () => {
           </div>
           <HelpButton section="editor" />
         </div>
-        <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => requestConfirm('approveAll')}>
-          <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Version indicator */}
+          {selectedProject !== 'all' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-muted/60 border border-border text-muted-foreground">
+                v{currentVersion > 0 ? currentVersion : '—'}
+              </span>
+              {currentVersion > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+                  {t.versioning.published}
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 font-medium">
+                  {pendingCount} {t.versioning.pendingControls}
+                </span>
+              )}
+            </div>
+          )}
+          <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
+            <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
+          </Button>
+          <Button
+            size="sm"
+            className="gold-gradient text-primary-foreground hover:opacity-90"
+            disabled={!canPublish || publishMutation.isPending}
+            onClick={() => requestConfirm('publish')}
+          >
+            <Rocket className="h-4 w-4 mr-1.5" />
+            {t.versioning.publishVersion}
+          </Button>
+        </div>
       </div>
 
       {/* STRIDE filter breadcrumb from Dashboard */}
