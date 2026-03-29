@@ -18,7 +18,6 @@ import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 import { useToast } from '@/hooks/use-toast';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import type { StrideCategory } from '@/types';
-import type { StrideCategory } from '@/types';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
