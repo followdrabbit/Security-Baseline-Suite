@@ -56,9 +56,14 @@ async function extractTextFromOfficeXml(fileBytes: ArrayBuffer, fileType: string
   return rawText.trim();
 }
 
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_MAX_TOKENS = 65000;
+
 async function extractTextFromPdfWithAI(
   fileBytes: ArrayBuffer,
   fileName: string,
+  model: string = DEFAULT_MODEL,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
 ): Promise<{ text: string; preview: string; confidence: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -74,7 +79,7 @@ async function extractTextFromPdfWithAI(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: model,
       messages: [
         {
           role: "system",
@@ -89,7 +94,7 @@ async function extractTextFromPdfWithAI(
         },
       ],
       temperature: 0.1,
-      max_tokens: 65000,
+      max_tokens: maxTokens,
     }),
   });
 
@@ -112,6 +117,8 @@ async function extractTextFromPdfWithAI(
 async function structureTextWithAI(
   rawText: string,
   fileName: string,
+  model: string = DEFAULT_MODEL,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
 ): Promise<{ text: string; preview: string; confidence: number }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -123,7 +130,7 @@ async function structureTextWithAI(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: model,
       messages: [
         {
           role: "system",
@@ -135,7 +142,7 @@ async function structureTextWithAI(
         },
       ],
       temperature: 0.1,
-      max_tokens: 65000,
+      max_tokens: maxTokens,
     }),
   });
 
@@ -183,6 +190,8 @@ Deno.serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const projectId = formData.get("projectId") as string;
+    const model = (formData.get("model") as string) || DEFAULT_MODEL;
+    const maxTokens = parseInt((formData.get("maxTokens") as string) || "", 10) || DEFAULT_MAX_TOKENS;
 
     if (!file || !projectId) {
       return new Response(JSON.stringify({ error: "Missing file or projectId" }), {
@@ -251,7 +260,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const aiResult = await extractTextFromPdfWithAI(arrayBuffer, fileName);
+        const aiResult = await extractTextFromPdfWithAI(arrayBuffer, fileName, model, maxTokens);
         const { data: updated } = await supabase
           .from("sources")
           .update({
@@ -318,7 +327,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        const structured = await structureTextWithAI(rawText, fileName);
+        const structured = await structureTextWithAI(rawText, fileName, model, maxTokens);
         const { data: updated } = await supabase
           .from("sources")
           .update({

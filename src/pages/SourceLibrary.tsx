@@ -16,8 +16,36 @@ import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCirc
 import HelpButton from '@/components/HelpButton';
 import { toast } from 'sonner';
 import SourceDetailPanel from '@/components/SourceDetailPanel';
+import { aiConfigService } from '@/services/aiService';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
+
+// Maps user-facing model names to Lovable AI gateway model IDs
+const LOVABLE_MODEL_MAP: Record<string, string> = {
+  'gemini-3-flash (padrão)': 'google/gemini-3-flash-preview',
+  'gemini-2.5-pro': 'google/gemini-2.5-pro',
+  'gemini-2.5-flash': 'google/gemini-2.5-flash',
+  'gpt-5': 'openai/gpt-5',
+  'gpt-5-mini': 'openai/gpt-5-mini',
+};
+
+function resolveModelId(providerConfig: any): string {
+  if (!providerConfig) return 'google/gemini-2.5-flash';
+  const selectedModel = providerConfig.selected_model || '';
+  if (providerConfig.provider_id === 'lovable_ai') {
+    return LOVABLE_MODEL_MAP[selectedModel] || 'google/gemini-2.5-flash';
+  }
+  // For external providers, they'd use their own API — return gateway default
+  return 'google/gemini-2.5-flash';
+}
+
+function resolveMaxTokens(providerConfig: any): number {
+  const extra = providerConfig?.extra_config;
+  if (extra && typeof extra === 'object' && extra.max_tokens) {
+    return Number(extra.max_tokens) || 65000;
+  }
+  return 65000;
+}
 
 const SourceLibrary: React.FC = () => {
   const { t } = useI18n();
@@ -91,9 +119,16 @@ const SourceLibrary: React.FC = () => {
       return;
     }
 
+    // Get user's default AI config for model/maxTokens
+    const defaultConfig = await aiConfigService.getDefault();
+    const model = resolveModelId(defaultConfig);
+    const maxTokens = resolveMaxTokens(defaultConfig);
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('projectId', selectedProjectId);
+    formData.append('model', model);
+    formData.append('maxTokens', String(maxTokens));
 
     const { data: { session: currentSession } } = await supabase.auth.getSession();
 
@@ -172,6 +207,10 @@ const SourceLibrary: React.FC = () => {
     setUrlLoading(true);
 
     try {
+      const defaultConfig = await aiConfigService.getDefault();
+      const model = resolveModelId(defaultConfig);
+      const maxTokens = resolveMaxTokens(defaultConfig);
+
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-url`,
@@ -181,7 +220,7 @@ const SourceLibrary: React.FC = () => {
             Authorization: `Bearer ${currentSession?.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ url: urlInput.trim(), projectId: selectedProjectId }),
+          body: JSON.stringify({ url: urlInput.trim(), projectId: selectedProjectId, model, maxTokens }),
         }
       );
 

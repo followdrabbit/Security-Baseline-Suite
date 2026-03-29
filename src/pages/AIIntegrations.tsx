@@ -108,6 +108,7 @@ interface ProviderConfig {
   enabled: boolean;
   apiKey: string;
   selectedModel: string;
+  maxTokens: number;
   connectionStatus: 'idle' | 'testing' | 'connected' | 'failed';
   isDefault: boolean;
 }
@@ -126,6 +127,7 @@ const AIIntegrations: React.FC = () => {
         enabled: p.id === 'lovable_ai',
         apiKey: '',
         selectedModel: p.defaultModel,
+        maxTokens: 65000,
         connectionStatus: p.id === 'lovable_ai' ? 'connected' : 'idle',
         isDefault: p.id === 'lovable_ai',
       };
@@ -163,6 +165,7 @@ const AIIntegrations: React.FC = () => {
                 enabled: s.enabled,
                 apiKey: s.api_key_encrypted || '',
                 selectedModel: s.selected_model,
+                maxTokens: (s.extra_config as any)?.max_tokens || 65000,
                 connectionStatus: s.api_key_encrypted ? 'connected' : 'idle',
                 isDefault: s.is_default,
               };
@@ -186,6 +189,7 @@ const AIIntegrations: React.FC = () => {
         api_key_encrypted: config.apiKey,
         selected_model: config.selectedModel,
         is_default: config.isDefault,
+        extra_config: { max_tokens: config.maxTokens },
       });
       toast({ title: '✅ Configuração salva', description: 'Configuração persistida com sucesso' });
     } catch (err) {
@@ -442,6 +446,34 @@ const AIIntegrations: React.FC = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        Max Tokens (Extração)
+                        <InfoTooltip content="Limite máximo de tokens na resposta da IA ao extrair conteúdo de documentos e URLs. Modelos mais recentes suportam janelas maiores (ex: Gemini 2.5 Pro até 65k, GPT-5 até 128k)." />
+                      </label>
+                      <div className="flex items-center gap-3 max-w-xs">
+                        <Input
+                          type="number"
+                          min={1000}
+                          max={200000}
+                          step={1000}
+                          value={config.maxTokens}
+                          onChange={e => {
+                            const val = parseInt(e.target.value, 10) || 65000;
+                            updateConfig(provider.id, { maxTokens: val });
+                          }}
+                          onBlur={() => {
+                            if (user) saveConfig(provider.id, config);
+                          }}
+                          className="w-32"
+                        />
+                        <span className="text-[10px] text-muted-foreground">tokens</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Recomendado: 16k (rápido), 65k (padrão), 128k+ (documentos longos)
+                      </p>
                     </div>
 
                     {provider.id === 'azure_openai' && (
