@@ -436,35 +436,34 @@ const Documentation: React.FC = () => {
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
   const isScrollingRef = useRef(false);
 
-  // Scroll spy using scroll event for reliability with collapsed sections
+  // Scroll spy using scroll event
   useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
     const handleScroll = () => {
       if (isScrollingRef.current) return;
-      const scrollContainer = document.querySelector('main') || window;
-      const offset = 120;
-      let closestId: string | null = null;
-      let closestDist = Infinity;
+      let bestId: string | null = null;
+      let bestTop = -Infinity;
 
       for (const s of filtered) {
         const el = document.getElementById(`doc-section-${s.id}`);
         if (!el) continue;
         const rect = el.getBoundingClientRect();
-        const dist = Math.abs(rect.top - offset);
-        if (rect.top <= offset + 100 && dist < closestDist) {
-          closestDist = dist;
-          closestId = s.id;
+        // Pick the last section whose top has scrolled past 130px from viewport top
+        if (rect.top <= 130 && rect.top > bestTop) {
+          bestTop = rect.top;
+          bestId = s.id;
         }
       }
-      if (closestId) {
-        setActiveTocId(closestId);
+      if (bestId) {
+        setActiveTocId(bestId);
       }
     };
 
-    const mainEl = document.querySelector('main');
-    const target = mainEl || window;
-    target.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // initial check
-    return () => target.removeEventListener('scroll', handleScroll);
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => mainEl.removeEventListener('scroll', handleScroll);
   }, [filtered]);
 
   const handleTocSelect = (id: string) => {
