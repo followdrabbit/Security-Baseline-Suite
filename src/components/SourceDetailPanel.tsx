@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
-import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash } from 'lucide-react';
+import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+const REPROCESS_MODELS: Record<string, string> = {
+  'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'google/gemini-3-flash-preview': 'Gemini 3 Flash',
+  'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+  'openai/gpt-5': 'GPT-5',
+  'openai/gpt-5-mini': 'GPT-5 Mini',
+};
 
 const EXTRACTION_METHOD_LABELS: Record<string, string> = {
   direct_text: 'Direct Text Read',
