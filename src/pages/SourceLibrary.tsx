@@ -16,6 +16,7 @@ import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCirc
 import HelpButton from '@/components/HelpButton';
 import { toast } from 'sonner';
 import SourceDetailPanel from '@/components/SourceDetailPanel';
+import { aiConfigService } from '@/services/aiService';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 
