@@ -58,7 +58,7 @@ interface SourceDetailPanelProps {
 
 const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, onReprocessed }) => {
   const [activeTab, setActiveTab] = useState('info');
-  const [showRaw, setShowRaw] = useState(false);
+  
   const [showReprocess, setShowReprocess] = useState(false);
   const [reprocessModel, setReprocessModel] = useState(source.extraction_model || 'google/gemini-2.5-flash');
   const [contentView, setContentView] = useState<'extracted' | 'raw' | 'compare'>('extracted');
