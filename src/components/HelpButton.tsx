@@ -13,11 +13,18 @@ const HelpButton: React.FC<HelpButtonProps> = ({ section }) => {
   const { t } = useI18n();
   const d = (t as any).docs;
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/docs#${section}`);
+  };
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          onClick={() => navigate(`/docs#${section}`)}
+          type="button"
+          onClick={handleClick}
           className="h-7 w-7 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
           aria-label={d?.title || 'Help'}
         >
