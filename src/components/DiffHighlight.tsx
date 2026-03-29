@@ -2,155 +2,208 @@ import React, { useMemo } from 'react';
 
 type DiffType = 'equal' | 'added' | 'removed';
 
-interface DiffSegment {
+interface DiffLine {
   type: DiffType;
   text: string;
 }
 
 /**
- * Simple line-based diff algorithm.
- * Compares two texts line by line and marks lines as equal, added, or removed.
+ * Word-level diff for a pair of lines to show inline changes
  */
-function computeLineDiff(oldText: string, newText: string): { left: DiffSegment[]; right: DiffSegment[] } {
-  const oldLines = oldText.split('\n');
-  const newLines = newText.split('\n');
+function wordDiff(oldLine: string, newLine: string): { left: React.ReactNode; right: React.ReactNode } {
+  const oldWords = oldLine.split(/(\s+)/);
+  const newWords = newLine.split(/(\s+)/);
 
-  // LCS-based diff for reasonable sizes, fallback to simple for very large texts
-  const maxLines = 2000;
-  if (oldLines.length > maxLines || newLines.length > maxLines) {
-    return simpleDiff(oldLines, newLines);
-  }
+  // Simple word-level comparison
+  const maxLen = Math.max(oldWords.length, newWords.length);
+  const leftParts: React.ReactNode[] = [];
+  const rightParts: React.ReactNode[] = [];
 
-  // Build LCS table
-  const m = oldLines.length;
-  const n = newLines.length;
-  
-  // Use Hunt-McIlroy approach: find matching lines first
-  const newLineMap = new Map<string, number[]>();
-  newLines.forEach((line, i) => {
-    const existing = newLineMap.get(line) || [];
-    existing.push(i);
-    newLineMap.set(line, existing);
-  });
+  let oi = 0, ni = 0;
+  while (oi < oldWords.length || ni < newWords.length) {
+    if (oi < oldWords.length && ni < newWords.length && oldWords[oi] === newWords[ni]) {
+      leftParts.push(<span key={`l${oi}`}>{oldWords[oi]}</span>);
+      rightParts.push(<span key={`r${ni}`}>{newWords[ni]}</span>);
+      oi++; ni++;
+    } else {
+      // Find next matching word
+      let foundOld = -1, foundNew = -1;
+      for (let look = 1; look < 10; look++) {
+        if (foundNew === -1 && ni + look < newWords.length && oi < oldWords.length && newWords[ni + look] === oldWords[oi]) {
+          foundNew = ni + look;
+        }
+        if (foundOld === -1 && oi + look < oldWords.length && ni < newWords.length && oldWords[oi + look] === newWords[ni]) {
+          foundOld = oi + look;
+        }
+      }
 
-  // Simple O(mn) LCS for smaller texts
-  if (m * n < 4_000_000) {
-    return lcsDiff(oldLines, newLines);
-  }
-
-  return simpleDiff(oldLines, newLines);
-}
-
-function lcsDiff(oldLines: string[], newLines: string[]): { left: DiffSegment[]; right: DiffSegment[] } {
-  const m = oldLines.length;
-  const n = newLines.length;
-
-  // Build DP table (space-optimized with backtracking via direction array)
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (oldLines[i - 1] === newLines[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
+      if (foundOld !== -1 && (foundNew === -1 || foundOld - oi <= foundNew - ni)) {
+        // Old has extra words (removed)
+        while (oi < foundOld) {
+          leftParts.push(<mark key={`ld${oi}`} className="bg-destructive/30 text-destructive rounded-sm px-0.5">{oldWords[oi]}</mark>);
+          oi++;
+        }
+      } else if (foundNew !== -1) {
+        // New has extra words (added)
+        while (ni < foundNew) {
+          rightParts.push(<mark key={`ra${ni}`} className="bg-emerald-500/30 text-emerald-300 rounded-sm px-0.5">{newWords[ni]}</mark>);
+          ni++;
+        }
       } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        // Both different
+        if (oi < oldWords.length) {
+          leftParts.push(<mark key={`ld${oi}`} className="bg-destructive/30 text-destructive rounded-sm px-0.5">{oldWords[oi]}</mark>);
+          oi++;
+        }
+        if (ni < newWords.length) {
+          rightParts.push(<mark key={`ra${ni}`} className="bg-emerald-500/30 text-emerald-300 rounded-sm px-0.5">{newWords[ni]}</mark>);
+          ni++;
+        }
       }
     }
   }
 
-  // Backtrack to find diff
-  const left: DiffSegment[] = [];
-  const right: DiffSegment[] = [];
-  let i = m, j = n;
-
-  const leftStack: DiffSegment[] = [];
-  const rightStack: DiffSegment[] = [];
-
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
-      leftStack.push({ type: 'equal', text: oldLines[i - 1] });
-      rightStack.push({ type: 'equal', text: newLines[j - 1] });
-      i--; j--;
-    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      rightStack.push({ type: 'added', text: newLines[j - 1] });
-      j--;
-    } else {
-      leftStack.push({ type: 'removed', text: oldLines[i - 1] });
-      i--;
-    }
-  }
-
-  // Reverse and merge consecutive same-type segments
-  return {
-    left: mergeSegments(leftStack.reverse()),
-    right: mergeSegments(rightStack.reverse()),
-  };
+  return { left: <>{leftParts}</>, right: <>{rightParts}</> };
 }
 
-function simpleDiff(oldLines: string[], newLines: string[]): { left: DiffSegment[]; right: DiffSegment[] } {
-  const left: DiffSegment[] = [];
-  const right: DiffSegment[] = [];
-  const max = Math.max(oldLines.length, newLines.length);
+/**
+ * Line-based diff using a patience-like approach optimized for large texts.
+ */
+function computeDiff(oldText: string, newText: string): DiffLine[] {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+  const result: DiffLine[] = [];
 
-  for (let i = 0; i < max; i++) {
-    const oldLine = i < oldLines.length ? oldLines[i] : undefined;
-    const newLine = i < newLines.length ? newLines[i] : undefined;
+  // Build hash map for new lines to quickly find matches
+  const newMap = new Map<string, number[]>();
+  newLines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (!newMap.has(trimmed)) newMap.set(trimmed, []);
+    newMap.get(trimmed)!.push(i);
+  });
 
-    if (oldLine === newLine) {
-      left.push({ type: 'equal', text: oldLine! });
-      right.push({ type: 'equal', text: newLine! });
+  let oi = 0, ni = 0;
+
+  while (oi < oldLines.length || ni < newLines.length) {
+    if (oi >= oldLines.length) {
+      result.push({ type: 'added', text: newLines[ni] });
+      ni++;
+      continue;
+    }
+    if (ni >= newLines.length) {
+      result.push({ type: 'removed', text: oldLines[oi] });
+      oi++;
+      continue;
+    }
+
+    if (oldLines[oi].trim() === newLines[ni].trim()) {
+      result.push({ type: 'equal', text: oldLines[oi] });
+      oi++; ni++;
     } else {
-      if (oldLine !== undefined) left.push({ type: 'removed', text: oldLine });
-      if (newLine !== undefined) right.push({ type: 'added', text: newLine });
+      // Look ahead to find a match
+      let bestOldSkip = -1, bestNewSkip = -1;
+      const lookAhead = 50;
+
+      // Check if old line appears later in new
+      for (let j = ni + 1; j < Math.min(ni + lookAhead, newLines.length); j++) {
+        if (oldLines[oi].trim() === newLines[j].trim()) {
+          bestNewSkip = j - ni;
+          break;
+        }
+      }
+
+      // Check if new line appears later in old
+      for (let j = oi + 1; j < Math.min(oi + lookAhead, oldLines.length); j++) {
+        if (newLines[ni].trim() === oldLines[j].trim()) {
+          bestOldSkip = j - oi;
+          break;
+        }
+      }
+
+      if (bestNewSkip !== -1 && (bestOldSkip === -1 || bestNewSkip <= bestOldSkip)) {
+        // New has extra lines (added)
+        for (let j = 0; j < bestNewSkip; j++) {
+          result.push({ type: 'added', text: newLines[ni + j] });
+        }
+        ni += bestNewSkip;
+      } else if (bestOldSkip !== -1) {
+        // Old has extra lines (removed)
+        for (let j = 0; j < bestOldSkip; j++) {
+          result.push({ type: 'removed', text: oldLines[oi + j] });
+        }
+        oi += bestOldSkip;
+      } else {
+        // Both lines are different - show as removed + added
+        result.push({ type: 'removed', text: oldLines[oi] });
+        result.push({ type: 'added', text: newLines[ni] });
+        oi++; ni++;
+      }
     }
   }
 
-  return { left: mergeSegments(left), right: mergeSegments(right) };
-}
-
-function mergeSegments(segments: DiffSegment[]): DiffSegment[] {
-  const merged: DiffSegment[] = [];
-  for (const seg of segments) {
-    const last = merged[merged.length - 1];
-    if (last && last.type === seg.type) {
-      last.text += '\n' + seg.text;
-    } else {
-      merged.push({ ...seg });
-    }
-  }
-  return merged;
+  return result;
 }
 
 interface DiffViewProps {
   oldText: string;
   newText: string;
-  side: 'left' | 'right';
 }
 
-const DiffView: React.FC<DiffViewProps> = ({ oldText, newText, side }) => {
-  const diff = useMemo(() => computeLineDiff(oldText, newText), [oldText, newText]);
-  const segments = side === 'left' ? diff.left : diff.right;
+const DiffView: React.FC<DiffViewProps> = ({ oldText, newText }) => {
+  const diffLines = useMemo(() => computeDiff(oldText, newText), [oldText, newText]);
+
+  // Count changes
+  const stats = useMemo(() => {
+    let added = 0, removed = 0;
+    diffLines.forEach(l => {
+      if (l.type === 'added') added++;
+      if (l.type === 'removed') removed++;
+    });
+    return { added, removed };
+  }, [diffLines]);
 
   return (
-    <div className="p-3 text-[10px] leading-relaxed whitespace-pre-wrap">
-      {segments.map((seg, i) => {
-        if (seg.type === 'equal') {
-          return <span key={i} className="text-foreground/80">{seg.text + '\n'}</span>;
-        }
-        if (seg.type === 'removed') {
+    <div>
+      {/* Stats bar */}
+      {(stats.added > 0 || stats.removed > 0) && (
+        <div className="px-3 py-1.5 border-b border-border bg-muted/20 flex items-center gap-3 text-[10px]">
+          <span className="text-emerald-400 font-medium">+{stats.added} added</span>
+          <span className="text-destructive font-medium">-{stats.removed} removed</span>
+          <span className="text-muted-foreground ml-auto">{diffLines.length} lines</span>
+        </div>
+      )}
+      <div className="p-3 text-[10px] leading-relaxed font-mono">
+        {diffLines.map((line, i) => {
+          if (line.type === 'equal') {
+            return (
+              <div key={i} className="text-foreground/60 whitespace-pre-wrap min-h-[1em]">
+                {line.text || '\u00A0'}
+              </div>
+            );
+          }
+          if (line.type === 'removed') {
+            return (
+              <div
+                key={i}
+                className="bg-destructive/10 text-destructive border-l-2 border-destructive/50 pl-2 -ml-1 whitespace-pre-wrap min-h-[1em]"
+              >
+                <span className="select-none opacity-60 mr-1">−</span>
+                {line.text || '\u00A0'}
+              </div>
+            );
+          }
+          // added
           return (
-            <span key={i} className="bg-destructive/15 text-destructive border-l-2 border-destructive/40 pl-1 -ml-1 inline-block w-full">
-              {seg.text + '\n'}
-            </span>
+            <div
+              key={i}
+              className="bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-500/50 pl-2 -ml-1 whitespace-pre-wrap min-h-[1em]"
+            >
+              <span className="select-none opacity-60 mr-1">+</span>
+              {line.text || '\u00A0'}
+            </div>
           );
-        }
-        // added
-        return (
-          <span key={i} className="bg-success/15 text-success border-l-2 border-success/40 pl-1 -ml-1 inline-block w-full">
-            {seg.text + '\n'}
-          </span>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
 };
