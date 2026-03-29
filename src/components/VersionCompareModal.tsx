@@ -241,9 +241,9 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
                   <SelectValue placeholder={t.versioning.selectVersion} />
                 </SelectTrigger>
                 <SelectContent>
-                  {versions.map(v => (
+                  {allEntries.map(v => (
                     <SelectItem key={v.id} value={v.id} disabled={v.id === leftId}>
-                      v{v.version} — {v.published_at ? new Date(v.published_at).toLocaleDateString() : ''} ({v.control_count} {t.versioning.controlsCount})
+                      {v.id === '__live__' ? `Live (${v.control_count} ${t.versioning.controlsCount})` : `v${v.version} — ${v.published_at ? new Date(v.published_at).toLocaleDateString() : ''} (${v.control_count} ${t.versioning.controlsCount})`}
                     </SelectItem>
                   ))}
                 </SelectContent>
