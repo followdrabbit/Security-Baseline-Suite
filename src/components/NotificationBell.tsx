@@ -122,6 +122,20 @@ const NotificationBell: React.FC = () => {
         </ScrollArea>
       </PopoverContent>
     </Popover>
+      <ConfirmationModal
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        variant="reject"
+        title="Clear all notifications?"
+        description="This will permanently delete all your notifications. This action cannot be undone."
+        confirmLabel="Clear all"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          clearAll.mutate();
+          setConfirmClear(false);
+        }}
+      />
+    </>
   );
 };
 
