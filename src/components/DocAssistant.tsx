@@ -320,41 +320,17 @@ const DocAssistant: React.FC = () => {
                   <div className="text-center">
                     <Sparkles className="h-8 w-8 text-primary/40 mx-auto mb-2" />
                     <p className="text-sm font-medium text-foreground">How can I help?</p>
-                    <p className="text-xs text-muted-foreground mt-1">Ask anything about Aureum Baseline Studio</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      You're on <span className="font-medium text-foreground">{pageLabel}</span> — here are some suggestions
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     {quickQuestions.map((qq) => (
                       <button
                         key={qq.q}
-                        onClick={() => {
-                          setInput(qq.q);
-                          setTimeout(() => {
-                            setInput('');
-                            const userMsg: Message = { role: 'user', content: qq.q };
-                            setMessages([userMsg]);
-                            setIsLoading(true);
-                            let assistantSoFar = '';
-                            streamChat({
-                              messages: [userMsg],
-                              onDelta: (chunk) => {
-                                assistantSoFar += chunk;
-                                setMessages(prev => {
-                                  const last = prev[prev.length - 1];
-                                  if (last?.role === 'assistant') {
-                                    return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
-                                  }
-                                  return [...prev, { role: 'assistant', content: assistantSoFar }];
-                                });
-                              },
-                              onDone: () => setIsLoading(false),
-                              onError: (error) => {
-                                setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${error}` }]);
-                                setIsLoading(false);
-                              },
-                            });
-                          }, 0);
-                        }}
-                        className="text-left px-3 py-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 hover:border-primary/20 transition-all text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => sendMessage(qq.q, [])}
+                        disabled={isLoading}
+                        className="text-left px-3 py-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 hover:border-primary/20 transition-all text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                       >
                         {qq.label}
                       </button>
