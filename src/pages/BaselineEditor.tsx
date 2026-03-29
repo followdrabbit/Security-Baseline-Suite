@@ -669,6 +669,7 @@ const BaselineEditor: React.FC = () => {
                           key={control.id}
                           control={control}
                           isExpanded={expandedIds.includes(control.id)}
+                          readOnly={isViewingSnapshot}
                           onToggle={() => toggleExpand(control.id)}
                           onApprove={() => requestConfirm('approve', control.id)}
                           onReject={() => requestConfirm('reject', control.id)}
