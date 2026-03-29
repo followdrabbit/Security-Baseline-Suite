@@ -448,6 +448,33 @@ const AIIntegrations: React.FC = () => {
                       </Select>
                     </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        Max Tokens (Extração)
+                        <InfoTooltip content="Limite máximo de tokens na resposta da IA ao extrair conteúdo de documentos e URLs. Modelos mais recentes suportam janelas maiores (ex: Gemini 2.5 Pro até 65k, GPT-5 até 128k)." />
+                      </label>
+                      <div className="flex items-center gap-3 max-w-xs">
+                        <Input
+                          type="number"
+                          min={1000}
+                          max={200000}
+                          step={1000}
+                          value={config.maxTokens}
+                          onChange={e => {
+                            const val = parseInt(e.target.value, 10) || 65000;
+                            updateConfig(provider.id, { maxTokens: val });
+                          }}
+                          onBlur={() => {
+                            if (user) saveConfig(provider.id, config);
+                          }}
+                          className="w-32"
+                        />
+                        <span className="text-[10px] text-muted-foreground">tokens</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Recomendado: 16k (rápido), 65k (padrão), 128k+ (documentos longos)
+                      </p>
+
                     {provider.id === 'azure_openai' && (
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-foreground">Endpoint URL</label>
