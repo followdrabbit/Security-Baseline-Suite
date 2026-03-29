@@ -346,8 +346,8 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
                             <div className="rounded-md border border-border/30 overflow-hidden">
                               <div className="grid grid-cols-[140px_1fr_1fr] gap-0 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/20 px-3 py-2 border-b border-border/30">
                                 <span>{t.versioning.compareField}</span>
-                                <span>v{leftVersion.version} ({t.versioning.compareFrom})</span>
-                                <span>v{rightVersion.version} ({t.versioning.compareTo})</span>
+                                <span>{leftVersion.id === '__live__' ? 'Live' : `v${leftVersion.version}`} ({t.versioning.compareFrom})</span>
+                                <span>{rightVersion.id === '__live__' ? 'Live' : `v${rightVersion.version}`} ({t.versioning.compareTo})</span>
                               </div>
                               {entry.fieldChanges!.map((fc, j) => (
                                 <div key={j} className="grid grid-cols-[140px_1fr_1fr] gap-0 px-3 py-2.5 border-b border-border/20 last:border-b-0">
