@@ -385,7 +385,7 @@ const SourceLibrary: React.FC = () => {
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.name}</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.type}</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.status}</th>
-                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.origin}</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Model</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.confidence}</th>
                     </tr>
                   </thead>
@@ -407,7 +407,16 @@ const SourceLibrary: React.FC = () => {
                         </td>
                         <td className="py-3 px-3 text-xs text-muted-foreground uppercase">{source.type}</td>
                         <td className="py-3 px-3"><StatusBadge status={source.status} /></td>
-                        <td className="py-3 px-3 text-xs text-muted-foreground">{source.origin}</td>
+                        <td className="py-3 px-3">
+                          {source.extraction_model ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-medium">
+                              <Sparkles className="h-2.5 w-2.5" />
+                              {source.extraction_model.replace('google/', '').replace('openai/', '')}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
                         <td className="py-3 px-3">{source.confidence > 0 ? <ConfidenceScore score={source.confidence} /> : <span className="text-xs text-muted-foreground">—</span>}</td>
                       </tr>
                     ))}
