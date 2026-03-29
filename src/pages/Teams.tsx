@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Plus, Trash2, FolderPlus, Crown, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import HelpButton from '@/components/HelpButton';
 
 const Teams: React.FC = () => {
   const { user } = useAuth();
@@ -67,9 +68,12 @@ const Teams: React.FC = () => {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Teams</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your teams and collaborate on security baselines</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-foreground">Teams</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your teams and collaborate on security baselines</p>
+        </div>
+        <HelpButton section="teams" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
 import SideBySideCompare from '@/components/SideBySideCompare';
+import HelpButton from '@/components/HelpButton';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -157,9 +158,12 @@ const History: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.history.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t.history.subtitle}</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.history.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.history.subtitle}</p>
+        </div>
+        <HelpButton section="history" />
       </div>
 
       {/* Project selector */}

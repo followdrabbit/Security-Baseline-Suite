@@ -4,6 +4,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import HelpButton from '@/components/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -174,9 +175,12 @@ const AIWorkspace: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.workspace.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{t.workspace.subtitle}</p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.workspace.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t.workspace.subtitle}</p>
+        </div>
+        <HelpButton section="workspace" />
       </div>
 
       {/* Project selector + info */}

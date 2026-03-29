@@ -10,6 +10,7 @@ import InfoTooltip from '@/components/InfoTooltip';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
+import HelpButton from '@/components/HelpButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -260,13 +261,16 @@ const BaselineEditor: React.FC = () => {
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {selectedProjectObj
-              ? `${filtered.length} ${t.editor.controlsIn} ${(selectedProjectObj as any).name}`
-              : t.editor.subtitle}
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{t.editor.title}</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedProjectObj
+                ? `${filtered.length} ${t.editor.controlsIn} ${(selectedProjectObj as any).name}`
+                : t.editor.subtitle}
+            </p>
+          </div>
+          <HelpButton section="editor" />
         </div>
         <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => requestConfirm('approveAll')}>
           <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}

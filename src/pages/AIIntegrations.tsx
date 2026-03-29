@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import InfoTooltip from '@/components/InfoTooltip';
+import HelpButton from '@/components/HelpButton';
 import { useToast } from '@/hooks/use-toast';
 import { aiConfigService } from '@/services/aiService';
 import { supabase } from '@/integrations/supabase/client';
@@ -268,13 +269,16 @@ const AIIntegrations: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">
-          {tAI.title || 'Integrações de IA'}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {tAI.subtitle || 'Configure os provedores de IA para geração de controles e modelagem de ameaças'}
-        </p>
+      <div className="flex items-center gap-3">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">
+            {tAI.title || 'Integrações de IA'}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {tAI.subtitle || 'Configure os provedores de IA para geração de controles e modelagem de ameaças'}
+          </p>
+        </div>
+        <HelpButton section="ai-integrations" />
       </div>
 
       {!loading && (

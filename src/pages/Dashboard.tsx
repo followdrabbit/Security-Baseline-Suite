@@ -9,6 +9,7 @@ import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle, Filter, FileText } from 'lucide-react';
+import HelpButton from '@/components/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -448,11 +449,14 @@ const Dashboard: React.FC = () => {
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Welcome */}
       <motion.div initial="hidden" animate="visible" variants={fadeIn} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
-            {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl lg:text-4xl font-display font-semibold tracking-tight text-foreground">
+              {t.dashboard.welcome}, <span className="gold-gradient-text">{userName}</span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+          </div>
+          <HelpButton section="dashboard" />
         </div>
         {!loading && projects.length > 1 && (
           <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">

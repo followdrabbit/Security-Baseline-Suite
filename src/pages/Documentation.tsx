@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import {
@@ -19,6 +20,7 @@ interface DocSection {
 
 const SectionCard: React.FC<{ section: DocSection; isOpen: boolean; onToggle: () => void }> = ({ section, isOpen, onToggle }) => (
   <motion.div
+    id={`doc-section-${section.id}`}
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
     className="bg-card border border-border rounded-lg shadow-premium overflow-hidden"
@@ -78,9 +80,20 @@ const Li: React.FC<{ label: string; children: React.ReactNode }> = ({ label, chi
 
 const Documentation: React.FC = () => {
   const { t } = useI18n();
+  const location = useLocation();
   const d = (t as any).docs;
   const [search, setSearch] = useState('');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['overview']));
+
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash) {
+      setOpenSections(new Set([hash]));
+      setTimeout(() => {
+        document.getElementById(`doc-section-${hash}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [location.hash]);
 
   const toggle = (id: string) => {
     setOpenSections(prev => {
