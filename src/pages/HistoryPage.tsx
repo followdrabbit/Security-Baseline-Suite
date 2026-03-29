@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import VersionDiffModal, { type DiffEntry } from '@/components/VersionDiffModal';
 import SideBySideCompare from '@/components/SideBySideCompare';
+import HelpButton from '@/components/HelpButton';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

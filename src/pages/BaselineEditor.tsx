@@ -10,6 +10,7 @@ import InfoTooltip from '@/components/InfoTooltip';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
+import HelpButton from '@/components/HelpButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

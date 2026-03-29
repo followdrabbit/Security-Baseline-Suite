@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import InfoTooltip from '@/components/InfoTooltip';
+import HelpButton from '@/components/HelpButton';
 import { TraceabilityCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { getFrameworkPrefix, FRAMEWORK_COLORS } from '@/components/traceability/utils';
 import FrameworkRadarChart from '@/components/traceability/FrameworkRadarChart';

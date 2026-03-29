@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import InfoTooltip from '@/components/InfoTooltip';
+import HelpButton from '@/components/HelpButton';
 import { useToast } from '@/hooks/use-toast';
 import { aiConfigService } from '@/services/aiService';
 import { supabase } from '@/integrations/supabase/client';

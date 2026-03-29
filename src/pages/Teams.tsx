@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Plus, Trash2, FolderPlus, Crown, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import HelpButton from '@/components/HelpButton';
 
 const Teams: React.FC = () => {
   const { user } = useAuth();

@@ -6,6 +6,7 @@ import { SettingsSectionSkeleton } from '@/components/skeletons/SkeletonPremium'
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import InfoTooltip from '@/components/InfoTooltip';
+import HelpButton from '@/components/HelpButton';
 import { Sun, Moon, Monitor, Globe, MessageCircle, Download, Brain, Archive, RotateCcw } from 'lucide-react';
 import type { Locale, ThemeMode } from '@/types';
 
