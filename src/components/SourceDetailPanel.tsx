@@ -65,6 +65,51 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
   const [contentView, setContentView] = useState<'extracted' | 'raw' | 'compare'>('extracted');
   const queryClient = useQueryClient();
 
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const baseName = source.name?.replace(/[^a-zA-Z0-9_-]/g, '_') || 'source';
+
+  const exportAsTxt = (type: 'extracted' | 'raw') => {
+    const content = type === 'raw' ? source.raw_content : source.extracted_content;
+    if (!content) return toast.error('No content available');
+    downloadFile(content, `${baseName}_${type}.txt`, 'text/plain');
+    toast.success(`Downloaded ${type} content as TXT`);
+  };
+
+  const exportAsJson = (type: 'extracted' | 'raw') => {
+    const content = type === 'raw' ? source.raw_content : source.extracted_content;
+    if (!content) return toast.error('No content available');
+    const json = JSON.stringify({
+      name: source.name,
+      type: source.type,
+      url: source.url || undefined,
+      extraction_model: source.extraction_model || undefined,
+      extraction_tokens: source.extraction_tokens || undefined,
+      processed_at: source.processed_at || undefined,
+      content_type: type,
+      content,
+    }, null, 2);
+    downloadFile(json, `${baseName}_${type}.json`, 'application/json');
+    toast.success(`Downloaded ${type} content as JSON`);
+  };
+
+  const exportAsCsv = (type: 'extracted' | 'raw') => {
+    const content = type === 'raw' ? source.raw_content : source.extracted_content;
+    if (!content) return toast.error('No content available');
+    const escapeCsv = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const csv = `name,type,model,content_type,content\n${escapeCsv(source.name)},${escapeCsv(source.type)},${escapeCsv(source.extraction_model || '')},${escapeCsv(type)},${escapeCsv(content)}`;
+    downloadFile(csv, `${baseName}_${type}.csv`, 'text/csv');
+    toast.success(`Downloaded ${type} content as CSV`);
+  };
+
   const reprocessMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('reprocess-source', {
