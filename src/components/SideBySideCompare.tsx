@@ -270,6 +270,38 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
             </div>
           </div>
 
+          {/* Summary statistics */}
+          <div className="grid grid-cols-4 gap-2 mt-4">
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+              <Plus className="h-4 w-4 text-emerald-500" />
+              <div>
+                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 leading-none">{added.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t.history.diff.added}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
+              <Minus className="h-4 w-4 text-red-500" />
+              <div>
+                <p className="text-lg font-bold text-red-600 dark:text-red-400 leading-none">{removed.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t.history.diff.removed}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+              <ArrowLeftRight className="h-4 w-4 text-amber-500" />
+              <div>
+                <p className="text-lg font-bold text-amber-600 dark:text-amber-400 leading-none">{modified.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t.history.diff.modified}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+              <span className="h-4 w-4 text-muted-foreground text-center text-sm font-bold">=</span>
+              <div>
+                <p className="text-lg font-bold text-foreground leading-none">{unchanged.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Unchanged</p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 mt-4">
             <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterTab)} className="flex-1">
               <TabsList className="h-8">
