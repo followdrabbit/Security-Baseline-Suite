@@ -20,6 +20,7 @@ interface DocSection {
 
 const SectionCard: React.FC<{ section: DocSection; isOpen: boolean; onToggle: () => void }> = ({ section, isOpen, onToggle }) => (
   <motion.div
+    id={`doc-section-${section.id}`}
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
     className="bg-card border border-border rounded-lg shadow-premium overflow-hidden"
