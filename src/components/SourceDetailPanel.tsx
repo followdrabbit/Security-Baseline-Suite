@@ -220,6 +220,24 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
               {EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}
             </p>
           </div>
+          {source.extraction_model && (
+            <div>
+              <span className="text-muted-foreground">AI Model</span>
+              <p className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-warning" />
+                {source.extraction_model.replace('google/', '').replace('openai/', '')}
+              </p>
+            </div>
+          )}
+          {source.extraction_tokens != null && (
+            <div>
+              <span className="text-muted-foreground">Tokens Used</span>
+              <p className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
+                <Hash className="h-3.5 w-3.5 text-info" />
+                {source.extraction_tokens.toLocaleString()}
+              </p>
+            </div>
+          )}
           {source.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
               {source.tags.map((tag: string) => (
