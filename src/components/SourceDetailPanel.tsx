@@ -254,9 +254,44 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground truncate pr-2">{source.name}</h3>
         <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={generateAuditPdf} title="Export Audit PDF">
-            <Download className="h-3.5 w-3.5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Download Content">
+                <Download className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Extracted Content</p>
+              <DropdownMenuItem onClick={() => exportAsTxt('extracted')} disabled={!hasExtractedContent} className="text-xs gap-2">
+                <FileDown className="h-3.5 w-3.5" /> Download TXT
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportAsJson('extracted')} disabled={!hasExtractedContent} className="text-xs gap-2">
+                <FileDown className="h-3.5 w-3.5" /> Download JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportAsCsv('extracted')} disabled={!hasExtractedContent} className="text-xs gap-2">
+                <FileDown className="h-3.5 w-3.5" /> Download CSV
+              </DropdownMenuItem>
+              {hasRawContent && (
+                <>
+                  <DropdownMenuSeparator />
+                  <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Raw Content</p>
+                  <DropdownMenuItem onClick={() => exportAsTxt('raw')} className="text-xs gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download TXT
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAsJson('raw')} className="text-xs gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAsCsv('raw')} className="text-xs gap-2">
+                    <FileDown className="h-3.5 w-3.5" /> Download CSV
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={generateAuditPdf} className="text-xs gap-2">
+                <FileText className="h-3.5 w-3.5" /> Audit Report (PDF)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="sm"
