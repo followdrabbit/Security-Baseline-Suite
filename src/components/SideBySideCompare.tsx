@@ -368,6 +368,18 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            <Select value={criticalityFilter} onValueChange={setCriticalityFilter}>
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <Shield className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Criticality" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">All Criticalities</SelectItem>
+                {criticalities.map(c => (
+                  <SelectItem key={c} value={c} className="text-xs capitalize">{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="relative w-48">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
