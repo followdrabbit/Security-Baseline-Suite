@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import DocTableOfContents from '@/components/docs/DocTableOfContents';
 
 interface DocSection {
   id: string;
@@ -432,63 +433,78 @@ const Documentation: React.FC = () => {
     !search || s.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleTocSelect = (id: string) => {
+    setOpenSections(prev => new Set(prev).add(id));
+    setTimeout(() => {
+      document.getElementById(`doc-section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <div className="h-9 w-9 rounded-lg gold-gradient flex items-center justify-center">
-            <BookOpen className="h-4.5 w-4.5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{d.title}</h1>
-            <p className="text-sm text-muted-foreground">{d.subtitle}</p>
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
+      <DocTableOfContents
+        items={sections.map(s => ({ id: s.id, icon: s.icon, title: s.title }))}
+        activeId={[...openSections][openSections.size - 1] || null}
+        onSelect={handleTocSelect}
+      />
+
+      <div className="flex-1 min-w-0 space-y-6 max-w-4xl">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="h-9 w-9 rounded-lg gold-gradient flex items-center justify-center">
+              <BookOpen className="h-4.5 w-4.5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{d.title}</h1>
+              <p className="text-sm text-muted-foreground">{d.subtitle}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={d.searchPlaceholder}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setOpenSections(new Set(sections.map(s => s.id)))}
-          className="text-xs text-primary hover:underline"
-        >
-          {d.expandAll}
-        </button>
-        <span className="text-muted-foreground text-xs">•</span>
-        <button
-          onClick={() => setOpenSections(new Set())}
-          className="text-xs text-primary hover:underline"
-        >
-          {d.collapseAll}
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {filtered.map(section => (
-          <SectionCard
-            key={section.id}
-            section={section}
-            isOpen={openSections.has(section.id)}
-            onToggle={() => toggle(section.id)}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={d.searchPlaceholder}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
           />
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">{d.noResults} "{search}"</p>
         </div>
-      )}
+
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setOpenSections(new Set(sections.map(s => s.id)))}
+            className="text-xs text-primary hover:underline"
+          >
+            {d.expandAll}
+          </button>
+          <span className="text-muted-foreground text-xs">•</span>
+          <button
+            onClick={() => setOpenSections(new Set())}
+            className="text-xs text-primary hover:underline"
+          >
+            {d.collapseAll}
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {filtered.map(section => (
+            <SectionCard
+              key={section.id}
+              section={section}
+              isOpen={openSections.has(section.id)}
+              onToggle={() => toggle(section.id)}
+            />
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">{d.noResults} "{search}"</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
