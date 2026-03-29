@@ -517,7 +517,7 @@ const BaselineEditor: React.FC = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={selectedProject} onValueChange={setSelectedProject}>
+        <Select value={selectedProject} onValueChange={(v) => { setSelectedProject(v); setViewingVersionId(null); }}>
           <SelectTrigger className="w-[220px]">
             <Layers className="h-3.5 w-3.5 mr-1.5 text-primary/70" />
             <SelectValue placeholder={t.editor.selectBaseline} />
