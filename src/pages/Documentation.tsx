@@ -436,25 +436,35 @@ const Documentation: React.FC = () => {
   const [activeTocId, setActiveTocId] = useState<string | null>(null);
   const isScrollingRef = useRef(false);
 
-  // Scroll spy using IntersectionObserver
+  // Scroll spy using scroll event for reliability with collapsed sections
   useEffect(() => {
-    const sectionEls = filtered.map(s => document.getElementById(`doc-section-${s.id}`)).filter(Boolean) as HTMLElement[];
-    if (!sectionEls.length) return;
+    const handleScroll = () => {
+      if (isScrollingRef.current) return;
+      const scrollContainer = document.querySelector('main') || window;
+      const offset = 120;
+      let closestId: string | null = null;
+      let closestDist = Infinity;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isScrollingRef.current) return;
-        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          const id = visible[0].target.id.replace('doc-section-', '');
-          setActiveTocId(id);
+      for (const s of filtered) {
+        const el = document.getElementById(`doc-section-${s.id}`);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        const dist = Math.abs(rect.top - offset);
+        if (rect.top <= offset + 100 && dist < closestDist) {
+          closestDist = dist;
+          closestId = s.id;
         }
-      },
-      { rootMargin: '-80px 0px -60% 0px', threshold: 0 }
-    );
+      }
+      if (closestId) {
+        setActiveTocId(closestId);
+      }
+    };
 
-    sectionEls.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
+    const mainEl = document.querySelector('main');
+    const target = mainEl || window;
+    target.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // initial check
+    return () => target.removeEventListener('scroll', handleScroll);
   }, [filtered]);
 
   const handleTocSelect = (id: string) => {
