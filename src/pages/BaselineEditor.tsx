@@ -710,11 +710,12 @@ const BaselineEditor: React.FC = () => {
         onConfirm={handleConfirm}
       />
 
-      {publishedVersions.length >= 2 && (
+      {publishedVersions.length >= 1 && (
         <VersionCompareModal
           open={compareOpen}
           onOpenChange={setCompareOpen}
           versions={publishedVersions as any}
+          liveControls={controls}
         />
       )}
     </div>
