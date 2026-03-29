@@ -380,51 +380,7 @@ const SourceLibrary: React.FC = () => {
 
         {/* Preview panel */}
         {previewSource && (
-          <motion.div
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="w-80 shrink-0 bg-card border border-border rounded-lg p-5 shadow-premium h-fit sticky top-6 hidden lg:block"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-foreground">{t.sources.preview}</h3>
-              <button onClick={() => setPreviewId(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <div>
-                <span className="text-muted-foreground">{t.sources.name}</span>
-                <p className="font-medium text-foreground mt-0.5">{previewSource.name}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t.sources.type}</span>
-                <p className="font-medium text-foreground mt-0.5 uppercase">{previewSource.type}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t.sources.status}</span>
-                <div className="mt-1"><StatusBadge status={previewSource.status} /></div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t.sources.origin}</span>
-                <p className="font-medium text-foreground mt-0.5">{previewSource.origin}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t.sources.confidence}</span>
-                <div className="mt-1"><ConfidenceScore score={previewSource.confidence ?? 0} size="md" /></div>
-              </div>
-              {previewSource.preview && (
-                <div>
-                  <span className="text-muted-foreground">{t.sources.preview}</span>
-                  <p className="text-foreground/80 mt-0.5 leading-relaxed">{previewSource.preview}</p>
-                </div>
-              )}
-              {previewSource.tags && previewSource.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {previewSource.tags.map((tag: string) => (
-                    <span key={tag} className="px-2 py-0.5 bg-muted rounded-full text-[10px] text-muted-foreground">{tag}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.div>
+          <SourceDetailPanel source={previewSource} onClose={() => setPreviewId(null)} />
         )}
       </div>
 
