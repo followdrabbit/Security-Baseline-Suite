@@ -5,14 +5,18 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { SettingsSectionSkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import InfoTooltip from '@/components/InfoTooltip';
 import HelpButton from '@/components/HelpButton';
-import { Sun, Moon, Monitor, Globe, MessageCircle, Download, Brain, Archive, RotateCcw } from 'lucide-react';
+import { Sun, Moon, Monitor, Globe, MessageCircle, Download, Brain, Archive, RotateCcw, BellRing } from 'lucide-react';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { toast } from 'sonner';
 import type { Locale, ThemeMode } from '@/types';
 
 const Settings: React.FC = () => {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
+  const { notifySourceProcessed, updatePreference } = useUserPreferences();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
