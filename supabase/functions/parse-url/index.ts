@@ -117,7 +117,9 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { url, projectId } = body;
+    const { url, projectId, model: reqModel, maxTokens: reqMaxTokens } = body;
+    const model = reqModel || DEFAULT_MODEL;
+    const maxTokens = reqMaxTokens || DEFAULT_MAX_TOKENS;
 
     if (!url || !projectId) {
       return new Response(JSON.stringify({ error: "Missing url or projectId" }), {
