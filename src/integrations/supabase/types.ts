@@ -468,21 +468,27 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          notify_control_status: boolean
           notify_source_processed: boolean
+          notify_team_member_joined: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          notify_control_status?: boolean
           notify_source_processed?: boolean
+          notify_team_member_joined?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          notify_control_status?: boolean
           notify_source_processed?: boolean
+          notify_team_member_joined?: boolean
           updated_at?: string
           user_id?: string
         }
