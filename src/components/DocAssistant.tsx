@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/contexts/I18nContext';
+import { useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -103,14 +104,105 @@ async function streamChat({
   }
 }
 
+const contextualQuestions: Record<string, Array<{ label: string; q: string }>> = {
+  '/': [
+    { label: '📊 Dashboard overview', q: 'What does the dashboard show and how do I interpret the metrics?' },
+    { label: '🚀 Getting started', q: 'How do I get started with Aureum?' },
+    { label: '📁 Create project', q: 'How do I create my first project?' },
+    { label: '📈 Confidence scores', q: 'What do the confidence scores mean?' },
+  ],
+  '/sources': [
+    { label: '📄 Add sources', q: 'How do I add sources to my project?' },
+    { label: '📎 File formats', q: 'What file formats are supported for sources?' },
+    { label: '🔗 Import URL', q: 'How do I import content from a URL?' },
+    { label: '🏷️ Organize sources', q: 'How can I tag and organize my sources?' },
+  ],
+  '/workspace': [
+    { label: '🤖 AI pipeline', q: 'How does the AI pipeline work to generate controls?' },
+    { label: '⚙️ Configure AI', q: 'How do I configure AI providers?' },
+    { label: '🔄 Regenerate', q: 'Can I regenerate controls with different settings?' },
+    { label: '📊 Review controls', q: 'How do I review and approve generated controls?' },
+  ],
+  '/editor': [
+    { label: '✏️ Edit controls', q: 'How do I edit controls in the baseline editor?' },
+    { label: '🗺️ Mind map view', q: 'How does the mind map visualization work?' },
+    { label: '🔍 Filter controls', q: 'How do I filter controls by category or criticality?' },
+    { label: '📋 Bulk actions', q: 'Can I perform bulk actions on controls?' },
+  ],
+  '/traceability': [
+    { label: '📊 Map frameworks', q: 'How do I map controls to frameworks like NIST or ISO 27001?' },
+    { label: '📈 Radar chart', q: 'How do I interpret the framework radar chart?' },
+    { label: '📤 Export matrix', q: 'How do I export the traceability matrix?' },
+    { label: '🔗 Coverage gaps', q: 'How do I identify coverage gaps in my framework mappings?' },
+  ],
+  '/rules': [
+    { label: '📝 Custom rules', q: 'How do I create custom rules and templates?' },
+    { label: '📦 Templates', q: 'What templates are available and how do I use them?' },
+    { label: '🔄 Import rules', q: 'Can I import rules from other projects?' },
+    { label: '⚡ Apply rules', q: 'How do rules affect AI-generated controls?' },
+  ],
+  '/history': [
+    { label: '📜 Version history', q: 'How does the version history work?' },
+    { label: '🔄 Restore version', q: 'How do I restore a previous baseline version?' },
+    { label: '📊 Compare versions', q: 'Can I compare two different baseline versions?' },
+    { label: '📤 Export version', q: 'How do I export a specific version of my baseline?' },
+  ],
+  '/export-import': [
+    { label: '📤 Export formats', q: 'What export formats are available for baselines?' },
+    { label: '📥 Import data', q: 'How do I import data from external sources?' },
+    { label: '📊 CSV export', q: 'How do I export controls as CSV?' },
+    { label: '📋 PDF report', q: 'Can I generate a PDF report of my baseline?' },
+  ],
+  '/settings': [
+    { label: '⚙️ Settings', q: 'What settings can I configure in Aureum?' },
+    { label: '🤖 AI providers', q: 'How do I configure AI providers and API keys?' },
+    { label: '👥 Team settings', q: 'How do I manage team members and permissions?' },
+    { label: '🌐 Language', q: 'How do I change the interface language?' },
+  ],
+  '/ai-integrations': [
+    { label: '🤖 AI providers', q: 'What AI providers are available and how do I configure them?' },
+    { label: '🔑 API keys', q: 'How do I set up API keys for AI providers?' },
+    { label: '⚡ Default provider', q: 'How do I set a default AI provider?' },
+    { label: '🧪 Test connection', q: 'How do I test if my AI provider connection is working?' },
+  ],
+  '/docs': [
+    { label: '📖 Documentation', q: 'Give me an overview of the Aureum documentation.' },
+    { label: '🔍 Search docs', q: 'How do I search the documentation effectively?' },
+    { label: '🚀 Quick start', q: 'What is the quickest way to get started with Aureum?' },
+    { label: '❓ FAQ', q: 'What are the most frequently asked questions about Aureum?' },
+  ],
+};
+
+const defaultQuestions = [
+  { label: '🚀 Getting started', q: 'How do I get started with Aureum?' },
+  { label: '📄 Add sources', q: 'How do I add sources to my project?' },
+  { label: '🤖 AI pipeline', q: 'How does the AI pipeline work?' },
+  { label: '📊 Traceability', q: 'How do I map controls to frameworks?' },
+];
+
+const getPageLabel = (path: string): string => {
+  const labels: Record<string, string> = {
+    '/': 'Dashboard', '/sources': 'Source Library', '/workspace': 'AI Workspace',
+    '/editor': 'Baseline Editor', '/traceability': 'Traceability', '/rules': 'Rules & Templates',
+    '/history': 'History', '/export-import': 'Export/Import', '/settings': 'Settings',
+    '/ai-integrations': 'AI Integrations', '/docs': 'Documentation', '/teams': 'Teams',
+  };
+  return labels[path] || 'the application';
+};
+
 const DocAssistant: React.FC = () => {
   const { t } = useI18n();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const currentPath = location.pathname;
+  const quickQuestions = contextualQuestions[currentPath] || defaultQuestions;
+  const pageLabel = getPageLabel(currentPath);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -124,18 +216,17 @@ const DocAssistant: React.FC = () => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  const handleSend = async () => {
-    const trimmed = input.trim();
-    if (!trimmed || isLoading) return;
-
-    const userMsg: Message = { role: 'user', content: trimmed };
-    const updatedMessages = [...messages, userMsg];
+  const sendMessage = async (text: string, existingMessages: Message[] = messages) => {
+    const userMsg: Message = { role: 'user', content: text };
+    const contextPrefix = `[User is on the "${pageLabel}" page (${currentPath})] `;
+    const contextualUserMsg: Message = { role: 'user', content: contextPrefix + text };
+    const updatedMessages = [...existingMessages, userMsg];
+    const contextualMessages = [...existingMessages, contextualUserMsg];
     setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
     let assistantSoFar = '';
-
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages(prev => {
@@ -148,7 +239,7 @@ const DocAssistant: React.FC = () => {
     };
 
     await streamChat({
-      messages: updatedMessages,
+      messages: contextualMessages,
       onDelta: (chunk) => upsertAssistant(chunk),
       onDone: () => setIsLoading(false),
       onError: (error) => {
@@ -158,12 +249,11 @@ const DocAssistant: React.FC = () => {
     });
   };
 
-  const quickQuestions = [
-    { label: '🚀 Getting started', q: 'How do I get started with Aureum?' },
-    { label: '📄 Add sources', q: 'How do I add sources to my project?' },
-    { label: '🤖 AI pipeline', q: 'How does the AI pipeline work?' },
-    { label: '📊 Traceability', q: 'How do I map controls to frameworks?' },
-  ];
+  const handleSend = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
+    await sendMessage(trimmed);
+  };
 
   return (
     <>
@@ -230,41 +320,17 @@ const DocAssistant: React.FC = () => {
                   <div className="text-center">
                     <Sparkles className="h-8 w-8 text-primary/40 mx-auto mb-2" />
                     <p className="text-sm font-medium text-foreground">How can I help?</p>
-                    <p className="text-xs text-muted-foreground mt-1">Ask anything about Aureum Baseline Studio</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      You're on <span className="font-medium text-foreground">{pageLabel}</span> — here are some suggestions
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     {quickQuestions.map((qq) => (
                       <button
                         key={qq.q}
-                        onClick={() => {
-                          setInput(qq.q);
-                          setTimeout(() => {
-                            setInput('');
-                            const userMsg: Message = { role: 'user', content: qq.q };
-                            setMessages([userMsg]);
-                            setIsLoading(true);
-                            let assistantSoFar = '';
-                            streamChat({
-                              messages: [userMsg],
-                              onDelta: (chunk) => {
-                                assistantSoFar += chunk;
-                                setMessages(prev => {
-                                  const last = prev[prev.length - 1];
-                                  if (last?.role === 'assistant') {
-                                    return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
-                                  }
-                                  return [...prev, { role: 'assistant', content: assistantSoFar }];
-                                });
-                              },
-                              onDone: () => setIsLoading(false),
-                              onError: (error) => {
-                                setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${error}` }]);
-                                setIsLoading(false);
-                              },
-                            });
-                          }, 0);
-                        }}
-                        className="text-left px-3 py-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 hover:border-primary/20 transition-all text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => sendMessage(qq.q, [])}
+                        disabled={isLoading}
+                        className="text-left px-3 py-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 hover:border-primary/20 transition-all text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                       >
                         {qq.label}
                       </button>
