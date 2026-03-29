@@ -4,12 +4,10 @@ import { useI18n } from '@/contexts/I18nContext';
 import {
   BookOpen, LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch,
   History, ArrowUpDown, Brain, Users, Settings, Shield, Search, ChevronRight,
-  ChevronDown, Zap, Target, Lock, FileText, Download, Eye, Filter, BarChart3,
-  Bell, Palette, Globe, MessageCircle, ArrowRight,
+  ChevronDown, Zap, Target, Lock, Eye, Bell,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DocSection {
   id: string;
@@ -74,8 +72,13 @@ const Tip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
+const Li: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <li><strong className="text-foreground">{label}</strong> {children}</li>
+);
+
 const Documentation: React.FC = () => {
   const { t } = useI18n();
+  const d = (t as any).docs;
   const [search, setSearch] = useState('');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['overview']));
 
@@ -89,17 +92,15 @@ const Documentation: React.FC = () => {
 
   const sections: DocSection[] = [
     {
-      id: 'overview',
-      icon: Shield,
-      title: 'Visão Geral do Aureum Baseline Studio',
+      id: 'overview', icon: Shield, title: d.overviewTitle,
       content: (
         <>
-          <p>O <strong className="text-foreground">Aureum Baseline Studio</strong> é uma plataforma de geração e governança de baselines de segurança com IA. Ele automatiza a criação de controles de segurança a partir de fontes diversas (documentos, URLs, frameworks), garantindo rastreabilidade, versionamento e conformidade.</p>
+          <p>{d.overviewDesc}</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
             {[
-              { icon: Target, label: 'Pipeline de IA', desc: 'Extração e normalização automatizada de controles' },
-              { icon: GitBranch, label: 'Rastreabilidade', desc: 'Mapeamento completo fonte → controle → framework' },
-              { icon: Lock, label: 'Governança', desc: 'Versionamento, auditoria e restauração de baselines' },
+              { icon: Target, label: d.overviewPipeline, desc: d.overviewPipelineDesc },
+              { icon: GitBranch, label: d.overviewTraceability, desc: d.overviewTraceabilityDesc },
+              { icon: Lock, label: d.overviewGovernance, desc: d.overviewGovernanceDesc },
             ].map(f => (
               <div key={f.label} className="bg-muted/50 rounded-md p-3 text-center">
                 <f.icon className="h-5 w-5 text-primary mx-auto mb-1.5" />
@@ -112,135 +113,100 @@ const Documentation: React.FC = () => {
       ),
     },
     {
-      id: 'getting-started',
-      icon: Zap,
-      title: 'Primeiros Passos',
-      badge: 'Início Rápido',
+      id: 'getting-started', icon: Zap, title: d.gettingStartedTitle, badge: d.gettingStartedBadge,
       content: (
         <div className="space-y-4">
-          <Step n={1} title="Crie sua conta">
-            Acesse a tela de login e registre-se com e-mail/senha ou via Google. Após o cadastro, confirme seu e-mail para ativar a conta.
-          </Step>
-          <Step n={2} title="Crie seu primeiro projeto">
-            No <strong>Dashboard</strong>, clique em <strong>"Create New Baseline"</strong> ou acesse <strong>New Project</strong> no menu lateral. Preencha nome, tecnologia, vendor, versão e categoria.
-          </Step>
-          <Step n={3} title="Adicione fontes de evidência">
-            Na <strong>Source Library</strong>, adicione URLs de documentação oficial ou faça upload de documentos (PDF, DOCX). O sistema extrairá automaticamente o conteúdo relevante.
-          </Step>
-          <Step n={4} title="Configure regras e templates">
-            Em <strong>Rules & Templates</strong>, selecione ou personalize o template que define a estrutura dos controles, regras de escrita, criticidade e mapeamento de frameworks.
-          </Step>
-          <Step n={5} title="Execute o pipeline de IA">
-            No <strong>AI Workspace</strong>, inicie o pipeline de geração. O sistema processará as fontes em etapas: ingestão, extração, normalização, agrupamento, deduplicação e composição do baseline.
-          </Step>
-          <Step n={6} title="Revise e aprove controles">
-            No <strong>Baseline Editor</strong>, revise cada controle gerado. Ajuste títulos, descrições, criticidade e status de revisão (Approved, Rejected, Adjusted).
-          </Step>
-          <Tip>Use a conta de demonstração (test@aureum.com / test1234) para explorar todas as funcionalidades com dados pré-configurados.</Tip>
+          <Step n={1} title={d.step1Title}>{d.step1Desc}</Step>
+          <Step n={2} title={d.step2Title}>{d.step2Desc}</Step>
+          <Step n={3} title={d.step3Title}>{d.step3Desc}</Step>
+          <Step n={4} title={d.step4Title}>{d.step4Desc}</Step>
+          <Step n={5} title={d.step5Title}>{d.step5Desc}</Step>
+          <Step n={6} title={d.step6Title}>{d.step6Desc}</Step>
+          <Tip>{d.demoTip}</Tip>
         </div>
       ),
     },
     {
-      id: 'dashboard',
-      icon: LayoutDashboard,
-      title: 'Dashboard',
+      id: 'dashboard', icon: LayoutDashboard, title: d.dashboardTitle,
       content: (
         <>
-          <p>O Dashboard é o centro de comando. Exibe métricas consolidadas, projetos recentes e ações rápidas.</p>
+          <p>{d.dashboardDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Métricas principais:</strong> Total de projetos, baselines ativos, controles gerados, confiança média e ameaças ativas.</li>
-            <li><strong className="text-foreground">Projetos recentes:</strong> Lista com status, tecnologia, número de controles e data de atualização.</li>
-            <li><strong className="text-foreground">Atividade recente:</strong> Feed em tempo real de ações realizadas (aprovações, revisões, criações).</li>
-            <li><strong className="text-foreground">Gráficos de tendência:</strong> Evolução de controles, confiança e projetos nos últimos 7 dias.</li>
-            <li><strong className="text-foreground">Ações rápidas:</strong> Criar novo baseline, importar projeto ou visualizar todos os projetos.</li>
+            <Li label={d.dashboardMetrics}>{d.dashboardMetricsDesc}</Li>
+            <Li label={d.dashboardRecent}>{d.dashboardRecentDesc}</Li>
+            <Li label={d.dashboardActivity}>{d.dashboardActivityDesc}</Li>
+            <Li label={d.dashboardTrends}>{d.dashboardTrendsDesc}</Li>
+            <Li label={d.dashboardQuick}>{d.dashboardQuickDesc}</Li>
           </ul>
         </>
       ),
     },
     {
-      id: 'new-project',
-      icon: Plus,
-      title: 'Novo Projeto',
+      id: 'new-project', icon: Plus, title: d.newProjectTitle,
       content: (
         <>
-          <p>Crie um novo projeto de baseline preenchendo os campos:</p>
+          <p>{d.newProjectDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Nome:</strong> Nome descritivo do projeto (ex: "AWS S3 Baseline 2025").</li>
-            <li><strong className="text-foreground">Tecnologia:</strong> Tipo da tecnologia alvo (ex: AWS, Azure, Kubernetes).</li>
-            <li><strong className="text-foreground">Vendor:</strong> Fornecedor ou fabricante da solução.</li>
-            <li><strong className="text-foreground">Versão:</strong> Versão específica da tecnologia.</li>
-            <li><strong className="text-foreground">Categoria:</strong> Classificação do projeto (Cloud, Network, Application, etc.).</li>
-            <li><strong className="text-foreground">Idioma de saída:</strong> Idioma em que os controles serão gerados.</li>
-            <li><strong className="text-foreground">Tags e notas:</strong> Metadados opcionais para organização.</li>
+            <Li label={d.newProjectName}>{d.newProjectNameDesc}</Li>
+            <Li label={d.newProjectTech}>{d.newProjectTechDesc}</Li>
+            <Li label={d.newProjectVendor}>{d.newProjectVendorDesc}</Li>
+            <Li label={d.newProjectVersion}>{d.newProjectVersionDesc}</Li>
+            <Li label={d.newProjectCategory}>{d.newProjectCategoryDesc}</Li>
+            <Li label={d.newProjectLang}>{d.newProjectLangDesc}</Li>
+            <Li label={d.newProjectTags}>{d.newProjectTagsDesc}</Li>
           </ul>
-          <Tip>O projeto será salvo automaticamente e aparecerá no Dashboard. Você poderá editá-lo a qualquer momento.</Tip>
+          <Tip>{d.newProjectTip}</Tip>
         </>
       ),
     },
     {
-      id: 'sources',
-      icon: Library,
-      title: 'Source Library (Biblioteca de Fontes)',
+      id: 'sources', icon: Library, title: d.sourcesTitle,
       content: (
         <>
-          <p>A biblioteca gerencia todas as fontes de evidência usadas para gerar controles de segurança.</p>
-          <p className="font-medium text-foreground mt-2">Tipos de fonte suportados:</p>
+          <p>{d.sourcesDesc}</p>
+          <p className="font-medium text-foreground mt-2">{d.sourcesTypesTitle}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">URL:</strong> Links para documentação oficial, hardening guides, benchmarks (CIS, NIST, etc.). O sistema faz parsing automático do conteúdo.</li>
-            <li><strong className="text-foreground">Documento:</strong> Upload de arquivos PDF, DOCX e outros. O conteúdo é extraído e normalizado automaticamente.</li>
+            <Li label={d.sourcesUrl}>{d.sourcesUrlDesc}</Li>
+            <Li label={d.sourcesDoc}>{d.sourcesDocDesc}</Li>
           </ul>
-          <p className="font-medium text-foreground mt-2">Status de processamento:</p>
+          <p className="font-medium text-foreground mt-2">{d.sourcesStatusTitle}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Pending:</strong> Aguardando processamento.</li>
-            <li><strong className="text-foreground">Extracting:</strong> Conteúdo sendo extraído.</li>
-            <li><strong className="text-foreground">Normalized:</strong> Conteúdo normalizado e pronto para análise.</li>
-            <li><strong className="text-foreground">Processed:</strong> Totalmente processado e indexado.</li>
-            <li><strong className="text-foreground">Failed:</strong> Erro no processamento — verifique o formato ou URL.</li>
+            <Li label={d.sourcesPending}>{d.sourcesPendingDesc}</Li>
+            <Li label={d.sourcesExtracting}>{d.sourcesExtractingDesc}</Li>
+            <Li label={d.sourcesNormalized}>{d.sourcesNormalizedDesc}</Li>
+            <Li label={d.sourcesProcessed}>{d.sourcesProcessedDesc}</Li>
+            <Li label={d.sourcesFailed}>{d.sourcesFailedDesc}</Li>
           </ul>
-          <Tip>Cada fonte exibe uma prévia do conteúdo extraído e um score de confiança. Fontes com baixa confiança podem precisar de revisão manual.</Tip>
+          <Tip>{d.sourcesTip}</Tip>
         </>
       ),
     },
     {
-      id: 'rules',
-      icon: Settings2,
-      title: 'Rules & Templates (Regras e Templates)',
+      id: 'rules', icon: Settings2, title: d.rulesTitle,
       content: (
         <>
-          <p>Os templates definem como os controles de segurança serão gerados, estruturados e validados pela IA.</p>
-          <p className="font-medium text-foreground mt-2">Campos configuráveis:</p>
+          <p>{d.rulesDesc}</p>
+          <p className="font-medium text-foreground mt-2">{d.rulesFieldsTitle}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Estrutura de controle:</strong> Define os campos obrigatórios de cada controle (título, descrição, criticidade, etc.).</li>
-            <li><strong className="text-foreground">Regras de escrita:</strong> Tom, estilo e formato do texto dos controles.</li>
-            <li><strong className="text-foreground">Regras de risco:</strong> Critérios para classificação de risco de segurança.</li>
-            <li><strong className="text-foreground">Regras de criticidade:</strong> Escala de criticidade (Critical, High, Medium, Low, Informational).</li>
-            <li><strong className="text-foreground">Regras de deduplicação:</strong> Critérios para identificar e fundir controles duplicados.</li>
-            <li><strong className="text-foreground">Regras de mapeamento:</strong> Como os controles serão mapeados para frameworks (NIST, ISO 27001, CIS, etc.).</li>
-            <li><strong className="text-foreground">Modelagem de ameaças:</strong> Configuração STRIDE para geração de cenários de ameaça.</li>
+            <Li label={d.rulesStructure}>{d.rulesStructureDesc}</Li>
+            <Li label={d.rulesWriting}>{d.rulesWritingDesc}</Li>
+            <Li label={d.rulesRisk}>{d.rulesRiskDesc}</Li>
+            <Li label={d.rulesCriticality}>{d.rulesCriticalityDesc}</Li>
+            <Li label={d.rulesDedup}>{d.rulesDedupDesc}</Li>
+            <Li label={d.rulesMapping}>{d.rulesMappingDesc}</Li>
+            <Li label={d.rulesThreat}>{d.rulesThreatDesc}</Li>
           </ul>
-          <Tip>Você pode criar templates específicos por tecnologia ou padrão regulatório. O template padrão é pré-configurado com boas práticas.</Tip>
+          <Tip>{d.rulesTip}</Tip>
         </>
       ),
     },
     {
-      id: 'workspace',
-      icon: Cpu,
-      title: 'AI Workspace (Pipeline de IA)',
+      id: 'workspace', icon: Cpu, title: d.workspaceTitle,
       content: (
         <>
-          <p>O AI Workspace é onde o pipeline de geração de controles é executado. O processo é dividido em etapas sequenciais:</p>
+          <p>{d.workspaceDesc}</p>
           <div className="space-y-2 mt-2">
-            {[
-              ['Source Ingestion', 'Importação e validação das fontes selecionadas.'],
-              ['Content Extraction', 'Extração de texto e metadados dos documentos e URLs.'],
-              ['Normalization', 'Padronização do conteúdo extraído em formato uniforme.'],
-              ['Evidence Grouping', 'Agrupamento de evidências por tema ou área de segurança.'],
-              ['Control Extraction', 'Geração de controles de segurança a partir das evidências.'],
-              ['Deduplication', 'Identificação e fusão de controles duplicados ou sobrepostos.'],
-              ['Baseline Composition', 'Montagem do baseline final com todos os controles.'],
-              ['Technical Review', 'Validação técnica automatizada dos controles gerados.'],
-              ['Final Proposal', 'Proposta final do baseline para revisão humana.'],
-            ].map(([stage, desc], i) => (
+            {(d.workspaceStages as [string, string][]).map(([stage, desc]: [string, string], i: number) => (
               <div key={stage} className="flex items-start gap-2">
                 <span className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded shrink-0">{i + 1}</span>
                 <div>
@@ -250,216 +216,191 @@ const Documentation: React.FC = () => {
               </div>
             ))}
           </div>
-          <Tip>Cada etapa mostra progresso em tempo real com indicadores visuais. Em caso de falha, você pode reiniciar a etapa específica sem perder o progresso das anteriores.</Tip>
+          <Tip>{d.workspaceTip}</Tip>
         </>
       ),
     },
     {
-      id: 'editor',
-      icon: FileEdit,
-      title: 'Baseline Editor (Editor de Baseline)',
+      id: 'editor', icon: FileEdit, title: d.editorTitle,
       content: (
         <>
-          <p>O editor permite revisão detalhada de cada controle gerado. Funcionalidades incluem:</p>
+          <p>{d.editorDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Visualização completa:</strong> Título, descrição, aplicabilidade, risco, criticidade, automação, referências e mapeamentos.</li>
-            <li><strong className="text-foreground">Cenários de ameaça (STRIDE):</strong> Cada controle inclui cenários de ameaça com vetores de ataque, agentes, pré-condições, impacto e mitigações.</li>
-            <li><strong className="text-foreground">Score de confiança:</strong> Indicador visual (0-100%) da confiança da IA no controle gerado.</li>
-            <li><strong className="text-foreground">Status de revisão:</strong> Pending → Reviewed → Approved / Rejected / Adjusted.</li>
-            <li><strong className="text-foreground">Notas do revisor:</strong> Campo para comentários e justificativas.</li>
-            <li><strong className="text-foreground">Mind Map:</strong> Visualização em mapa mental dos controles por categoria, com filtros por criticidade e status.</li>
+            <Li label={d.editorView}>{d.editorViewDesc}</Li>
+            <Li label={d.editorStride}>{d.editorStrideDesc}</Li>
+            <Li label={d.editorConfidence}>{d.editorConfidenceDesc}</Li>
+            <Li label={d.editorStatus}>{d.editorStatusDesc}</Li>
+            <Li label={d.editorNotes}>{d.editorNotesDesc}</Li>
+            <Li label={d.editorMindmap}>{d.editorMindmapDesc}</Li>
           </ul>
-          <p className="font-medium text-foreground mt-2">Filtros disponíveis:</p>
+          <p className="font-medium text-foreground mt-2">{d.editorFiltersTitle}</p>
           <ul className="list-disc pl-4 space-y-1">
-            <li>Por categoria STRIDE (Spoofing, Tampering, etc.)</li>
-            <li>Por criticidade (Critical → Informational)</li>
-            <li>Por status de revisão</li>
-            <li>Busca textual em título e descrição</li>
+            <li>{d.editorFilter1}</li>
+            <li>{d.editorFilter2}</li>
+            <li>{d.editorFilter3}</li>
+            <li>{d.editorFilter4}</li>
           </ul>
         </>
       ),
     },
     {
-      id: 'traceability',
-      icon: GitBranch,
-      title: 'Traceability (Rastreabilidade)',
+      id: 'traceability', icon: GitBranch, title: d.traceabilityTitle,
       content: (
         <>
-          <p>A tela de rastreabilidade mapeia a origem de cada controle até sua fonte de evidência e framework de conformidade.</p>
+          <p>{d.traceabilityDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Mapeamento de frameworks:</strong> Visualize quais controles cobrem cada framework (NIST, ISO 27001, CIS, OWASP, etc.).</li>
-            <li><strong className="text-foreground">Radar Chart:</strong> Gráfico radar mostrando a cobertura percentual por framework.</li>
-            <li><strong className="text-foreground">Cards de controle:</strong> Cada controle mostra suas fontes originais, excerpts e score de confiança da rastreabilidade.</li>
-            <li><strong className="text-foreground">Filtros por framework:</strong> Filtre controles por framework específico para análise de cobertura.</li>
-            <li><strong className="text-foreground">Exportação:</strong> Exporte a matriz de rastreabilidade em CSV ou PDF.</li>
+            <Li label={d.traceabilityFrameworks}>{d.traceabilityFrameworksDesc}</Li>
+            <Li label={d.traceabilityRadar}>{d.traceabilityRadarDesc}</Li>
+            <Li label={d.traceabilityCards}>{d.traceabilityCardsDesc}</Li>
+            <Li label={d.traceabilityFilters}>{d.traceabilityFiltersDesc}</Li>
+            <Li label={d.traceabilityExport}>{d.traceabilityExportDesc}</Li>
           </ul>
-          <Tip>A rastreabilidade é fundamental para auditorias. Cada controle mantém referência à fonte original e ao trecho exato que o originou.</Tip>
+          <Tip>{d.traceabilityTip}</Tip>
         </>
       ),
     },
     {
-      id: 'history',
-      icon: History,
-      title: 'History (Histórico de Versões)',
+      id: 'history', icon: History, title: d.historyTitle,
       content: (
         <>
-          <p>O sistema mantém snapshots imutáveis de cada versão do baseline, permitindo auditoria e restauração completas.</p>
+          <p>{d.historyDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Lista de versões:</strong> Todas as versões com data, autor, status e resumo de mudanças.</li>
-            <li><strong className="text-foreground">Comparação Side-by-Side:</strong> Compare duas versões lado a lado com diff detalhado de controles adicionados, removidos e modificados.</li>
-            <li><strong className="text-foreground">Estatísticas visuais:</strong> Gráfico donut com resumo de mudanças entre versões.</li>
-            <li><strong className="text-foreground">Filtros na comparação:</strong> Filtre por tipo de mudança (Added, Removed, Modified), criticidade e busca textual.</li>
-            <li><strong className="text-foreground">Exportação do diff:</strong> Exporte a comparação em CSV (respeita filtros aplicados) ou PDF.</li>
-            <li><strong className="text-foreground">Restauração:</strong> Restaure qualquer versão anterior com um clique. O sistema cria automaticamente uma nova versão com o snapshot restaurado.</li>
+            <Li label={d.historyVersions}>{d.historyVersionsDesc}</Li>
+            <Li label={d.historySideBySide}>{d.historySideBySideDesc}</Li>
+            <Li label={d.historyStats}>{d.historyStatsDesc}</Li>
+            <Li label={d.historyFilters}>{d.historyFiltersDesc}</Li>
+            <Li label={d.historyExport}>{d.historyExportDesc}</Li>
+            <Li label={d.historyRestore}>{d.historyRestoreDesc}</Li>
           </ul>
-          <Tip>A comparação Side-by-Side destaca campos modificados com tooltips mostrando o valor anterior, facilitando a revisão de mudanças.</Tip>
+          <Tip>{d.historyTip}</Tip>
         </>
       ),
     },
     {
-      id: 'export-import',
-      icon: ArrowUpDown,
-      title: 'Export / Import',
+      id: 'export-import', icon: ArrowUpDown, title: d.exportTitle,
       content: (
         <>
-          <p>Exporte e importe baselines em diferentes formatos para compartilhamento e integração com outras ferramentas.</p>
+          <p>{d.exportDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">JSON:</strong> Formato estruturado completo, ideal para backup e integração programática.</li>
-            <li><strong className="text-foreground">Markdown:</strong> Formato legível para documentação e wikis.</li>
-            <li><strong className="text-foreground">PDF:</strong> Relatório formatado para apresentações e auditorias.</li>
-            <li><strong className="text-foreground">CSV:</strong> Formato tabular para análise em planilhas.</li>
+            <Li label={d.exportJson}>{d.exportJsonDesc}</Li>
+            <Li label={d.exportMarkdown}>{d.exportMarkdownDesc}</Li>
+            <Li label={d.exportPdf}>{d.exportPdfDesc}</Li>
+            <Li label={d.exportCsv}>{d.exportCsvDesc}</Li>
           </ul>
-          <Tip>O formato de exportação padrão pode ser configurado em Settings.</Tip>
+          <Tip>{d.exportTip}</Tip>
         </>
       ),
     },
     {
-      id: 'ai-integrations',
-      icon: Brain,
-      title: 'AI Integrations (Integrações de IA)',
+      id: 'ai-integrations', icon: Brain, title: d.aiTitle,
       content: (
         <>
-          <p>Configure os provedores de IA utilizados pelo pipeline de geração de controles.</p>
+          <p>{d.aiDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Provedores suportados:</strong> OpenAI (GPT-4, GPT-5), Google (Gemini), Anthropic (Claude) e modelos locais.</li>
-            <li><strong className="text-foreground">Seleção de modelo:</strong> Escolha o modelo específico para cada provedor.</li>
-            <li><strong className="text-foreground">Teste de conexão:</strong> Valide a conexão e chave de API antes de usar.</li>
-            <li><strong className="text-foreground">Provedor padrão:</strong> Defina qual provedor será usado por padrão no pipeline.</li>
+            <Li label={d.aiProviders}>{d.aiProvidersDesc}</Li>
+            <Li label={d.aiModel}>{d.aiModelDesc}</Li>
+            <Li label={d.aiTest}>{d.aiTestDesc}</Li>
+            <Li label={d.aiDefault}>{d.aiDefaultDesc}</Li>
           </ul>
-          <Tip>Os modelos Lovable AI estão disponíveis sem necessidade de chave API própria, com uso gratuito limitado.</Tip>
+          <Tip>{d.aiTip}</Tip>
         </>
       ),
     },
     {
-      id: 'teams',
-      icon: Users,
-      title: 'Teams (Equipes)',
+      id: 'teams', icon: Users, title: d.teamsTitle,
       content: (
         <>
-          <p>Gerencie equipes para colaboração em projetos de baseline.</p>
+          <p>{d.teamsDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Criar equipe:</strong> Crie equipes e convide membros por e-mail.</li>
-            <li><strong className="text-foreground">Papéis:</strong> Owner (proprietário) e Member (membro) com permissões diferenciadas.</li>
-            <li><strong className="text-foreground">Projetos compartilhados:</strong> Projetos associados a uma equipe são visíveis para todos os membros.</li>
-            <li><strong className="text-foreground">Notificações:</strong> Membros recebem notificações de atividades em projetos compartilhados.</li>
+            <Li label={d.teamsCreate}>{d.teamsCreateDesc}</Li>
+            <Li label={d.teamsRoles}>{d.teamsRolesDesc}</Li>
+            <Li label={d.teamsShared}>{d.teamsSharedDesc}</Li>
+            <Li label={d.teamsNotifications}>{d.teamsNotificationsDesc}</Li>
           </ul>
-          <Tip>Políticas de segurança (RLS) garantem que cada membro só veja projetos de suas equipes e projetos pessoais.</Tip>
+          <Tip>{d.teamsTip}</Tip>
         </>
       ),
     },
     {
-      id: 'notifications',
-      icon: Bell,
-      title: 'Notificações',
+      id: 'notifications', icon: Bell, title: d.notificationsTitle,
       content: (
         <>
-          <p>O sistema de notificações mantém todos os membros informados sobre atividades relevantes.</p>
+          <p>{d.notificationsDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Tipos:</strong> Aprovações, rejeições, revisões, criações de projetos, restaurações de versão e exportações.</li>
-            <li><strong className="text-foreground">Badge no sino:</strong> Indicador visual de notificações não lidas.</li>
-            <li><strong className="text-foreground">Marcar como lida:</strong> Clique na notificação para marcá-la como lida, ou use "Marcar todas como lidas".</li>
+            <Li label={d.notificationsTypes}>{d.notificationsTypesDesc}</Li>
+            <Li label={d.notificationsBadge}>{d.notificationsBadgeDesc}</Li>
+            <Li label={d.notificationsRead}>{d.notificationsReadDesc}</Li>
           </ul>
         </>
       ),
     },
     {
-      id: 'settings',
-      icon: Settings,
-      title: 'Settings (Configurações)',
+      id: 'settings', icon: Settings, title: d.settingsTitle,
       content: (
         <>
-          <p>Personalize a experiência de uso do sistema:</p>
+          <p>{d.settingsDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Idioma da interface:</strong> English, Português (BR) ou Español (ES).</li>
-            <li><strong className="text-foreground">Idioma de saída:</strong> Idioma em que os controles serão gerados pela IA.</li>
-            <li><strong className="text-foreground">Tema:</strong> Light, Dark ou Auto (segue o sistema).</li>
-            <li><strong className="text-foreground">Tooltips:</strong> All (todos), Minimal (apenas essenciais) ou Off (desativados).</li>
-            <li><strong className="text-foreground">Formato de exportação padrão:</strong> JSON, Markdown ou PDF.</li>
-            <li><strong className="text-foreground">Rigor da IA:</strong> Conservative (mais preciso), Balanced (equilíbrio) ou Aggressive (mais cobertura).</li>
-            <li><strong className="text-foreground">Backup:</strong> Crie e restaure backups completos do sistema.</li>
+            <Li label={d.settingsLang}>{d.settingsLangDesc}</Li>
+            <Li label={d.settingsOutput}>{d.settingsOutputDesc}</Li>
+            <Li label={d.settingsTheme}>{d.settingsThemeDesc}</Li>
+            <Li label={d.settingsTooltips}>{d.settingsTooltipsDesc}</Li>
+            <Li label={d.settingsFormat}>{d.settingsFormatDesc}</Li>
+            <Li label={d.settingsAi}>{d.settingsAiDesc}</Li>
+            <Li label={d.settingsBackup}>{d.settingsBackupDesc}</Li>
           </ul>
         </>
       ),
     },
     {
-      id: 'mindmap',
-      icon: Eye,
-      title: 'Mind Map (Mapa Mental)',
+      id: 'mindmap', icon: Eye, title: d.mindmapTitle,
       content: (
         <>
-          <p>O mapa mental oferece uma visualização hierárquica dos controles por categoria, acessível pelo Baseline Editor.</p>
+          <p>{d.mindmapDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Nó central:</strong> Nome do projeto com contagem total de controles.</li>
-            <li><strong className="text-foreground">Nós de categoria:</strong> Agrupamento por categorias (Access Control, Encryption, Logging, etc.).</li>
-            <li><strong className="text-foreground">Nós de controle:</strong> Cada controle mostra criticidade (cor), score de confiança e status de revisão.</li>
-            <li><strong className="text-foreground">Interatividade:</strong> Zoom, pan, expand/collapse de nós e painel de detalhes ao clicar.</li>
-            <li><strong className="text-foreground">Filtros:</strong> Barra de filtros para criticidade, status de revisão e busca textual.</li>
-            <li><strong className="text-foreground">Toolbar:</strong> Expand/collapse all, zoom controls e minimap.</li>
+            <Li label={d.mindmapRoot}>{d.mindmapRootDesc}</Li>
+            <Li label={d.mindmapCategory}>{d.mindmapCategoryDesc}</Li>
+            <Li label={d.mindmapControl}>{d.mindmapControlDesc}</Li>
+            <Li label={d.mindmapInteract}>{d.mindmapInteractDesc}</Li>
+            <Li label={d.mindmapFilters}>{d.mindmapFiltersDesc}</Li>
+            <Li label={d.mindmapToolbar}>{d.mindmapToolbarDesc}</Li>
           </ul>
         </>
       ),
     },
     {
-      id: 'security',
-      icon: Lock,
-      title: 'Segurança e Acesso',
+      id: 'security', icon: Lock, title: d.securityTitle,
       content: (
         <>
-          <p>O Aureum implementa múltiplas camadas de segurança:</p>
+          <p>{d.securityDesc}</p>
           <ul className="list-disc pl-4 space-y-1.5">
-            <li><strong className="text-foreground">Autenticação:</strong> Email/senha com confirmação por e-mail, ou login social via Google OAuth.</li>
-            <li><strong className="text-foreground">Row Level Security (RLS):</strong> Políticas de acesso no banco de dados garantem que cada usuário veja apenas seus dados e os de suas equipes.</li>
-            <li><strong className="text-foreground">Isolamento por equipe:</strong> Projetos, controles e fontes são isolados por usuário/equipe.</li>
-            <li><strong className="text-foreground">Snapshots imutáveis:</strong> Versões de baseline são imutáveis após criação, garantindo integridade da auditoria.</li>
-            <li><strong className="text-foreground">Chaves API criptografadas:</strong> Chaves de provedores de IA são armazenadas com criptografia.</li>
+            <Li label={d.securityAuth}>{d.securityAuthDesc}</Li>
+            <Li label={d.securityRls}>{d.securityRlsDesc}</Li>
+            <Li label={d.securityIsolation}>{d.securityIsolationDesc}</Li>
+            <Li label={d.securitySnapshots}>{d.securitySnapshotsDesc}</Li>
+            <Li label={d.securityKeys}>{d.securityKeysDesc}</Li>
           </ul>
         </>
       ),
     },
     {
-      id: 'shortcuts',
-      icon: Zap,
-      title: 'Dicas e Boas Práticas',
+      id: 'shortcuts', icon: Zap, title: d.tipsTitle,
       content: (
-        <>
-          <div className="space-y-2">
-            <Tip>Comece com poucas fontes de alta qualidade (hardening guides oficiais) para obter controles mais precisos.</Tip>
-            <Tip>Use o template "Balanced" para a maioria dos projetos. Ajuste para "Conservative" quando precisão for crítica (auditorias).</Tip>
-            <Tip>Revise primeiro os controles com score de confiança abaixo de 70% — eles provavelmente precisam de ajuste manual.</Tip>
-            <Tip>Crie versões (snapshots) antes de fazer mudanças significativas no baseline. Você sempre poderá restaurar.</Tip>
-            <Tip>Use a comparação Side-by-Side para revisar o que mudou entre versões antes de aprovar.</Tip>
-            <Tip>Organize projetos com tags consistentes para fácil localização e filtragem no Dashboard.</Tip>
-            <Tip>Configure equipes para projetos colaborativos — todos os membros receberão notificações de atividades.</Tip>
-            <Tip>Exporte em CSV quando precisar análise em planilha; use PDF para apresentações e auditorias formais.</Tip>
-          </div>
-        </>
+        <div className="space-y-2">
+          <Tip>{d.tip1}</Tip>
+          <Tip>{d.tip2}</Tip>
+          <Tip>{d.tip3}</Tip>
+          <Tip>{d.tip4}</Tip>
+          <Tip>{d.tip5}</Tip>
+          <Tip>{d.tip6}</Tip>
+          <Tip>{d.tip7}</Tip>
+          <Tip>{d.tip8}</Tip>
+        </div>
       ),
     },
   ];
 
   const filtered = sections.filter(s =>
-    !search || s.title.toLowerCase().includes(search.toLowerCase()) ||
-    (typeof s.content === 'string' && s.content.toLowerCase().includes(search.toLowerCase()))
+    !search || s.title.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -470,8 +411,8 @@ const Documentation: React.FC = () => {
             <BookOpen className="h-4.5 w-4.5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">Documentação</h1>
-            <p className="text-sm text-muted-foreground">Guia completo de uso e configuração do Aureum Baseline Studio</p>
+            <h1 className="text-2xl lg:text-3xl font-display font-semibold text-foreground">{d.title}</h1>
+            <p className="text-sm text-muted-foreground">{d.subtitle}</p>
           </div>
         </div>
       </div>
@@ -479,7 +420,7 @@ const Documentation: React.FC = () => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar na documentação..."
+          placeholder={d.searchPlaceholder}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="pl-9"
@@ -491,14 +432,14 @@ const Documentation: React.FC = () => {
           onClick={() => setOpenSections(new Set(sections.map(s => s.id)))}
           className="text-xs text-primary hover:underline"
         >
-          Expandir tudo
+          {d.expandAll}
         </button>
         <span className="text-muted-foreground text-xs">•</span>
         <button
           onClick={() => setOpenSections(new Set())}
           className="text-xs text-primary hover:underline"
         >
-          Recolher tudo
+          {d.collapseAll}
         </button>
       </div>
 
@@ -516,7 +457,7 @@ const Documentation: React.FC = () => {
       {filtered.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Nenhum resultado encontrado para "{search}"</p>
+          <p className="text-sm">{d.noResults} "{search}"</p>
         </div>
       )}
     </div>
