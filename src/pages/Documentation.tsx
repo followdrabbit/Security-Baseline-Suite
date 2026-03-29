@@ -5,7 +5,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import {
   BookOpen, LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch,
   History, ArrowUpDown, Brain, Users, Settings, Shield, Search, ChevronRight,
-  ChevronDown, Zap, Target, Lock, Eye, Bell,
+  ChevronDown, Zap, Target, Lock, Eye, Bell, HelpCircle, MessageCircleQuestion,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -407,6 +407,22 @@ const Documentation: React.FC = () => {
           <Tip>{d.tip6}</Tip>
           <Tip>{d.tip7}</Tip>
           <Tip>{d.tip8}</Tip>
+        </div>
+      ),
+    },
+    {
+      id: 'faq', icon: MessageCircleQuestion, title: d.faqTitle,
+      content: (
+        <div className="space-y-3">
+          {([1,2,3,4,5,6,7,8,9,10] as const).map(n => (
+            <div key={n} className="bg-muted/40 rounded-md p-3">
+              <p className="text-foreground font-medium text-sm flex items-start gap-2">
+                <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                {(d as any)[`faq${n}Q`]}
+              </p>
+              <p className="text-muted-foreground text-xs mt-1.5 ml-6">{(d as any)[`faq${n}A`]}</p>
+            </div>
+          ))}
         </div>
       ),
     },
