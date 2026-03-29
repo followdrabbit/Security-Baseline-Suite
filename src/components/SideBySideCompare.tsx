@@ -6,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
-import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search, Download } from 'lucide-react';
+import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search, Download, Shield } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
   const { t } = useI18n();
   const [filter, setFilter] = useState<FilterTab>('all');
   const [search, setSearch] = useState('');
+  const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
 
   const exportPdf = () => {
     const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -171,6 +173,14 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
     return { allIds, leftMap: lMap, rightMap: rMap, added, removed, modified, unchanged };
   }, [leftVersion, rightVersion]);
 
+  const criticalities = useMemo(() => {
+    const set = new Set<string>();
+    [...leftVersion.controls, ...rightVersion.controls].forEach(c => {
+      if (c.criticality) set.add(c.criticality);
+    });
+    return Array.from(set).sort();
+  }, [leftVersion, rightVersion]);
+
   const filteredIds = useMemo(() => {
     let ids: string[];
     switch (filter) {
@@ -180,6 +190,13 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
       case 'unchanged': ids = unchanged; break;
       default: ids = allIds;
     }
+    if (criticalityFilter !== 'all') {
+      ids = ids.filter(id => {
+        const l = leftMap.get(id);
+        const r = rightMap.get(id);
+        return l?.criticality === criticalityFilter || r?.criticality === criticalityFilter;
+      });
+    }
     if (!search.trim()) return ids;
     const q = search.toLowerCase();
     return ids.filter(id => {
@@ -188,7 +205,7 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
       return (l?.title?.toLowerCase().includes(q) || l?.control_id?.toLowerCase().includes(q) ||
               r?.title?.toLowerCase().includes(q) || r?.control_id?.toLowerCase().includes(q));
     });
-  }, [filter, search, allIds, added, removed, modified, unchanged, leftMap, rightMap]);
+  }, [filter, search, criticalityFilter, allIds, added, removed, modified, unchanged, leftMap, rightMap]);
 
   const getChangeType = (id: string) => {
     if (added.includes(id)) return 'added';
@@ -351,6 +368,18 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
+            <Select value={criticalityFilter} onValueChange={setCriticalityFilter}>
+              <SelectTrigger className="h-8 w-36 text-xs">
+                <Shield className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Criticality" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">All Criticalities</SelectItem>
+                {criticalities.map(c => (
+                  <SelectItem key={c} value={c} className="text-xs capitalize">{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="relative w-48">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
