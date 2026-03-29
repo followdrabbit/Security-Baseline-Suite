@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -16,13 +17,42 @@ import DocCallout from '@/components/docs/DocCallout';
 import DocFeatureGrid from '@/components/docs/DocFeatureGrid';
 import DocStepList from '@/components/docs/DocStepList';
 
+type DocCategory = 'getting-started' | 'core' | 'ai' | 'management' | 'advanced';
+
+const categoryConfig: Record<DocCategory, { label: string; color: string }> = {
+  'getting-started': { label: 'Getting Started', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+  'core': { label: 'Core Features', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  'ai': { label: 'AI & Automation', color: 'bg-violet-500/10 text-violet-600 border-violet-500/20' },
+  'management': { label: 'Management', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  'advanced': { label: 'Advanced', color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
+};
+
 interface DocSection {
   id: string;
   icon: React.ElementType;
   title: string;
   badge?: string;
+  category: DocCategory;
+  keywords: string;
   content: React.ReactNode;
 }
+
+const HighlightText: React.FC<{ text: string; highlight: string }> = ({ text, highlight }) => {
+  if (!highlight.trim()) return <>{text}</>;
+  const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-primary/20 text-primary font-semibold rounded-sm px-0.5">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+};
 
 const SectionHeader: React.FC<{ title: string; subtitle?: string; icon: React.ElementType; badge?: string }> = ({ title, subtitle, icon: Icon, badge }) => (
   <div className="mb-8 pb-6 border-b border-border/50">
@@ -76,6 +106,7 @@ const Documentation: React.FC = () => {
   const d = (t as any).docs;
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState('overview');
+  const [activeCategory, setActiveCategory] = useState<DocCategory | 'all'>('all');
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
@@ -85,6 +116,8 @@ const Documentation: React.FC = () => {
   const sections: DocSection[] = [
     {
       id: 'overview', icon: Shield, title: d.overviewTitle,
+      category: 'getting-started',
+      keywords: 'overview architecture pipeline traceability governance capabilities multi-language security',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.overviewDesc}</p>
@@ -124,6 +157,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'getting-started', icon: Zap, title: d.gettingStartedTitle, badge: d.gettingStartedBadge,
+      category: 'getting-started',
+      keywords: 'quick start register login create project sources rules pipeline review workflow tutorial',
       content: (
         <div className="space-y-6">
           <DocCallout variant="tip" title="Quick Start">
@@ -147,6 +182,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'dashboard', icon: LayoutDashboard, title: d.dashboardTitle,
+      category: 'core',
+      keywords: 'dashboard metrics projects activity trends statistics overview quick actions',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.dashboardDesc}</p>
@@ -180,6 +217,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'new-project', icon: Plus, title: d.newProjectTitle,
+      category: 'core',
+      keywords: 'new project create technology vendor version category tags setup configuration',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.newProjectDesc}</p>
@@ -211,6 +250,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'sources', icon: Library, title: d.sourcesTitle,
+      category: 'core',
+      keywords: 'sources library url document upload extract content CIS NIST OWASP benchmark',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.sourcesDesc}</p>
@@ -248,6 +289,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'rules', icon: Settings2, title: d.rulesTitle,
+      category: 'ai',
+      keywords: 'rules templates structure writing risk criticality deduplication mapping threat scenarios',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.rulesDesc}</p>
@@ -280,6 +323,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'workspace', icon: Cpu, title: d.workspaceTitle,
+      category: 'ai',
+      keywords: 'workspace pipeline stages ingestion extraction normalization grouping deduplication generation AI',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.workspaceDesc}</p>
@@ -301,6 +346,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'editor', icon: FileEdit, title: d.editorTitle,
+      category: 'core',
+      keywords: 'editor baseline controls review approve reject adjust confidence STRIDE filters mind map',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.editorDesc}</p>
@@ -347,6 +394,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'traceability', icon: GitBranch, title: d.traceabilityTitle,
+      category: 'advanced',
+      keywords: 'traceability frameworks NIST ISO CIS MITRE PCI SOC GDPR radar chart mapping export',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.traceabilityDesc}</p>
@@ -375,6 +424,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'history', icon: History, title: d.historyTitle,
+      category: 'advanced',
+      keywords: 'history versions side-by-side comparison diff restore snapshots audit trail',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.historyDesc}</p>
@@ -400,6 +451,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'export-import', icon: ArrowUpDown, title: d.exportTitle,
+      category: 'advanced',
+      keywords: 'export import JSON markdown PDF CSV backup format download upload',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.exportDesc}</p>
@@ -428,6 +481,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'ai-integrations', icon: Brain, title: d.aiTitle,
+      category: 'ai',
+      keywords: 'AI integrations providers GPT Gemini Claude model API key configuration default',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.aiDesc}</p>
@@ -455,6 +510,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'teams', icon: Users, title: d.teamsTitle,
+      category: 'management',
+      keywords: 'teams collaboration roles members shared projects notifications invite',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.teamsDesc}</p>
@@ -474,6 +531,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'notifications', icon: Bell, title: d.notificationsTitle,
+      category: 'management',
+      keywords: 'notifications alerts badge read unread types updates',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.notificationsDesc}</p>
@@ -490,6 +549,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'settings', icon: Settings, title: d.settingsTitle,
+      category: 'management',
+      keywords: 'settings language output theme tooltips format AI strictness backup preferences',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.settingsDesc}</p>
@@ -518,6 +579,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'mindmap', icon: Eye, title: d.mindmapTitle,
+      category: 'advanced',
+      keywords: 'mind map visualization controls categories nodes zoom pan filters toolbar interactive',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.mindmapDesc}</p>
@@ -541,6 +604,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'security', icon: Lock, title: d.securityTitle,
+      category: 'advanced',
+      keywords: 'security authentication RLS isolation snapshots encryption keys audit compliance enterprise',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.securityDesc}</p>
@@ -563,6 +628,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'shortcuts', icon: Zap, title: d.tipsTitle,
+      category: 'getting-started',
+      keywords: 'tips shortcuts productivity best practices recommendations optimization workflow',
       content: (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -575,6 +642,8 @@ const Documentation: React.FC = () => {
     },
     {
       id: 'faq', icon: MessageCircleQuestion, title: d.faqTitle,
+      category: 'getting-started',
+      keywords: 'FAQ frequently asked questions help support troubleshooting answers common',
       content: (
         <div className="space-y-4">
           {([1,2,3,4,5,6,7,8,9,10] as const).map(n => (
@@ -593,34 +662,55 @@ const Documentation: React.FC = () => {
     },
   ];
 
-  const filteredSections = sections.filter(s =>
-    !search || s.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const searchLower = search.toLowerCase();
+  const filteredSections = sections.filter(s => {
+    const matchesCategory = activeCategory === 'all' || s.category === activeCategory;
+    const matchesSearch = !search ||
+      s.title.toLowerCase().includes(searchLower) ||
+      s.keywords.toLowerCase().includes(searchLower);
+    return matchesCategory && matchesSearch;
+  });
 
-  const activeContent = sections.find(s => s.id === activeSection);
-  const activeIndex = sections.findIndex(s => s.id === activeSection);
+  const activeContent = filteredSections.find(s => s.id === activeSection) || filteredSections[0];
+  const activeIndex = filteredSections.findIndex(s => s.id === activeContent?.id);
 
   const handleTocSelect = (id: string) => {
     setActiveSection(id);
-    // Scroll to top of content
     const mainEl = document.querySelector('main');
     if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If search is active, filter the TOC items
-  const tocItems = (search ? filteredSections : sections).map(s => ({ id: s.id, icon: s.icon, title: s.title }));
+  const tocItems = filteredSections.map(s => ({ id: s.id, icon: s.icon, title: s.title }));
+
+  const categoryCounts = Object.keys(categoryConfig).reduce((acc, cat) => {
+    acc[cat] = sections.filter(s => {
+      const matchesSearch = !search ||
+        s.title.toLowerCase().includes(searchLower) ||
+        s.keywords.toLowerCase().includes(searchLower);
+      return s.category === cat && matchesSearch;
+    }).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const getMatchSnippet = (s: DocSection): string | null => {
+    if (!search) return null;
+    const words = s.keywords.split(' ');
+    const matched = words.filter(w => w.toLowerCase().includes(searchLower));
+    return matched.length > 0 ? matched.slice(0, 4).join(', ') : null;
+  };
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
       <DocTableOfContents
         items={tocItems}
-        activeId={activeSection}
+        activeId={activeContent?.id ?? null}
         onSelect={handleTocSelect}
+        search={search}
       />
 
       <div className="flex-1 min-w-0 max-w-4xl">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-xl gold-gradient flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-primary-foreground" />
@@ -631,21 +721,102 @@ const Documentation: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={d.searchPlaceholder}
               value={search}
               onChange={e => {
-                setSearch(e.target.value);
-                // If search matches one section, auto-select it
-                const matches = sections.filter(s => s.title.toLowerCase().includes(e.target.value.toLowerCase()));
-                if (matches.length === 1) setActiveSection(matches[0].id);
+                const val = e.target.value;
+                setSearch(val);
+                if (val) {
+                  const matches = sections.filter(s =>
+                    s.title.toLowerCase().includes(val.toLowerCase()) ||
+                    s.keywords.toLowerCase().includes(val.toLowerCase())
+                  );
+                  if (matches.length === 1) setActiveSection(matches[0].id);
+                }
               }}
               className="pl-9"
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Category filter bar */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                activeCategory === 'all'
+                  ? 'bg-primary/10 text-primary border-primary/30 shadow-sm'
+                  : 'bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50'
+              )}
+            >
+              All ({sections.filter(s => !search || s.title.toLowerCase().includes(searchLower) || s.keywords.toLowerCase().includes(searchLower)).length})
+            </button>
+            {(Object.entries(categoryConfig) as [DocCategory, typeof categoryConfig[DocCategory]][]).map(([key, config]) => (
+              <button
+                key={key}
+                onClick={() => setActiveCategory(activeCategory === key ? 'all' : key)}
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                  activeCategory === key
+                    ? `${config.color} shadow-sm`
+                    : 'bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50',
+                  categoryCounts[key] === 0 && 'opacity-40 pointer-events-none'
+                )}
+              >
+                {config.label} ({categoryCounts[key]})
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* Search results preview */}
+        {search && filteredSections.length > 0 && (
+          <div className="mb-4 bg-muted/20 border border-border/50 rounded-lg p-3 space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              <Search className="h-3 w-3 inline mr-1" />
+              {filteredSections.length} result{filteredSections.length !== 1 ? 's' : ''} for "<HighlightText text={search} highlight={search} />"
+            </p>
+            {filteredSections.map(s => {
+              const snippet = getMatchSnippet(s);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => handleTocSelect(s.id)}
+                  className={cn(
+                    "w-full text-left flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-xs",
+                    activeContent?.id === s.id
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted/50 text-foreground"
+                  )}
+                >
+                  <s.icon className="h-3.5 w-3.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium"><HighlightText text={s.title} highlight={search} /></span>
+                    {snippet && (
+                      <span className="block text-[10px] text-muted-foreground mt-0.5 truncate">
+                        Keywords: <HighlightText text={snippet} highlight={search} />
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="outline" className={cn("text-[9px] shrink-0", categoryConfig[s.category].color)}>
+                    {categoryConfig[s.category].label}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Active Section Content */}
         <AnimatePresence mode="wait">
@@ -659,34 +830,47 @@ const Documentation: React.FC = () => {
               className="bg-card border border-border rounded-xl shadow-premium overflow-hidden"
             >
               <div className="p-6 lg:p-8">
-                <SectionHeader
-                  title={activeContent.title}
-                  icon={activeContent.icon}
-                  badge={activeContent.badge}
-                />
+                <div className="mb-8 pb-6 border-b border-border/50">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <activeContent.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-xl font-display font-semibold text-foreground">
+                          <HighlightText text={activeContent.title} highlight={search} />
+                        </h2>
+                        {activeContent.badge && <Badge variant="secondary" className="text-[10px]">{activeContent.badge}</Badge>}
+                        <Badge variant="outline" className={cn("text-[9px] ml-auto", categoryConfig[activeContent.category].color)}>
+                          {categoryConfig[activeContent.category].label}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div className="text-sm">{activeContent.content}</div>
               </div>
 
               {/* Bottom navigation */}
               <div className="border-t border-border/50 px-6 lg:px-8 py-4 bg-muted/20 flex items-center justify-between">
                 <button
-                  onClick={() => activeIndex > 0 && handleTocSelect(sections[activeIndex - 1].id)}
+                  onClick={() => activeIndex > 0 && handleTocSelect(filteredSections[activeIndex - 1].id)}
                   disabled={activeIndex <= 0}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">{activeIndex > 0 ? sections[activeIndex - 1].title : ''}</span>
+                  <span className="hidden sm:inline">{activeIndex > 0 ? filteredSections[activeIndex - 1].title : ''}</span>
                   <span className="sm:hidden">Previous</span>
                 </button>
 
-                <span className="text-xs text-muted-foreground tabular-nums">{activeIndex + 1} / {sections.length}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{activeIndex + 1} / {filteredSections.length}</span>
 
                 <button
-                  onClick={() => activeIndex < sections.length - 1 && handleTocSelect(sections[activeIndex + 1].id)}
-                  disabled={activeIndex >= sections.length - 1}
+                  onClick={() => activeIndex < filteredSections.length - 1 && handleTocSelect(filteredSections[activeIndex + 1].id)}
+                  disabled={activeIndex >= filteredSections.length - 1}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                  <span className="hidden sm:inline">{activeIndex < sections.length - 1 ? sections[activeIndex + 1].title : ''}</span>
+                  <span className="hidden sm:inline">{activeIndex < filteredSections.length - 1 ? filteredSections[activeIndex + 1].title : ''}</span>
                   <span className="sm:hidden">Next</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -699,6 +883,12 @@ const Documentation: React.FC = () => {
           <div className="text-center py-12 text-muted-foreground">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
             <p className="text-sm">{d.noResults} "{search}"</p>
+            <button
+              onClick={() => { setSearch(''); setActiveCategory('all'); }}
+              className="mt-3 text-xs text-primary hover:underline"
+            >
+              Clear filters
+            </button>
           </div>
         )}
       </div>

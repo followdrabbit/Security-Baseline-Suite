@@ -12,9 +12,27 @@ interface DocTableOfContentsProps {
   items: TocItem[];
   activeId: string | null;
   onSelect: (id: string) => void;
+  search?: string;
 }
 
-const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId, onSelect }) => {
+const HighlightTocText: React.FC<{ text: string; highlight?: string }> = ({ text, highlight }) => {
+  if (!highlight?.trim()) return <>{text}</>;
+  const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-primary/20 text-primary rounded-sm px-0.5">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+};
+
+const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId, onSelect, search }) => {
   const activeIndex = items.findIndex(i => i.id === activeId);
 
   return (
@@ -43,7 +61,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-full" />
                 )}
                 <item.icon className={cn("h-3.5 w-3.5 shrink-0", isActive && "text-primary")} />
-                <span className="truncate">{item.title}</span>
+                <span className="truncate"><HighlightTocText text={item.title} highlight={search} /></span>
               </button>
             );
           })}
