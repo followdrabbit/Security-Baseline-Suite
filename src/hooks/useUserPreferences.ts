@@ -24,7 +24,7 @@ export function useUserPreferences() {
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) throw error;
-      return data as UserPreferences | null;
+      return data as unknown as UserPreferences | null;
     },
     enabled: !!user,
   });
