@@ -415,7 +415,7 @@ const BaselineEditor: React.FC = () => {
             </Select>
           )}
           {/* Compare button */}
-          {selectedProject !== 'all' && publishedVersions.length >= 2 && (
+          {selectedProject !== 'all' && publishedVersions.length >= 1 && (
             <Button size="sm" variant="outline" onClick={() => setCompareOpen(true)}>
               <GitCompare className="h-3.5 w-3.5 mr-1.5" />
               {t.versioning.compareVersions}
