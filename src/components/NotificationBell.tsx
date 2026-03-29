@@ -103,6 +103,15 @@ const NotificationBell: React.FC = () => {
                       {!n.is_read && (
                         <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
                       )}
+                      <button
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification.mutate(n.id);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 );
