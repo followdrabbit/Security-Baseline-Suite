@@ -119,9 +119,16 @@ const SourceLibrary: React.FC = () => {
       return;
     }
 
+    // Get user's default AI config for model/maxTokens
+    const defaultConfig = await aiConfigService.getDefault();
+    const model = resolveModelId(defaultConfig);
+    const maxTokens = resolveMaxTokens(defaultConfig);
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('projectId', selectedProjectId);
+    formData.append('model', model);
+    formData.append('maxTokens', String(maxTokens));
 
     const { data: { session: currentSession } } = await supabase.auth.getSession();
 
