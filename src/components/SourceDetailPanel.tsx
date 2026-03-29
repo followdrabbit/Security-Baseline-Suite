@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DiffView from '@/components/DiffHighlight';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
