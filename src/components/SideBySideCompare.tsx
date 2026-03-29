@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
-import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search } from 'lucide-react';
+import { Columns3, Plus, Minus, ArrowLeftRight, ArrowRight, FileText, Search, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -107,6 +107,40 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
 
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); w.onload = () => w.print(); }
+  };
+
+  const exportCsv = () => {
+    const esc = (v: string | undefined) => {
+      if (!v) return '';
+      const s = v.replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+    const headers = ['Change Type', 'Control ID',
+      `Title (v${leftVersion.version})`, `Title (v${rightVersion.version})`,
+      `Description (v${leftVersion.version})`, `Description (v${rightVersion.version})`,
+      `Criticality (v${leftVersion.version})`, `Criticality (v${rightVersion.version})`,
+      `Status (v${leftVersion.version})`, `Status (v${rightVersion.version})`,
+      `Category (v${leftVersion.version})`, `Category (v${rightVersion.version})`];
+    const rows = [headers.join(',')];
+    for (const id of allIds) {
+      const l = leftMap.get(id);
+      const r = rightMap.get(id);
+      const ct = getChangeType(id);
+      rows.push([ct, id,
+        esc(l?.title), esc(r?.title),
+        esc(l?.description), esc(r?.description),
+        esc(l?.criticality), esc(r?.criticality),
+        esc(l?.review_status), esc(r?.review_status),
+        esc(l?.category), esc(r?.category),
+      ].join(','));
+    }
+    const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comparison_v${leftVersion.version}_v${rightVersion.version}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const { allIds, leftMap, rightMap, added, removed, modified, unchanged } = useMemo(() => {
@@ -213,8 +247,11 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                   {t.history.sideBySide.subtitle}
                 </DialogDescription>
               </div>
+              <Button variant="outline" size="sm" onClick={exportCsv}>
+                <Download className="h-3.5 w-3.5 mr-1.5" />CSV
+              </Button>
               <Button variant="outline" size="sm" onClick={exportPdf}>
-                <FileText className="h-3.5 w-3.5 mr-1.5" />Export PDF
+                <FileText className="h-3.5 w-3.5 mr-1.5" />PDF
               </Button>
             </div>
           </DialogHeader>
