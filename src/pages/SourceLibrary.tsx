@@ -20,6 +20,33 @@ import { aiConfigService } from '@/services/aiService';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 
+// Maps user-facing model names to Lovable AI gateway model IDs
+const LOVABLE_MODEL_MAP: Record<string, string> = {
+  'gemini-3-flash (padrão)': 'google/gemini-3-flash-preview',
+  'gemini-2.5-pro': 'google/gemini-2.5-pro',
+  'gemini-2.5-flash': 'google/gemini-2.5-flash',
+  'gpt-5': 'openai/gpt-5',
+  'gpt-5-mini': 'openai/gpt-5-mini',
+};
+
+function resolveModelId(providerConfig: any): string {
+  if (!providerConfig) return 'google/gemini-2.5-flash';
+  const selectedModel = providerConfig.selected_model || '';
+  if (providerConfig.provider_id === 'lovable_ai') {
+    return LOVABLE_MODEL_MAP[selectedModel] || 'google/gemini-2.5-flash';
+  }
+  // For external providers, they'd use their own API — return gateway default
+  return 'google/gemini-2.5-flash';
+}
+
+function resolveMaxTokens(providerConfig: any): number {
+  const extra = providerConfig?.extra_config;
+  if (extra && typeof extra === 'object' && extra.max_tokens) {
+    return Number(extra.max_tokens) || 65000;
+  }
+  return 65000;
+}
+
 const SourceLibrary: React.FC = () => {
   const { t } = useI18n();
   const { user, session } = useAuth();
