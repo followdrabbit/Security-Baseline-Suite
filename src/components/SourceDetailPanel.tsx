@@ -210,11 +210,58 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={generateAuditPdf} title="Export Audit PDF">
             <Download className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => setShowReprocess(!showReprocess)}
+            title="Reprocess with different model"
+            disabled={reprocessMutation.isPending}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${reprocessMutation.isPending ? 'animate-spin' : ''}`} />
+          </Button>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {/* Reprocess Bar */}
+      {showReprocess && (
+        <div className="p-3 border-b border-border bg-muted/30 space-y-2">
+          <p className="text-[11px] font-medium text-foreground">Re-process with a different model</p>
+          <Select value={reprocessModel} onValueChange={setReprocessModel}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(REPROCESS_MODELS).map(([id, label]) => (
+                <SelectItem key={id} value={id} className="text-xs">
+                  {label}
+                  {id === source.extraction_model && ' (current)'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-xs flex-1 gap-1"
+              onClick={() => reprocessMutation.mutate()}
+              disabled={reprocessMutation.isPending}
+            >
+              {reprocessMutation.isPending ? (
+                <><Loader2 className="h-3 w-3 animate-spin" /> Processing...</>
+              ) : (
+                <><RefreshCw className="h-3 w-3" /> Reprocess</>
+              )}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowReprocess(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full rounded-none border-b border-border bg-muted/30 p-0 h-auto">
