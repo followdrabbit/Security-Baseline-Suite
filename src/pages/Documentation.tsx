@@ -105,6 +105,7 @@ const Documentation: React.FC = () => {
   const d = (t as any).docs;
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState('overview');
+  const [activeCategory, setActiveCategory] = useState<DocCategory | 'all'>('all');
 
   useEffect(() => {
     const hash = location.hash.replace('#', '');
