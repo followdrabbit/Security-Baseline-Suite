@@ -16,7 +16,7 @@ import type { Locale, ThemeMode } from '@/types';
 const Settings: React.FC = () => {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
-  const { notifySourceProcessed, updatePreference } = useUserPreferences();
+  const { notifySourceProcessed, notifyControlStatus, notifyTeamMemberJoined, updatePreference } = useUserPreferences();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -131,19 +131,27 @@ const Settings: React.FC = () => {
     {
       icon: BellRing, title: t.settings.notifications,
       content: (
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">{t.settings.notifySourceProcessed}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t.settings.notifySourceProcessedDesc}</p>
-          </div>
-          <Switch
-            checked={notifySourceProcessed}
-            onCheckedChange={(checked) => {
-              updatePreference.mutate({ notify_source_processed: checked }, {
-                onSuccess: () => toast.success(t.settings.saved),
-              });
-            }}
-          />
+        <div className="space-y-4">
+          {[
+            { key: 'notify_source_processed' as const, checked: notifySourceProcessed, label: t.settings.notifySourceProcessed, desc: t.settings.notifySourceProcessedDesc },
+            { key: 'notify_control_status' as const, checked: notifyControlStatus, label: t.settings.notifyControlStatus, desc: t.settings.notifyControlStatusDesc },
+            { key: 'notify_team_member_joined' as const, checked: notifyTeamMemberJoined, label: t.settings.notifyTeamMemberJoined, desc: t.settings.notifyTeamMemberJoinedDesc },
+          ].map(item => (
+            <div key={item.key} className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+              </div>
+              <Switch
+                checked={item.checked}
+                onCheckedChange={(checked) => {
+                  updatePreference.mutate({ [item.key]: checked }, {
+                    onSuccess: () => toast.success(t.settings.saved),
+                  });
+                }}
+              />
+            </div>
+          ))}
         </div>
       ),
     },

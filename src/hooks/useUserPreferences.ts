@@ -6,6 +6,8 @@ export interface UserPreferences {
   id: string;
   user_id: string;
   notify_source_processed: boolean;
+  notify_control_status: boolean;
+  notify_team_member_joined: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -30,9 +32,11 @@ export function useUserPreferences() {
   });
 
   const notifySourceProcessed = preferences?.notify_source_processed ?? true;
+  const notifyControlStatus = preferences?.notify_control_status ?? true;
+  const notifyTeamMemberJoined = preferences?.notify_team_member_joined ?? true;
 
   const updatePreference = useMutation({
-    mutationFn: async (updates: Partial<Pick<UserPreferences, 'notify_source_processed'>>) => {
+    mutationFn: async (updates: Partial<Pick<UserPreferences, 'notify_source_processed' | 'notify_control_status' | 'notify_team_member_joined'>>) => {
       if (!user) return;
       const { data: existing } = await supabase
         .from('user_preferences' as any)
@@ -58,5 +62,5 @@ export function useUserPreferences() {
     },
   });
 
-  return { preferences, notifySourceProcessed, isLoading, updatePreference };
+  return { preferences, notifySourceProcessed, notifyControlStatus, notifyTeamMemberJoined, isLoading, updatePreference };
 }

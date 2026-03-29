@@ -306,6 +306,10 @@ const translations = {
       notifications: 'Notifications',
       notifySourceProcessed: 'Notify when source is processed',
       notifySourceProcessedDesc: 'Receive a notification when a source finishes processing',
+      notifyControlStatus: 'Notify on control status changes',
+      notifyControlStatusDesc: 'Receive a notification when a control is approved, rejected, or reviewed',
+      notifyTeamMemberJoined: 'Notify when a member joins the team',
+      notifyTeamMemberJoinedDesc: 'Receive a notification when a new member joins your team',
     },
     tooltips: {
       criticality: 'The severity level of the security control. Critical controls must be implemented immediately.',
@@ -996,6 +1000,10 @@ const translations = {
       notifications: 'Notificações',
       notifySourceProcessed: 'Notificar quando fonte for processada',
       notifySourceProcessedDesc: 'Receba uma notificação quando uma fonte terminar de ser processada',
+      notifyControlStatus: 'Notificar mudanças de status de controles',
+      notifyControlStatusDesc: 'Receba uma notificação quando um controle for aprovado, rejeitado ou revisado',
+      notifyTeamMemberJoined: 'Notificar quando um membro entrar no time',
+      notifyTeamMemberJoinedDesc: 'Receba uma notificação quando um novo membro entrar no seu time',
     },
     tooltips: {
       criticality: 'O nível de severidade do controle de segurança. Controles críticos devem ser implementados imediatamente.',
@@ -1686,6 +1694,10 @@ const translations = {
       notifications: 'Notificaciones',
       notifySourceProcessed: 'Notificar cuando la fuente esté procesada',
       notifySourceProcessedDesc: 'Reciba una notificación cuando una fuente termine de procesarse',
+      notifyControlStatus: 'Notificar cambios de estado de controles',
+      notifyControlStatusDesc: 'Reciba una notificación cuando un control sea aprobado, rechazado o revisado',
+      notifyTeamMemberJoined: 'Notificar cuando un miembro se une al equipo',
+      notifyTeamMemberJoinedDesc: 'Reciba una notificación cuando un nuevo miembro se une a su equipo',
     },
     tooltips: {
       criticality: 'El nivel de severidad del control de seguridad. Los controles críticos deben implementarse de inmediato.',

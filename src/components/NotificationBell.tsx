@@ -16,10 +16,14 @@ const NotificationBell: React.FC = () => {
     pending: 'text-amber-400',
     reviewed: 'text-blue-400',
     source_processed: 'text-primary',
+    control_status_change: 'text-blue-400',
+    team_member_joined: 'text-violet-400',
   };
 
   const getStatusFromNotification = (n: { title: string; type: string }) => {
     if (n.type === 'source_processed') return 'source_processed';
+    if (n.type === 'team_member_joined') return 'team_member_joined';
+    if (n.type === 'control_status_change') return 'control_status_change';
     if (n.title.includes('approved')) return 'approved';
     if (n.title.includes('rejected')) return 'rejected';
     if (n.title.includes('reviewed')) return 'reviewed';
