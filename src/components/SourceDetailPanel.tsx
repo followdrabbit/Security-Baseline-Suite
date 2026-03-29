@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
-import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download } from 'lucide-react';
+import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -135,6 +135,8 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose }
   <div class="info-item"><div class="info-label">Confidence</div><div class="info-value">${source.confidence != null ? `${Math.round(source.confidence * 100)}%` : '—'}</div></div>
   <div class="info-item"><div class="info-label">Origin</div><div class="info-value">${escHtml(source.origin || '—')}</div></div>
   <div class="info-item"><div class="info-label">Extraction Method</div><div class="info-value">${EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}</div></div>
+  <div class="info-item"><div class="info-label">AI Model</div><div class="info-value">${source.extraction_model ? source.extraction_model.replace('google/', '').replace('openai/', '') : '—'}</div></div>
+  <div class="info-item"><div class="info-label">Tokens Used</div><div class="info-value">${source.extraction_tokens != null ? source.extraction_tokens.toLocaleString() : '—'}</div></div>
   <div class="info-item"><div class="info-label">Added At</div><div class="info-value">${fmtDate(addedAt)}</div></div>
   <div class="info-item"><div class="info-label">Processed At</div><div class="info-value">${fmtDate(processedAt)}</div></div>
   <div class="info-item"><div class="info-label">Processing Duration</div><div class="info-value">${duration}</div></div>
@@ -220,6 +222,24 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
               {EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}
             </p>
           </div>
+          {source.extraction_model && (
+            <div>
+              <span className="text-muted-foreground">AI Model</span>
+              <p className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-warning" />
+                {source.extraction_model.replace('google/', '').replace('openai/', '')}
+              </p>
+            </div>
+          )}
+          {source.extraction_tokens != null && (
+            <div>
+              <span className="text-muted-foreground">Tokens Used</span>
+              <p className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
+                <Hash className="h-3.5 w-3.5 text-info" />
+                {source.extraction_tokens.toLocaleString()}
+              </p>
+            </div>
+          )}
           {source.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
               {source.tags.map((tag: string) => (
@@ -359,6 +379,24 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
                       {EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}
                     </span>
                   </div>
+                  {source.extraction_model && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">AI Model</span>
+                      <span className="font-medium text-foreground text-right max-w-[180px] truncate flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-warning" />
+                        {source.extraction_model.replace('google/', '').replace('openai/', '')}
+                      </span>
+                    </div>
+                  )}
+                  {source.extraction_tokens != null && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tokens Used</span>
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Hash className="h-3 w-3 text-info" />
+                        {source.extraction_tokens.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                   {processedAt && addedAt && (
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Duration</span>

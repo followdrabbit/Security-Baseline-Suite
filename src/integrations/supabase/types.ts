@@ -346,6 +346,8 @@ export type Database = {
           confidence: number | null
           extracted_content: string | null
           extraction_method: string | null
+          extraction_model: string | null
+          extraction_tokens: number | null
           file_name: string | null
           file_type: string | null
           id: string
@@ -366,6 +368,8 @@ export type Database = {
           confidence?: number | null
           extracted_content?: string | null
           extraction_method?: string | null
+          extraction_model?: string | null
+          extraction_tokens?: number | null
           file_name?: string | null
           file_type?: string | null
           id?: string
@@ -386,6 +390,8 @@ export type Database = {
           confidence?: number | null
           extracted_content?: string | null
           extraction_method?: string | null
+          extraction_model?: string | null
+          extraction_tokens?: number | null
           file_name?: string | null
           file_type?: string | null
           id?: string

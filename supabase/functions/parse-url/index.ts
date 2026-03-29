@@ -80,11 +80,13 @@ async function extractContentWithAI(
 
   const result = await response.json();
   const extractedText = result.choices?.[0]?.message?.content || "";
+  const tokensUsed = result.usage?.total_tokens || result.usage?.completion_tokens || null;
 
   return {
     text: extractedText,
     preview: extractedText.substring(0, 500),
     confidence: extractedText.length > 200 ? 0.8 : extractedText.length > 50 ? 0.6 : 0.3,
+    tokensUsed,
   };
 }
 
@@ -194,6 +196,8 @@ Deno.serve(async (req) => {
           preview: aiResult.preview,
           confidence: aiResult.confidence,
           processed_at: new Date().toISOString(),
+          extraction_model: model,
+          extraction_tokens: aiResult.tokensUsed,
         })
         .eq("id", source.id)
         .select()
