@@ -8,6 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import InfoTooltip from '@/components/InfoTooltip';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import VersionCompareModal from '@/components/VersionCompareModal';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import HelpButton from '@/components/HelpButton';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight, GitCompare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -102,6 +103,7 @@ const BaselineEditor: React.FC = () => {
     controlLabel?: string;
   }>({ open: false, variant: 'approve' });
   const [viewingVersionId, setViewingVersionId] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // Fetch projects with controls
   const { data: projects = [] } = useQuery({
@@ -412,6 +414,13 @@ const BaselineEditor: React.FC = () => {
               </SelectContent>
             </Select>
           )}
+          {/* Compare button */}
+          {selectedProject !== 'all' && publishedVersions.length >= 1 && (
+            <Button size="sm" variant="outline" onClick={() => setCompareOpen(true)}>
+              <GitCompare className="h-3.5 w-3.5 mr-1.5" />
+              {t.versioning.compareVersions}
+            </Button>
+          )}
 
           {/* Version indicator */}
           {selectedProject !== 'all' && !isViewingSnapshot && (
@@ -700,6 +709,15 @@ const BaselineEditor: React.FC = () => {
         cancelLabel={t.common.cancel}
         onConfirm={handleConfirm}
       />
+
+      {publishedVersions.length >= 1 && (
+        <VersionCompareModal
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          versions={publishedVersions as any}
+          liveControls={controls}
+        />
+      )}
     </div>
   );
 };
