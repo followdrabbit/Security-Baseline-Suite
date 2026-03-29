@@ -962,6 +962,23 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        variant="reject"
+        title="Delete project?"
+        description="This will permanently delete this project and all its controls, sources, baselines and notifications. This action cannot be undone."
+        itemLabel={deleteTarget?.name}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteProject.mutate(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 };
