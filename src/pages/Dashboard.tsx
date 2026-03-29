@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { KPICardSkeleton, TableSkeleton } from '@/components/skeletons/SkeletonPremium';
-import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle, Filter, FileText } from 'lucide-react';
+import { Plus, Download, Shield, BarChart3, Layers, TrendingUp, CheckCircle2, XCircle, Eye, Edit3, FolderPlus, RotateCcw, FileDown, MessageSquare, Image, FileSpreadsheet, MoreVertical, AlertTriangle, Filter, FileText, Trash2 } from 'lucide-react';
 import HelpButton from '@/components/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import type { StrideCategory } from '@/types';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
@@ -210,12 +211,36 @@ const Dashboard: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [controlsPeriod, setControlsPeriod] = useState<TrendPeriod>('7d');
   const [confidencePeriod, setConfidencePeriod] = useState<TrendPeriod>('7d');
   const [visibleSeries, setVisibleSeries] = useState({ approved: true, pending: true, rejected: true });
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const controlsChartRef = useRef<HTMLDivElement>(null);
   const confidenceChartRef = useRef<HTMLDivElement>(null);
+
+  const deleteProject = useMutation({
+    mutationFn: async (projectId: string) => {
+      // Delete related data first, then the project
+      await supabase.from('controls').delete().eq('project_id', projectId);
+      await supabase.from('sources').delete().eq('project_id', projectId);
+      await supabase.from('baseline_versions').delete().eq('project_id', projectId);
+      await supabase.from('notifications').delete().eq('project_id', projectId);
+      const { error } = await supabase.from('projects').delete().eq('id', projectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-controls'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-versions'] });
+      toast({ title: 'Project deleted', description: 'The project and all related data have been removed.' });
+      if (selectedProjectId === deleteTarget?.id) setSelectedProjectId('all');
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete project.', variant: 'destructive' });
+    },
+  });
 
   // Fetch real projects
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
@@ -855,17 +880,31 @@ const Dashboard: React.FC = () => {
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.controls}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.confidence}</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.dashboard.lastUpdated}</th>
+                      <th className="py-3 px-4 w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredProjects.map((proj) => (
-                      <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer">
+                      <tr key={proj.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer group">
                         <td className="py-3 px-4 font-medium text-foreground">{proj.name}</td>
                         <td className="py-3 px-4 text-muted-foreground">{proj.technology}</td>
                         <td className="py-3 px-4"><StatusBadge status={proj.status as any} type="project" /></td>
                         <td className="py-3 px-4 text-muted-foreground tabular-nums">{proj.control_count || 0}</td>
                         <td className="py-3 px-4">{(proj.avg_confidence || 0) > 0 ? <ConfidenceScore score={proj.avg_confidence || 0} /> : <span className="text-muted-foreground text-xs">—</span>}</td>
                         <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(proj.updated_at).toLocaleDateString()}</td>
+                        <td className="py-3 px-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget({ id: proj.id, name: proj.name });
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -923,6 +962,23 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        variant="reject"
+        title="Delete project?"
+        description="This will permanently delete this project and all its controls, sources, baselines and notifications. This action cannot be undone."
+        itemLabel={deleteTarget?.name}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteProject.mutate(deleteTarget.id);
+            setDeleteTarget(null);
+          }
+        }}
+      />
     </div>
   );
 };
