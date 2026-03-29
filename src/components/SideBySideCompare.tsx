@@ -288,6 +288,10 @@ const SideBySideCompare: React.FC<SideBySideCompareProps> = ({
                     paddingAngle={3}
                     dataKey="value"
                     strokeWidth={0}
+                    isAnimationActive={true}
+                    animationBegin={200}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   >
                     {[
                       { color: '#10b981' },
