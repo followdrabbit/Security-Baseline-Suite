@@ -147,8 +147,10 @@ Deno.serve(async (req) => {
         origin: "URL Import",
         preview: `Fetching content from ${normalizedUrl}...`,
         extracted_content: null,
+        raw_content: null,
         confidence: 0,
         tags: ["url", parsedUrl.hostname],
+        extraction_method: "ai_url_extraction",
       })
       .select()
       .single();
@@ -165,8 +167,12 @@ Deno.serve(async (req) => {
       console.log("Fetching URL:", normalizedUrl);
       const { rawHtml, title } = await fetchAndExtractUrl(normalizedUrl);
 
-      // Update name with actual page title
-      await supabase.from("sources").update({ name: title }).eq("id", source.id);
+      // Store raw HTML content (truncated to ~500KB for storage)
+      const rawContentToStore = rawHtml.length > 500000 ? rawHtml.substring(0, 500000) + "\n[... truncated]" : rawHtml;
+      await supabase.from("sources").update({
+        name: title,
+        raw_content: rawContentToStore,
+      }).eq("id", source.id);
 
       // Extract content with AI
       console.log("Extracting content with AI for:", title);
@@ -180,6 +186,7 @@ Deno.serve(async (req) => {
           extracted_content: aiResult.text,
           preview: aiResult.preview,
           confidence: aiResult.confidence,
+          processed_at: new Date().toISOString(),
         })
         .eq("id", source.id)
         .select()
