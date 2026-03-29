@@ -32,7 +32,7 @@ const HighlightTocText: React.FC<{ text: string; highlight?: string }> = ({ text
   );
 };
 
-const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId, onSelect }) => {
+const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId, onSelect, search }) => {
   const activeIndex = items.findIndex(i => i.id === activeId);
 
   return (
