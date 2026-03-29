@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const statusColors: Record<string, string> = {
     approved: 'text-emerald-400',
@@ -31,6 +33,7 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-8 w-8">
@@ -61,8 +64,7 @@ const NotificationBell: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
-                onClick={() => clearAll.mutate()}
+                onClick={() => setConfirmClear(true)}
               >
                 <Trash2 className="h-3 w-3" />
                 Clear
@@ -121,6 +123,20 @@ const NotificationBell: React.FC = () => {
         </ScrollArea>
       </PopoverContent>
     </Popover>
+      <ConfirmationModal
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        variant="reject"
+        title="Clear all notifications?"
+        description="This will permanently delete all your notifications. This action cannot be undone."
+        confirmLabel="Clear all"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          clearAll.mutate();
+          setConfirmClear(false);
+        }}
+      />
+    </>
   );
 };
 
