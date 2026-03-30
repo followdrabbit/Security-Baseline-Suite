@@ -579,7 +579,50 @@ const AuditDashboard: React.FC = () => {
         )}
       </motion.div>
 
-      {/* Compliance Score Trend */}
+      {/* Framework Coverage Radar */}
+      <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.325 }}
+        className="bg-card border border-border rounded-xl p-5 shadow-premium">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" /> Framework Coverage
+          </h3>
+          <Button variant="ghost" size="sm" className="text-xs" asChild>
+            <Link to="/traceability">Full view →</Link>
+          </Button>
+        </div>
+        {frameworkRadarData.length === 0 || frameworkRadarData.every(d => d.controls === 0) ? (
+          <p className="text-xs text-muted-foreground text-center py-8">No framework mappings found. Add mappings to controls to see coverage.</p>
+        ) : (
+          <div className="flex flex-col lg:flex-row items-center gap-6">
+            <ResponsiveContainer width="100%" height={260}>
+              <RadarChart data={frameworkRadarData} cx="50%" cy="50%" outerRadius="75%">
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="framework" tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `${v}%`} />
+                <Radar name="Coverage" dataKey="coverage" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} dot={{ r: 4, fill: 'hsl(var(--primary))' }} />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                  formatter={(value: number, _name: string, entry: any) => [
+                    `${value}% (${entry.payload.controls} of ${filteredControls.length} controls)`,
+                    'Coverage',
+                  ]}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+            <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-1 gap-2 w-full lg:w-auto lg:min-w-[140px]">
+              {frameworkRadarData.map(d => (
+                <div key={d.framework} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/50">
+                  <span className="text-xs font-semibold text-foreground w-10">{d.framework}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${d.coverage}%` }} />
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">{d.coverage}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </motion.div>
       <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.33 }}
         className="bg-card border border-border rounded-xl p-5 shadow-premium">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
