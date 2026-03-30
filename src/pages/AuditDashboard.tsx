@@ -227,6 +227,34 @@ const AuditDashboard: React.FC = () => {
     };
   }, [filteredProjects, filteredVersions, filteredAuditLogs, filteredControls]);
 
+  // Previous period metrics for comparison
+  const prevMetrics = useMemo(() => {
+    if (!previousPeriod || !compareEnabled) return null;
+    const isInPrev = (dateStr: string) => {
+      const d = new Date(dateStr);
+      return d >= previousPeriod.from && d <= previousPeriod.to;
+    };
+    const projectFilter = (items: any[], key = 'project_id') =>
+      selectedProjectId === 'all' ? items : items.filter((i: any) => i[key] === selectedProjectId);
+
+    const pVersions = projectFilter(versions).filter(v => isInPrev(v.created_at));
+    const pLogs = projectFilter(auditLogs).filter(l => isInPrev(l.created_at));
+    const pControls = projectFilter(controls).filter(c => isInPrev(c.created_at));
+
+    const publishedVersions = pVersions.filter(v => v.status === 'published').length;
+    const totalControls = pControls.length;
+    const approvedControls = pControls.filter((c: any) => c.review_status === 'approved').length;
+    const pendingControls = pControls.filter((c: any) => c.review_status === 'pending').length;
+    const reviewRate = totalControls > 0 ? Math.round((approvedControls / totalControls) * 100) : 0;
+
+    return { publishedVersions, reviewRate, pendingControls, avgConfidence: 0, totalAuditActions: pLogs.length };
+  }, [previousPeriod, compareEnabled, versions, auditLogs, controls, selectedProjectId]);
+
+  const getDelta = (current: number, previous: number | undefined) => {
+    if (previous === undefined || previous === null) return null;
+    return current - previous;
+  };
+
   // Review status pie chart data
   const reviewPieData = useMemo(() => [
     { name: 'Approved', value: metrics.approvedControls, color: 'hsl(var(--success))' },
