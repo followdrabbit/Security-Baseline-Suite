@@ -235,6 +235,10 @@ function getSourceIndex(controls: ControlItem[]) {
   }));
 }
 
+/* ═══════════════════════════════════════════════════════
+   PDF GENERATION — Premium Aureum Brand
+   ═══════════════════════════════════════════════════════ */
+
 export function generateBaselinePDF(opts: DocumentOptions): void {
   const l = labels[opts.locale] || labels.en;
   const sec = opts.sections || DEFAULT_SECTIONS;
@@ -245,26 +249,48 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
   const contentW = pageW - margin * 2;
   let y = 0;
 
-  const PRIMARY: [number, number, number] = [109, 40, 217]; // #6d28d9
-  const DARK: [number, number, number] = [26, 26, 46]; // #1a1a2e
-  const GRAY: [number, number, number] = [100, 116, 139];
-  const LIGHT_BG: [number, number, number] = [248, 250, 252];
+  // ── Aureum Brand Palette ──
+  const GOLD: [number, number, number] = [191, 155, 81];       // #BF9B51 champagne gold
+  const GOLD_LIGHT: [number, number, number] = [230, 213, 173]; // #E6D5AD warm gold tint
+  const OBSIDIAN: [number, number, number] = [22, 25, 37];      // #161925 deep obsidian
+  const GRAPHITE: [number, number, number] = [55, 60, 75];      // #373C4B graphite
+  const SLATE: [number, number, number] = [120, 125, 140];      // #787D8C muted slate
+  const IVORY: [number, number, number] = [250, 248, 243];      // #FAF8F3 warm ivory
+  const CREAM: [number, number, number] = [245, 241, 233];      // #F5F1E9 cream
 
-  // Helper: add page footer
   const addFooter = (pageNum: number) => {
+    // Thin gold line
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.3);
+    doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
     doc.setFontSize(7);
-    doc.setTextColor(...GRAY);
+    doc.setTextColor(...SLATE);
     doc.text(l.confidential, margin, pageH - 8);
     doc.text(`${l.page} ${pageNum}`, pageW - margin, pageH - 8, { align: 'right' });
+    doc.setTextColor(...GOLD);
     doc.text(l.generatedBy, pageW / 2, pageH - 8, { align: 'center' });
   };
 
-  // Helper: check page break
+  const addPageHeader = (title: string) => {
+    // Subtle gold accent bar at top
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 0, pageW, 2, 'F');
+    // Header area
+    doc.setFillColor(...IVORY);
+    doc.rect(0, 2, pageW, 14, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(...GOLD);
+    doc.text('AUREUM BASELINE STUDIO', margin, 10);
+    doc.setTextColor(...SLATE);
+    doc.text(title, pageW - margin, 10, { align: 'right' });
+  };
+
   const checkPageBreak = (needed: number) => {
     if (y + needed > pageH - 20) {
       addFooter(doc.getNumberOfPages());
       doc.addPage();
-      y = margin;
+      addPageHeader(opts.projectName);
+      y = 24;
     }
   };
 
@@ -281,107 +307,175 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
     } else {
       isFirstPage = false;
     }
-    y = margin;
+    addPageHeader(opts.projectName);
+    y = 24;
   };
 
   // ─── COVER PAGE ───
   if (sec.cover) {
-    doc.setFillColor(...DARK);
+    // Full obsidian background
+    doc.setFillColor(...OBSIDIAN);
     doc.rect(0, 0, pageW, pageH, 'F');
+
+    // Gold decorative line at top
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 0, pageW, 3, 'F');
+
+    // Logo
     try {
-      doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageW / 2 - 20, 50, 40, 40);
+      doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageW / 2 - 18, 45, 36, 36);
     } catch { /* logo optional */ }
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.text(l.title, pageW / 2, 115, { align: 'center' });
-    doc.setFontSize(16);
-    doc.setTextColor(180, 180, 200);
-    doc.text(opts.projectName, pageW / 2, 135, { align: 'center' });
-    doc.setFontSize(12);
-    doc.text(`${opts.technology} — v${opts.version}`, pageW / 2, 150, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setTextColor(140, 140, 160);
-    doc.text(dateStr, pageW / 2, 170, { align: 'center' });
+
+    // Brand name
+    doc.setFontSize(11);
+    doc.setTextColor(...GOLD);
+    doc.text('A U R E U M', pageW / 2, 92, { align: 'center' });
     doc.setFontSize(8);
-    doc.text(l.confidential, pageW / 2, pageH - 20, { align: 'center' });
+    doc.setTextColor(...SLATE);
+    doc.text('B A S E L I N E   S T U D I O', pageW / 2, 99, { align: 'center' });
+
+    // Decorative gold separator
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.5);
+    doc.line(pageW / 2 - 40, 110, pageW / 2 + 40, 110);
+    doc.setLineWidth(0.2);
+    doc.line(pageW / 2 - 30, 113, pageW / 2 + 30, 113);
+
+    // Title
+    doc.setFontSize(26);
+    doc.setTextColor(255, 255, 255);
+    doc.text(l.title, pageW / 2, 132, { align: 'center' });
+
+    // Project name
+    doc.setFontSize(16);
+    doc.setTextColor(...GOLD_LIGHT);
+    doc.text(opts.projectName, pageW / 2, 148, { align: 'center' });
+
+    // Technology & version
+    doc.setFontSize(12);
+    doc.setTextColor(...SLATE);
+    doc.text(`${opts.technology}  ·  v${opts.version}`, pageW / 2, 162, { align: 'center' });
+
+    // Date
+    doc.setFontSize(10);
+    doc.setTextColor(160, 160, 175);
+    doc.text(dateStr, pageW / 2, 178, { align: 'center' });
+
+    // Bottom gold line + confidential
+    doc.setFillColor(...GOLD);
+    doc.rect(0, pageH - 18, pageW, 0.5, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(...GOLD);
+    doc.text(l.confidential, pageW / 2, pageH - 10, { align: 'center' });
+
     isFirstPage = false;
   }
 
   // ─── TABLE OF CONTENTS ───
   if (sec.toc) {
     addNewPage();
-    doc.setTextColor(...DARK);
     doc.setFontSize(20);
-    doc.text(l.toc, margin, y);
-    y += 12;
+    doc.setTextColor(...OBSIDIAN);
+    doc.text(l.toc, margin, y + 6);
+    // Gold underline
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.8);
+    doc.line(margin, y + 10, margin + 50, y + 10);
+    y += 20;
 
     let sectionNum = 0;
-    const tocItems: string[] = [];
-    if (sec.executiveSummary) { sectionNum++; tocItems.push(`${sectionNum}. ${l.executiveSummary}`); }
-    if (sec.projectOverview) { sectionNum++; tocItems.push(`${sectionNum}. ${l.projectOverview}`); }
+    const tocItems: { text: string; indent: boolean }[] = [];
+    if (sec.executiveSummary) { sectionNum++; tocItems.push({ text: `${sectionNum}. ${l.executiveSummary}`, indent: false }); }
+    if (sec.projectOverview) { sectionNum++; tocItems.push({ text: `${sectionNum}. ${l.projectOverview}`, indent: false }); }
     if (sec.securityControls) {
       sectionNum++;
-      tocItems.push(`${sectionNum}. ${l.securityControls}`);
+      tocItems.push({ text: `${sectionNum}. ${l.securityControls}`, indent: false });
       grouped.forEach((g, i) => {
-        tocItems.push(`   ${sectionNum}.${i + 1}. ${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})`);
+        tocItems.push({ text: `${sectionNum}.${i + 1}  ${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})`, indent: true });
       });
     }
-    if (sec.annexA) { sectionNum++; tocItems.push(`${sectionNum}. ${l.annexA}`); }
-    if (sec.annexB) { sectionNum++; tocItems.push(`${sectionNum}. ${l.annexB}`); }
+    if (sec.annexA) { sectionNum++; tocItems.push({ text: `${sectionNum}. ${l.annexA}`, indent: false }); }
+    if (sec.annexB) { sectionNum++; tocItems.push({ text: `${sectionNum}. ${l.annexB}`, indent: false }); }
 
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     for (const item of tocItems) {
-      const clr = item.startsWith('   ') ? GRAY : DARK;
-      doc.setTextColor(clr[0], clr[1], clr[2]);
-      doc.text(item, item.startsWith('   ') ? margin + 8 : margin, y);
+      if (item.indent) {
+        doc.setTextColor(...SLATE);
+        doc.text(item.text, margin + 10, y);
+      } else {
+        doc.setTextColor(...OBSIDIAN);
+        doc.setFont(undefined!, 'bold');
+        doc.text(item.text, margin, y);
+        doc.setFont(undefined!, 'normal');
+      }
       y += 7;
     }
     addFooter(doc.getNumberOfPages());
   }
 
-  // ─── 1. EXECUTIVE SUMMARY ───
-  let sn = 0; // dynamic section numbering
+  // ─── SECTIONS ───
+  let sn = 0;
+
+  const drawSectionTitle = (title: string) => {
+    doc.setFontSize(18);
+    doc.setTextColor(...OBSIDIAN);
+    doc.text(title, margin, y + 4);
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y + 8, margin + 55, y + 8);
+    y += 16;
+  };
+
+  // ─── EXECUTIVE SUMMARY ───
   if (sec.executiveSummary) {
     addNewPage();
     sn++;
-    doc.setFontSize(18);
-    doc.setTextColor(...PRIMARY);
-    doc.text(`${sn}. ${l.executiveSummary}`, margin, y);
-    y += 10;
+    drawSectionTitle(`${sn}. ${l.executiveSummary}`);
+
     doc.setFontSize(10);
-    doc.setTextColor(...DARK);
+    doc.setTextColor(...GRAPHITE);
     const summaryLines = doc.splitTextToSize(l.executiveSummaryBody(opts), contentW);
     doc.text(summaryLines, margin, y);
     y += summaryLines.length * 5 + 10;
+
+    // Stats boxes with gold accent
     const stats = [
       { label: l.totalControls, value: `${opts.controls.length}` },
       { label: l.criticality, value: `${opts.controls.filter(c => c.criticality === 'critical').length} critical` },
       { label: l.confidence, value: `${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%` },
     ];
-    doc.setFillColor(...LIGHT_BG);
-    doc.roundedRect(margin, y, contentW, 20, 2, 2, 'F');
+    doc.setFillColor(...CREAM);
+    doc.roundedRect(margin, y, contentW, 24, 2, 2, 'F');
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, y, contentW, 24, 2, 2, 'S');
+
     const statW = contentW / stats.length;
     stats.forEach((stat, i) => {
       const sx = margin + statW * i + statW / 2;
-      doc.setFontSize(14);
-      doc.setTextColor(...PRIMARY);
-      doc.text(stat.value, sx, y + 9, { align: 'center' });
+      // Vertical divider (except first)
+      if (i > 0) {
+        doc.setDrawColor(...GOLD_LIGHT);
+        doc.setLineWidth(0.2);
+        doc.line(margin + statW * i, y + 4, margin + statW * i, y + 20);
+      }
+      doc.setFontSize(15);
+      doc.setTextColor(...GOLD);
+      doc.text(stat.value, sx, y + 11, { align: 'center' });
       doc.setFontSize(7);
-      doc.setTextColor(...GRAY);
-      doc.text(stat.label, sx, y + 15, { align: 'center' });
+      doc.setTextColor(...SLATE);
+      doc.text(stat.label.toUpperCase(), sx, y + 18, { align: 'center' });
     });
-    y += 28;
+    y += 32;
     addFooter(doc.getNumberOfPages());
   }
 
-  // ─── 2. PROJECT OVERVIEW ───
+  // ─── PROJECT OVERVIEW ───
   if (sec.projectOverview) {
     addNewPage();
     sn++;
-    doc.setFontSize(18);
-    doc.setTextColor(...PRIMARY);
-    doc.text(`${sn}. ${l.projectOverview}`, margin, y);
-    y += 10;
+    drawSectionTitle(`${sn}. ${l.projectOverview}`);
+
     autoTable(doc, {
       startY: y,
       head: [],
@@ -392,50 +486,62 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
         [l.totalControls, `${opts.controls.length}`],
         [l.publishedDate, dateStr],
       ],
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 4 },
+      theme: 'plain',
+      styles: { fontSize: 9, cellPadding: 5, lineColor: GOLD_LIGHT as any, lineWidth: 0.2 },
       columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 50, fillColor: LIGHT_BG as any },
-        1: { cellWidth: contentW - 50 },
+        0: { fontStyle: 'bold', cellWidth: 55, fillColor: CREAM as any, textColor: OBSIDIAN as any },
+        1: { cellWidth: contentW - 55, textColor: GRAPHITE as any },
       },
       margin: { left: margin, right: margin },
+      didDrawCell: (data: any) => {
+        if (data.column.index === 0) {
+          // Left gold accent bar
+          doc.setFillColor(...GOLD);
+          doc.rect(data.cell.x, data.cell.y, 1, data.cell.height, 'F');
+        }
+      },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
     addFooter(doc.getNumberOfPages());
   }
 
-  // ─── 3. SECURITY CONTROLS ───
+  // ─── SECURITY CONTROLS ───
   if (sec.securityControls) {
     addNewPage();
     sn++;
-    doc.setFontSize(18);
-    doc.setTextColor(...PRIMARY);
-    doc.text(`${sn}. ${l.securityControls}`, margin, y);
-    y += 12;
+    drawSectionTitle(`${sn}. ${l.securityControls}`);
 
     grouped.forEach((group, gi) => {
       checkPageBreak(30);
-      doc.setFontSize(14);
-      doc.setTextColor(...DARK);
-      doc.text(`${sn}.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}`, margin, y);
-      y += 8;
+      // Category subheader with gold bullet
+      doc.setFillColor(...GOLD);
+      doc.circle(margin + 2, y - 1, 1.5, 'F');
+      doc.setFontSize(13);
+      doc.setTextColor(...OBSIDIAN);
+      doc.text(`${sn}.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}`, margin + 7, y);
+      y += 9;
 
       group.controls.forEach((ctrl) => {
         checkPageBreak(60);
-        doc.setFillColor(245, 243, 255);
+        // Control header bar with gold left border
+        doc.setFillColor(...CREAM);
         doc.roundedRect(margin, y, contentW, 8, 1, 1, 'F');
-        doc.setFontSize(9);
-        doc.setTextColor(...PRIMARY);
-        doc.text(ctrl.controlId, margin + 3, y + 5.5);
-        doc.setTextColor(...DARK);
+        doc.setFillColor(...GOLD);
+        doc.rect(margin, y, 1.5, 8, 'F');
+
+        doc.setFontSize(8);
+        doc.setTextColor(...GOLD);
+        doc.text(ctrl.controlId, margin + 5, y + 5.5);
+        doc.setTextColor(...OBSIDIAN);
         doc.setFont(undefined!, 'bold');
-        doc.text(ctrl.title, margin + 30, y + 5.5);
+        doc.text(ctrl.title, margin + 32, y + 5.5);
         doc.setFont(undefined!, 'normal');
         const critColors: Record<string, [number, number, number]> = {
-          critical: [220, 38, 38], high: [234, 88, 12], medium: [202, 138, 4], low: [22, 163, 74],
+          critical: [200, 40, 40], high: [210, 100, 20], medium: [180, 140, 20], low: [40, 140, 70],
         };
-        const cc = critColors[ctrl.criticality] || GRAY;
+        const cc = critColors[ctrl.criticality] || SLATE;
         doc.setTextColor(...cc);
+        doc.setFontSize(7);
         doc.text(ctrl.criticality.toUpperCase(), pageW - margin - 3, y + 5.5, { align: 'right' });
         y += 12;
 
@@ -453,8 +559,11 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
         if (detailRows.length > 0) {
           autoTable(doc, {
             startY: y, head: [], body: detailRows, theme: 'plain',
-            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45, textColor: GRAY as any }, 1: { cellWidth: contentW - 45 } },
+            styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak', lineColor: [230, 228, 220] as any, lineWidth: 0.1 },
+            columnStyles: {
+              0: { fontStyle: 'bold', cellWidth: 45, textColor: SLATE as any },
+              1: { cellWidth: contentW - 45, textColor: GRAPHITE as any },
+            },
             margin: { left: margin, right: margin },
           });
           y = (doc as any).lastAutoTable.finalY + 3;
@@ -463,15 +572,16 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
         if (ctrl.threatScenarios.length > 0) {
           checkPageBreak(20);
           doc.setFontSize(8);
-          doc.setTextColor(...PRIMARY);
+          doc.setTextColor(...GOLD);
           doc.text(l.threatModeling, margin + 2, y + 3);
           y += 6;
           autoTable(doc, {
             startY: y,
             head: [[l.threatName, l.strideCategory, l.likelihood, l.impact]],
             body: ctrl.threatScenarios.map(ts => [ts.threatName, ts.strideCategory.replace(/_/g, ' '), ts.likelihood.replace(/_/g, ' '), ts.impact]),
-            theme: 'striped', styles: { fontSize: 7, cellPadding: 2 },
-            headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+            theme: 'striped', styles: { fontSize: 7, cellPadding: 2.5 },
+            headStyles: { fillColor: OBSIDIAN as any, textColor: GOLD_LIGHT as any, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: IVORY as any },
             margin: { left: margin, right: margin },
           });
           y = (doc as any).lastAutoTable.finalY + 3;
@@ -480,15 +590,16 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
         if (ctrl.sourceTraceability.length > 0) {
           checkPageBreak(15);
           doc.setFontSize(8);
-          doc.setTextColor(...PRIMARY);
+          doc.setTextColor(...GOLD);
           doc.text(l.sourceTraceability, margin + 2, y + 3);
           y += 6;
           autoTable(doc, {
             startY: y,
             head: [[l.sourceName, l.excerpt, l.sourceConfidence]],
             body: ctrl.sourceTraceability.map(s => [s.sourceName, s.excerpt.length > 100 ? s.excerpt.substring(0, 100) + '...' : s.excerpt, `${Math.round(s.confidence * 100)}%`]),
-            theme: 'striped', styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
-            headStyles: { fillColor: GRAY as any, textColor: [255, 255, 255] },
+            theme: 'striped', styles: { fontSize: 7, cellPadding: 2.5, overflow: 'linebreak' },
+            headStyles: { fillColor: GRAPHITE as any, textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: IVORY as any },
             columnStyles: { 1: { cellWidth: contentW - 70 } },
             margin: { left: margin, right: margin },
           });
@@ -501,56 +612,52 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
     });
   }
 
-  // ─── 4. ANNEX A — FRAMEWORK COVERAGE ───
+  // ─── ANNEX A — FRAMEWORK COVERAGE ───
   if (sec.annexA) {
     addNewPage();
     sn++;
-    doc.setFontSize(18);
-    doc.setTextColor(...PRIMARY);
-    doc.text(`${sn}. ${l.annexA}`, margin, y);
-    y += 12;
+    drawSectionTitle(`${sn}. ${l.annexA}`);
+
     const fwCoverage = getFrameworkCoverage(opts.controls);
     autoTable(doc, {
       startY: y,
       head: [[l.framework, l.controlCount, l.coveragePercent]],
       body: fwCoverage.map(fw => [fw.framework, `${fw.count}`, `${fw.percent}%`]),
-      theme: 'striped', styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+      theme: 'striped', styles: { fontSize: 9, cellPadding: 5 },
+      headStyles: { fillColor: OBSIDIAN as any, textColor: GOLD_LIGHT as any, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: IVORY as any },
       margin: { left: margin, right: margin },
     });
     y = (doc as any).lastAutoTable.finalY + 10;
     addFooter(doc.getNumberOfPages());
   }
 
-  // ─── 5. ANNEX B — SOURCE TRACEABILITY INDEX ───
+  // ─── ANNEX B — SOURCE TRACEABILITY INDEX ───
   if (sec.annexB) {
     addNewPage();
     sn++;
-    doc.setFontSize(18);
-    doc.setTextColor(...PRIMARY);
-    doc.text(`${sn}. ${l.annexB}`, margin, y);
-    y += 12;
+    drawSectionTitle(`${sn}. ${l.annexB}`);
+
     const srcIndex = getSourceIndex(opts.controls);
     autoTable(doc, {
       startY: y,
       head: [[l.sourceName, l.controlCount, l.sourceConfidence]],
       body: srcIndex.map(s => [s.name, `${s.controlIds.length}`, `${s.avgConf}%`]),
-      theme: 'striped', styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+      theme: 'striped', styles: { fontSize: 9, cellPadding: 5 },
+      headStyles: { fillColor: OBSIDIAN as any, textColor: GOLD_LIGHT as any, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: IVORY as any },
       margin: { left: margin, right: margin },
     });
     addFooter(doc.getNumberOfPages());
   }
 
-  // Handle case where no cover was first page (remove blank first page)
-  if (!sec.cover && doc.getNumberOfPages() > 1) {
-    // First page is blank, already handled by addNewPage logic
-  }
-
-  // Save
   const filename = `baseline-${opts.projectName.replace(/\s+/g, '-').toLowerCase()}-v${opts.version}.pdf`;
   doc.save(filename);
 }
+
+/* ═══════════════════════════════════════════════════════
+   DOCX GENERATION — Premium Aureum Brand
+   ═══════════════════════════════════════════════════════ */
 
 export function generateBaselineDOCX(opts: DocumentOptions): void {
   const l = labels[opts.locale] || labels.en;
@@ -564,44 +671,48 @@ export function generateBaselineDOCX(opts: DocumentOptions): void {
 
   let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
   <head><meta charset="utf-8"><style>
-    body { font-family: Calibri, Arial, sans-serif; color: #1a1a2e; margin: 40px; line-height: 1.6; }
-    h1 { color: #6d28d9; font-size: 24px; border-bottom: 2px solid #6d28d9; padding-bottom: 6px; margin-top: 30px; }
-    h2 { color: #6d28d9; font-size: 18px; margin-top: 24px; }
-    h3 { color: #1a1a2e; font-size: 14px; margin-top: 16px; }
+    body { font-family: Calibri, Arial, sans-serif; color: #161925; margin: 40px; line-height: 1.6; }
+    h1 { color: #161925; font-size: 24px; border-bottom: 2px solid #BF9B51; padding-bottom: 6px; margin-top: 30px; }
+    h2 { color: #373C4B; font-size: 18px; margin-top: 24px; }
+    h3 { color: #161925; font-size: 14px; margin-top: 16px; }
     table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-    th { background: #6d28d9; color: white; padding: 8px 10px; text-align: left; font-size: 11px; }
-    td { border: 1px solid #e2e8f0; padding: 6px 10px; font-size: 11px; }
-    .cover { text-align: center; padding: 80px 0; page-break-after: always; }
-    .cover h1 { font-size: 32px; border: none; color: #6d28d9; }
-    .cover .subtitle { font-size: 18px; color: #64748b; margin-top: 10px; }
-    .cover .date { font-size: 12px; color: #94a3b8; margin-top: 20px; }
-    .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; display: flex; justify-content: space-around; }
+    th { background: #161925; color: #E6D5AD; padding: 8px 10px; text-align: left; font-size: 11px; }
+    td { border: 1px solid #E6D5AD; padding: 6px 10px; font-size: 11px; }
+    .cover { text-align: center; padding: 60px 0; page-break-after: always; background: #161925; color: white; }
+    .cover h1 { font-size: 28px; border: none; color: white; border-bottom: 2px solid #BF9B51; display: inline-block; padding-bottom: 8px; }
+    .cover .brand { font-size: 12px; color: #BF9B51; letter-spacing: 6px; margin-bottom: 10px; }
+    .cover .subtitle { font-size: 18px; color: #E6D5AD; margin-top: 10px; }
+    .cover .date { font-size: 12px; color: #787D8C; margin-top: 20px; }
+    .stat-box { background: #F5F1E9; border: 1px solid #E6D5AD; border-radius: 8px; padding: 16px; margin: 16px 0; display: flex; justify-content: space-around; }
     .stat-item { text-align: center; }
-    .stat-value { font-size: 22px; font-weight: bold; color: #6d28d9; }
-    .stat-label { font-size: 10px; color: #64748b; text-transform: uppercase; }
-    .control-header { background: #f5f3ff; padding: 8px 12px; border-radius: 4px; margin-top: 14px; }
-    .control-id { font-family: monospace; color: #6d28d9; font-size: 11px; }
-    .control-title { font-weight: bold; font-size: 13px; }
+    .stat-value { font-size: 22px; font-weight: bold; color: #BF9B51; }
+    .stat-label { font-size: 10px; color: #787D8C; text-transform: uppercase; }
+    .control-header { background: #F5F1E9; padding: 8px 12px; border-radius: 4px; margin-top: 14px; border-left: 3px solid #BF9B51; }
+    .control-id { font-family: monospace; color: #BF9B51; font-size: 11px; }
+    .control-title { font-weight: bold; font-size: 13px; color: #161925; }
     .crit-badge { font-size: 10px; font-weight: bold; float: right; }
-    .crit-critical { color: #dc2626; }
-    .crit-high { color: #ea580c; }
-    .crit-medium { color: #ca8a04; }
-    .crit-low { color: #16a34a; }
-    .section-label { font-size: 10px; color: #6d28d9; font-weight: bold; margin-top: 8px; }
+    .crit-critical { color: #C82828; }
+    .crit-high { color: #D26414; }
+    .crit-medium { color: #B48C14; }
+    .crit-low { color: #288C46; }
+    .section-label { font-size: 10px; color: #BF9B51; font-weight: bold; margin-top: 8px; }
     .toc { page-break-after: always; }
     .page-break { page-break-before: always; }
-    .footer { font-size: 8px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+    .footer { font-size: 8px; color: #787D8C; text-align: center; margin-top: 40px; border-top: 1px solid #E6D5AD; padding-top: 8px; }
   </style></head><body>`;
 
   let sn = 0;
 
   if (sec.cover) {
     html += `<div class="cover">
+      <div class="brand">A U R E U M</div>
+      <p style="font-size:10px;color:#787D8C;letter-spacing:3px">B A S E L I N E &nbsp; S T U D I O</p>
+      <hr style="border:none;border-top:1px solid #BF9B51;width:200px;margin:20px auto" />
       <h1>${l.title}</h1>
       <div class="subtitle">${opts.projectName}</div>
-      <div class="subtitle" style="font-size:14px">${opts.technology} — v${opts.version}</div>
+      <div class="subtitle" style="font-size:14px;color:#787D8C">${opts.technology} &middot; v${opts.version}</div>
       <div class="date">${dateStr}</div>
-      <div class="date" style="margin-top:40px">${l.confidential}</div>
+      <div class="date" style="margin-top:40px;color:#BF9B51">${l.confidential}</div>
     </div>`;
   }
 
@@ -635,11 +746,11 @@ export function generateBaselineDOCX(opts: DocumentOptions): void {
     sn++;
     html += `<h1>${sn}. ${l.projectOverview}</h1>
       <table>
-        <tr><td style="font-weight:bold;background:#f8fafc;width:180px">${l.projectName}</td><td>${opts.projectName}</td></tr>
-        <tr><td style="font-weight:bold;background:#f8fafc">${l.technology}</td><td>${opts.technology}</td></tr>
-        <tr><td style="font-weight:bold;background:#f8fafc">${l.version}</td><td>v${opts.version}</td></tr>
-        <tr><td style="font-weight:bold;background:#f8fafc">${l.totalControls}</td><td>${opts.controls.length}</td></tr>
-        <tr><td style="font-weight:bold;background:#f8fafc">${l.publishedDate}</td><td>${dateStr}</td></tr>
+        <tr><td style="font-weight:bold;background:#F5F1E9;width:180px;border-left:3px solid #BF9B51">${l.projectName}</td><td>${opts.projectName}</td></tr>
+        <tr><td style="font-weight:bold;background:#F5F1E9;border-left:3px solid #BF9B51">${l.technology}</td><td>${opts.technology}</td></tr>
+        <tr><td style="font-weight:bold;background:#F5F1E9;border-left:3px solid #BF9B51">${l.version}</td><td>v${opts.version}</td></tr>
+        <tr><td style="font-weight:bold;background:#F5F1E9;border-left:3px solid #BF9B51">${l.totalControls}</td><td>${opts.controls.length}</td></tr>
+        <tr><td style="font-weight:bold;background:#F5F1E9;border-left:3px solid #BF9B51">${l.publishedDate}</td><td>${dateStr}</td></tr>
       </table>`;
   }
 
