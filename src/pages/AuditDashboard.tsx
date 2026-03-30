@@ -48,23 +48,52 @@ const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boo
   );
 };
 
-const Sparkline: React.FC<{ data: { v: number }[]; color?: string; height?: number }> = ({ data, color = 'hsl(var(--primary))', height = 24 }) => {
+const Sparkline: React.FC<{ data: { v: number; label?: string }[]; color?: string; height?: number; suffix?: string }> = ({ data, color = 'hsl(var(--primary))', height = 24, suffix = '' }) => {
+  const [hovered, setHovered] = React.useState<number | null>(null);
   const width = 64;
   const values = data.map(d => d.v);
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const range = max - min || 1;
-  const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * width;
-    const y = height - ((v - min) / range) * (height - 4) - 2;
-    return `${x},${y}`;
-  }).join(' ');
+  const coords = values.map((v, i) => ({
+    x: (i / (values.length - 1)) * width,
+    y: height - ((v - min) / range) * (height - 4) - 2,
+  }));
+  const points = coords.map(c => `${c.x},${c.y}`).join(' ');
   const areaPoints = `0,${height} ${points} ${width},${height}`;
   return (
-    <svg width={width} height={height} className="shrink-0 opacity-70">
-      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
-      <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
-    </svg>
+    <div className="relative shrink-0" style={{ width, height: height + 4 }}>
+      <svg width={width} height={height} className="opacity-70">
+        <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+        <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
+        {coords.map((c, i) => (
+          <circle
+            key={i}
+            cx={c.x}
+            cy={c.y}
+            r={hovered === i ? 3 : 6}
+            fill={hovered === i ? color : 'transparent'}
+            stroke="none"
+            className="cursor-pointer"
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+          />
+        ))}
+      </svg>
+      {hovered !== null && (
+        <div
+          className="absolute z-50 pointer-events-none bg-popover border border-border rounded px-1.5 py-0.5 text-[9px] text-foreground shadow-md whitespace-nowrap"
+          style={{
+            left: coords[hovered].x,
+            top: -2,
+            transform: `translate(${coords[hovered].x > width / 2 ? '-100%' : '0%'}, -100%)`,
+          }}
+        >
+          <span className="font-semibold">{data[hovered].v}{suffix}</span>
+          {data[hovered].label && <span className="text-muted-foreground ml-1">{data[hovered].label}</span>}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -312,32 +341,35 @@ const AuditDashboard: React.FC = () => {
     const pControls = projectFilter(controls);
     const pLogs = projectFilter(auditLogs);
 
+    const dayLabels = days.map(d => format(d.date, 'EEE'));
+
     // Cumulative published versions per day
-    const publishedByDay = days.map(d => {
+    const publishedByDay = days.map((d, i) => {
       const count = pVersions.filter(v => v.status === 'published' && dayKey(v.created_at) === d.key).length;
-      return { v: count };
+      return { v: count, label: dayLabels[i] };
     });
 
     // Cumulative approved rate per day (controls created up to that day)
-    const reviewByDay = days.map(d => {
+    const reviewByDay = days.map((d, i) => {
       const cutoff = new Date(d.date);
       cutoff.setHours(23, 59, 59, 999);
       const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
       const approved = relevant.filter((c: any) => c.review_status === 'approved').length;
-      return { v: relevant.length > 0 ? Math.round((approved / relevant.length) * 100) : 0 };
+      return { v: relevant.length > 0 ? Math.round((approved / relevant.length) * 100) : 0, label: dayLabels[i] };
     });
 
     // Pending controls per day
-    const pendingByDay = days.map(d => {
+    const pendingByDay = days.map((d, i) => {
       const cutoff = new Date(d.date);
       cutoff.setHours(23, 59, 59, 999);
       const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
-      return { v: relevant.filter((c: any) => c.review_status === 'pending').length };
+      return { v: relevant.filter((c: any) => c.review_status === 'pending').length, label: dayLabels[i] };
     });
 
     // Audit actions per day
-    const actionsByDay = days.map(d => ({
+    const actionsByDay = days.map((d, i) => ({
       v: pLogs.filter(l => dayKey(l.created_at) === d.key).length,
+      label: dayLabels[i],
     }));
 
     return { published: publishedByDay, review: reviewByDay, pending: pendingByDay, actions: actionsByDay };
@@ -656,7 +688,7 @@ const AuditDashboard: React.FC = () => {
                 </div>
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
               </div>
-              <Sparkline data={sparklineData.review} color="hsl(var(--success))" />
+              <Sparkline data={sparklineData.review} color="hsl(var(--success))" suffix="%" />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
