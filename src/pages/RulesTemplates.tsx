@@ -445,18 +445,18 @@ const RulesTemplates: React.FC = () => {
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
-                <History className="h-4 w-4 mr-1.5" />History
+                <History className="h-4 w-4 mr-1.5" />{t.rules.history}
                 {versions.length > 0 && <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{versions.length}</Badge>}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
-                <Save className="h-4 w-4 mr-1.5" />Save Version
+                <Save className="h-4 w-4 mr-1.5" />{t.rules.saveVersion}
               </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileSelected} />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4 mr-1.5" />Import
+                <Upload className="h-4 w-4 mr-1.5" />{t.rules.import}
               </Button>
               <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleExportJSON}>
-                <Download className="h-4 w-4 mr-1.5" />Export
+                <Download className="h-4 w-4 mr-1.5" />{t.rules.export}
               </Button>
             </div>
           </div>
@@ -501,33 +501,33 @@ const RulesTemplates: React.FC = () => {
               <div className="bg-card border border-border rounded-xl p-5 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <History className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">Version History</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{t.rules.versionHistory}</h3>
                   <span className="text-xs text-muted-foreground">({versions.length}/{MAX_TEMPLATE_VERSIONS})</span>
                   {compareSelection.length > 0 && (
                     <div className="ml-auto flex items-center gap-2">
                       <span className="text-[11px] text-muted-foreground">
-                        {compareSelection.length}/2 selected
+                        {compareSelection.length}/2 {t.rules.selected}
                       </span>
                       {compareSelection.length === 2 && (
                         <Badge className="text-[10px] bg-primary/10 text-primary border-primary/30 animate-pulse">
-                          Ready to compare
+                          {t.rules.readyToCompare}
                         </Badge>
                       )}
                       <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground" onClick={() => setCompareSelection([])}>
-                        Clear
+                        {t.rules.clear}
                       </Button>
                     </div>
                   )}
                 </div>
                 {versions.length >= 2 && compareSelection.length === 0 && (
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <ArrowLeftRight className="h-3 w-3" /> Click two versions to compare them side-by-side
+                    <ArrowLeftRight className="h-3 w-3" /> {t.rules.compareTip}
                   </p>
                 )}
                 {versionsLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : versions.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-4 text-center">No saved versions yet. Click "Save Version" to create a snapshot.</p>
+                  <p className="text-xs text-muted-foreground py-4 text-center">{t.rules.noVersions}</p>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {versions.map(v => {
@@ -565,12 +565,12 @@ const RulesTemplates: React.FC = () => {
                             <p className="text-sm font-medium text-foreground truncate">{v.label}</p>
                             <p className="text-[11px] text-muted-foreground">
                               {format(new Date(v.created_at), 'MMM d, yyyy HH:mm')}
-                              {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} custom rule(s)</span>}
+                              {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} {t.rules.customRules}</span>}
                             </p>
                           </div>
                           <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
-                              <Undo2 className="h-3 w-3 mr-1" />Restore
+                              <Undo2 className="h-3 w-3 mr-1" />{t.rules.restore}
                             </Button>
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setRenameTarget(v); setRenameLabel(v.label); }}>
                               <Pencil className="h-3 w-3" />
@@ -713,8 +713,8 @@ const RulesTemplates: React.FC = () => {
         {search && filteredSections.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">No results for "{search}"</p>
-            <button onClick={() => setSearch('')} className="mt-3 text-xs text-primary hover:underline">Clear search</button>
+            <p className="text-sm">{t.rules.noResults} "{search}"</p>
+            <button onClick={() => setSearch('')} className="mt-3 text-xs text-primary hover:underline">{t.rules.clearSearch}</button>
           </div>
         )}
       </div>
@@ -742,19 +742,19 @@ const RulesTemplates: React.FC = () => {
                   <AlertTriangle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Confirm Import</h3>
-                  <p className="text-sm text-muted-foreground">This will overwrite current values</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.confirmImport}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.overwriteWarning}</p>
                 </div>
               </div>
 
               <div className="bg-muted/30 border border-border/50 rounded-lg p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rules to import</span>
+                  <span className="text-muted-foreground">{t.rules.rulesToImport}</span>
                   <span className="font-medium text-foreground">{importPreview.count}</span>
                 </div>
                 {importPreview.overwriteCount > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-warning">Custom values to overwrite</span>
+                    <span className="text-warning">{t.rules.customOverwrite}</span>
                     <span className="font-medium text-warning">{importPreview.overwriteCount}</span>
                   </div>
                 )}
@@ -775,7 +775,7 @@ const RulesTemplates: React.FC = () => {
                         <section.icon className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span className="text-xs font-semibold text-foreground">{label}</span>
                         {currentVal !== DEFAULT_VALUES[ruleId] && (
-                          <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/30 ml-auto">overwrite</Badge>
+                          <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/30 ml-auto">{t.rules.overwrite}</Badge>
                         )}
                       </div>
                       <div className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
@@ -791,11 +791,11 @@ const RulesTemplates: React.FC = () => {
 
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setImportPreview(null)}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleConfirmImport} disabled={saving}>
                   <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  Import {importPreview.count} rule(s)
+                  {t.rules.importRules} {importPreview.count} {t.rules.rules}
                 </Button>
               </div>
             </motion.div>
@@ -826,8 +826,8 @@ const RulesTemplates: React.FC = () => {
                   <Save className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Save Version</h3>
-                  <p className="text-sm text-muted-foreground">Create a snapshot of current rules</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.saveVersionTitle}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.saveVersionSubtitle}</p>
                 </div>
               </div>
               <Input
@@ -838,10 +838,10 @@ const RulesTemplates: React.FC = () => {
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setShowSaveDialog(false); setSaveLabel(''); }}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleSaveVersion}>
-                  <Save className="h-3.5 w-3.5 mr-1.5" />Save
+                  <Save className="h-3.5 w-3.5 mr-1.5" />{t.rules.save}
                 </Button>
               </div>
             </motion.div>
@@ -872,12 +872,12 @@ const RulesTemplates: React.FC = () => {
                   <Undo2 className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Restore Version</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.restoreVersion}</h3>
                   <p className="text-sm text-muted-foreground">"{restorePreview.label}"</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                This will replace all current rule values with the ones saved in this version. Any unsaved changes will be lost.
+                {t.rules.restoreVersionWarning}
               </p>
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {Object.entries(restorePreview.snapshot)
@@ -899,10 +899,10 @@ const RulesTemplates: React.FC = () => {
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setRestorePreview(null)}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => handleRestoreVersion(restorePreview)} disabled={saving}>
-                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />Restore
+                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />{t.rules.restore}
                 </Button>
               </div>
             </motion.div>
@@ -933,19 +933,19 @@ const RulesTemplates: React.FC = () => {
                   <CopyPlus className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Duplicate Version</h3>
-                  <p className="text-sm text-muted-foreground">Create a copy of "{duplicateTarget.label}"</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.duplicateVersion}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.duplicateVersionSubtitle} "{duplicateTarget.label}"</p>
                 </div>
               </div>
               <Input
-                placeholder="New version name"
+                placeholder={t.rules.newVersionName}
                 value={duplicateLabel}
                 onChange={e => setDuplicateLabel(e.target.value)}
                 autoFocus
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setDuplicateTarget(null); setDuplicateLabel(''); }}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button
                   size="sm"
@@ -957,7 +957,7 @@ const RulesTemplates: React.FC = () => {
                     setDuplicateLabel('');
                   }}
                 >
-                  <CopyPlus className="h-3.5 w-3.5 mr-1.5" />Duplicate
+                  <CopyPlus className="h-3.5 w-3.5 mr-1.5" />{t.rules.duplicate}
                 </Button>
               </div>
             </motion.div>
@@ -988,19 +988,19 @@ const RulesTemplates: React.FC = () => {
                   <Pencil className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Rename Version</h3>
-                  <p className="text-sm text-muted-foreground">Change the label for this version</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.renameVersion}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.renameVersionSubtitle}</p>
                 </div>
               </div>
               <Input
-                placeholder="Version name"
+                placeholder={t.rules.versionName}
                 value={renameLabel}
                 onChange={e => setRenameLabel(e.target.value)}
                 autoFocus
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setRenameTarget(null); setRenameLabel(''); }}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button
                   size="sm"
@@ -1012,7 +1012,7 @@ const RulesTemplates: React.FC = () => {
                     setRenameLabel('');
                   }}
                 >
-                  <Pencil className="h-3.5 w-3.5 mr-1.5" />Rename
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />{t.rules.rename}
                 </Button>
               </div>
             </motion.div>

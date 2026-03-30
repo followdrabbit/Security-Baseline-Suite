@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { X, ArrowLeftRight, Equal, Minus, Plus } from 'lucide-react';
+import { X, ArrowLeftRight, Equal } from 'lucide-react';
 import { TemplateVersion } from '@/hooks/useTemplateVersions';
 import { format } from 'date-fns';
+import { useI18n } from '@/contexts/I18nContext';
 
 interface RuleMeta {
   id: string;
@@ -30,6 +31,8 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
   defaults,
   onClose,
 }) => {
+  const { t } = useI18n();
+  const r = t.rules as Record<string, string>;
   const allKeys = sections.map(s => s.id);
   const diffs = allKeys.filter(
     k => (versionA.snapshot[k] ?? defaults[k]) !== (versionB.snapshot[k] ?? defaults[k])
@@ -51,9 +54,9 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-muted/20">
           <div className="flex items-center gap-3">
             <ArrowLeftRight className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">Version Comparison</h3>
+            <h3 className="text-sm font-semibold text-foreground">{r.versionComparison}</h3>
             <Badge variant="secondary" className="text-[10px]">
-              {diffs.length} difference{diffs.length !== 1 ? 's' : ''}
+              {diffs.length} {diffs.length !== 1 ? r.differences : r.difference}
             </Badge>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} className="h-7 w-7 p-0">
@@ -64,7 +67,7 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
         {/* Column Headers */}
         <div className="grid grid-cols-[180px_1fr_1fr] border-b border-border/50 bg-muted/10">
           <div className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Rule
+            {r.rule}
           </div>
           <div className="px-4 py-3 text-xs font-semibold text-primary border-l border-border/30 truncate" title={versionA.label}>
             {versionA.label}
@@ -84,7 +87,7 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
         <div className="max-h-[400px] overflow-y-auto divide-y divide-border/30">
           {diffs.length === 0 && (
             <div className="flex items-center justify-center py-8 text-sm text-muted-foreground gap-2">
-              <Equal className="h-4 w-4" /> Both versions are identical
+              <Equal className="h-4 w-4" /> {r.bothIdentical}
             </div>
           )}
           {diffs.map(ruleId => {
@@ -109,7 +112,7 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
                     {valA}
                   </div>
                   {isDefaultA && (
-                    <Badge variant="outline" className="text-[9px] mt-1.5 bg-muted/30 text-muted-foreground border-border/50">default</Badge>
+                    <Badge variant="outline" className="text-[9px] mt-1.5 bg-muted/30 text-muted-foreground border-border/50">{r.defaultBadge}</Badge>
                   )}
                 </div>
                 <div className="px-4 py-3 border-l border-border/30">
@@ -117,7 +120,7 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
                     {valB}
                   </div>
                   {isDefaultB && (
-                    <Badge variant="outline" className="text-[9px] mt-1.5 bg-muted/30 text-muted-foreground border-border/50">default</Badge>
+                    <Badge variant="outline" className="text-[9px] mt-1.5 bg-muted/30 text-muted-foreground border-border/50">{r.defaultBadge}</Badge>
                   )}
                 </div>
               </div>
@@ -129,7 +132,7 @@ const VersionComparePanel: React.FC<VersionComparePanelProps> = ({
             <details className="group">
               <summary className="px-4 py-3 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex items-center gap-2">
                 <Equal className="h-3.5 w-3.5" />
-                {same.length} identical rule{same.length !== 1 ? 's' : ''}
+                {same.length} {same.length !== 1 ? r.identicalRules : r.identicalRule}
               </summary>
               {same.map(ruleId => {
                 const section = sections.find(s => s.id === ruleId);
