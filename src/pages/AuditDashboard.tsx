@@ -28,7 +28,23 @@ import {
 import { exportAuditPdf } from '@/components/audit/exportAuditPdf';
 import { exportAuditCsv } from '@/components/audit/exportAuditCsv';
 
-const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
+const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boolean }> = ({ delta, suffix = '', invert = false }) => {
+  if (delta === null || delta === undefined) return null;
+  const isPositive = invert ? delta < 0 : delta > 0;
+  const isNegative = invert ? delta > 0 : delta < 0;
+  const isZero = delta === 0;
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+      isPositive && "bg-success/10 text-success",
+      isNegative && "bg-destructive/10 text-destructive",
+      isZero && "bg-muted text-muted-foreground",
+    )}>
+      {delta > 0 ? <ArrowUpRight className="h-2.5 w-2.5" /> : delta < 0 ? <ArrowDownRight className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />}
+      {Math.abs(delta)}{suffix}
+    </span>
+  );
+};
 
 const AuditDashboard: React.FC = () => {
   const { t } = useI18n();
