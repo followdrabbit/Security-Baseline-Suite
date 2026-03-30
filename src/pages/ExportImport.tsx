@@ -638,6 +638,16 @@ const ExportImport: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+      {selectedProjectId && docControls.length > 0 && (
+        <GenerateDocumentModal
+          open={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          projectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
+          technology={projects.find(p => p.id === selectedProjectId)?.technology || ''}
+          version={1}
+          controls={docControls}
+        />
+      )}
     </div>
   );
 };
