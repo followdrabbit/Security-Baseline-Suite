@@ -379,18 +379,55 @@ const AuditDashboard: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-[160px] h-9 text-xs">
-              <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="All Time" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1.5 min-w-[160px] justify-start font-normal", selectedPeriod !== 'all' && "text-foreground")}>
+                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                {periodLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="flex flex-col">
+                <div className="flex flex-col gap-0.5 p-2">
+                  {[
+                    { value: 'all', label: 'All Time' },
+                    { value: '7', label: 'Last 7 days' },
+                    { value: '30', label: 'Last 30 days' },
+                    { value: '90', label: 'Last 90 days' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setSelectedPeriod(opt.value); setDatePickerOpen(false); }}
+                      className={cn(
+                        "text-xs px-3 py-1.5 rounded-md text-left hover:bg-accent transition-colors",
+                        selectedPeriod === opt.value && "bg-accent font-medium"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <Separator />
+                <div className="p-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-1 mb-1">Custom Range</p>
+                  <Calendar
+                    mode="range"
+                    selected={customDateRange.from ? { from: customDateRange.from, to: customDateRange.to } : undefined}
+                    onSelect={(range) => {
+                      setCustomDateRange({ from: range?.from, to: range?.to });
+                      if (range?.from) {
+                        setSelectedPeriod('custom');
+                        if (range?.to) setDatePickerOpen(false);
+                      }
+                    }}
+                    disabled={(date) => date > new Date()}
+                    numberOfMonths={2}
+                    className={cn("p-2 pointer-events-auto")}
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={loading || exporting}>
