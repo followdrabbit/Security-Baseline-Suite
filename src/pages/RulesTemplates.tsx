@@ -18,7 +18,7 @@ import VersionComparePanel from '@/components/VersionComparePanel';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight, CopyPlus,
 } from 'lucide-react';
 
 interface RuleSection {
