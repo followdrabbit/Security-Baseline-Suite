@@ -347,6 +347,28 @@ const RulesTemplates: React.FC = () => {
     toast.success(t.rules.restoreAll);
   };
 
+  const handleSaveVersion = async () => {
+    const label = saveLabel.trim() || `Version ${format(new Date(), 'yyyy-MM-dd HH:mm')}`;
+    await saveVersion(label, { ...values });
+    setShowSaveDialog(false);
+    setSaveLabel('');
+  };
+
+  const handleRestoreVersion = async (version: TemplateVersion) => {
+    try {
+      for (const [key, val] of Object.entries(version.snapshot)) {
+        if (key in DEFAULT_VALUES) {
+          await updateValue(key, val);
+        }
+      }
+      toast.success(`Restored "${version.label}"`);
+      setRestorePreview(null);
+      setShowHistory(false);
+    } catch {
+      toast.error('Failed to restore version');
+    }
+  };
+
   const searchLower = search.toLowerCase();
   const filteredSections = useMemo(() =>
     DEFAULT_SECTIONS.filter(s => {
