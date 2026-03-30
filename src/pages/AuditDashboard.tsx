@@ -28,6 +28,8 @@ import {
 import { exportAuditPdf } from '@/components/audit/exportAuditPdf';
 import { exportAuditCsv } from '@/components/audit/exportAuditCsv';
 
+const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
+
 const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boolean }> = ({ delta, suffix = '', invert = false }) => {
   if (delta === null || delta === undefined) return null;
   const isPositive = invert ? delta < 0 : delta > 0;
