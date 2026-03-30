@@ -595,7 +595,7 @@ const RulesTemplates: React.FC = () => {
                       <div className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                         <span className="text-destructive/70 line-through">{currentVal.slice(0, 80)}{currentVal.length > 80 ? '…' : ''}</span>
                       </div>
-                      <div className="text-[11px] text-emerald-500 line-clamp-2 leading-relaxed">
+                      <div className="text-[11px] text-primary line-clamp-2 leading-relaxed">
                         → {newVal.slice(0, 80)}{newVal.length > 80 ? '…' : ''}
                       </div>
                     </div>
