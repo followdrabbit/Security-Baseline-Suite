@@ -60,9 +60,20 @@ const COMPARE_FIELDS: { key: keyof ControlSnap; label: string }[] = [
   { key: 'reviewer_notes', label: 'Reviewer Notes' },
 ];
 
+function deduplicateControls(controls: ControlSnap[]): Map<string, ControlSnap> {
+  const map = new Map<string, ControlSnap>();
+  // Use first occurrence per control_id (avoids duplicates overwriting)
+  for (const c of controls) {
+    if (!map.has(c.control_id)) {
+      map.set(c.control_id, c);
+    }
+  }
+  return map;
+}
+
 function computeVersionDiff(oldControls: ControlSnap[], newControls: ControlSnap[]): ControlDiff[] {
-  const oldMap = new Map(oldControls.map(c => [c.control_id, c]));
-  const newMap = new Map(newControls.map(c => [c.control_id, c]));
+  const oldMap = deduplicateControls(oldControls);
+  const newMap = deduplicateControls(newControls);
   const diffs: ControlDiff[] = [];
 
   // Added
