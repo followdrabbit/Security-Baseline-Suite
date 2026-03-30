@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AUREUM_LOGO_BASE64 } from '@/assets/aureumLogoBase64';
 
 interface AuditPdfData {
   filterLabel: string;
@@ -50,6 +51,14 @@ export function exportAuditPdf(data: AuditPdfData) {
   // ── Header band ──
   doc.setFillColor(...BRAND_COLOR);
   doc.rect(0, 0, pageWidth, 38, 'F');
+
+  // Logo
+  try {
+    doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageWidth - margin - 22, 4, 20, 20);
+  } catch {
+    // Fallback: skip logo if addImage fails
+  }
+
   doc.setTextColor(...WHITE);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
