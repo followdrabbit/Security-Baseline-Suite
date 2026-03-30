@@ -848,6 +848,17 @@ const BaselineEditor: React.FC = () => {
           liveControls={controls}
         />
       )}
+
+      {selectedProject !== 'all' && selectedProjectObj && (
+        <GenerateDocumentModal
+          open={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          projectName={(selectedProjectObj as any).name}
+          technology={(selectedProjectObj as any).technology}
+          version={currentVersion || 1}
+          controls={filtered}
+        />
+      )}
     </div>
   );
 };
