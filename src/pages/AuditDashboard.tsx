@@ -264,9 +264,8 @@ const AuditDashboard: React.FC = () => {
         details: l.details,
       })),
     });
+    toast.success('PDF report downloaded successfully');
   };
-
-  const handleExportCsv = () => {
     const filterLabel = selectedProjectId === 'all'
       ? `All Projects (${filteredProjects.length})`
       : filteredProjects[0]?.name || 'Unknown';
