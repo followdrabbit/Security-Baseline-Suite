@@ -385,6 +385,20 @@ const BaselineEditor: React.FC = () => {
         });
       if (versionError) throw versionError;
 
+      // Audit log
+      await supabase.from('version_audit_logs' as any).insert({
+        user_id: user.id,
+        project_id: selectedProject,
+        action: 'publish',
+        version_number: newVersion,
+        from_version: prevVersion?.version || null,
+        details: {
+          control_count: deduped.length,
+          source_count: sourcesData?.length || 0,
+          changes_summary: changesSummary,
+        },
+      });
+
       // Update project current_version
       const { error: projError } = await supabase
         .from('projects')
