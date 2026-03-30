@@ -274,6 +274,55 @@ const AuditDashboard: React.FC = () => {
     return current - previous;
   };
 
+  // Sparkline data (last 7 days, daily buckets)
+  const sparklineData = useMemo(() => {
+    const now = new Date();
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(now, 6 - i);
+      return { date: d, key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` };
+    });
+    const dayKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    };
+    const projectFilter = (items: any[]) =>
+      selectedProjectId === 'all' ? items : items.filter((i: any) => i.project_id === selectedProjectId);
+
+    const pVersions = projectFilter(versions);
+    const pControls = projectFilter(controls);
+    const pLogs = projectFilter(auditLogs);
+
+    // Cumulative published versions per day
+    const publishedByDay = days.map(d => {
+      const count = pVersions.filter(v => v.status === 'published' && dayKey(v.created_at) === d.key).length;
+      return { v: count };
+    });
+
+    // Cumulative approved rate per day (controls created up to that day)
+    const reviewByDay = days.map(d => {
+      const cutoff = new Date(d.date);
+      cutoff.setHours(23, 59, 59, 999);
+      const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
+      const approved = relevant.filter((c: any) => c.review_status === 'approved').length;
+      return { v: relevant.length > 0 ? Math.round((approved / relevant.length) * 100) : 0 };
+    });
+
+    // Pending controls per day
+    const pendingByDay = days.map(d => {
+      const cutoff = new Date(d.date);
+      cutoff.setHours(23, 59, 59, 999);
+      const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
+      return { v: relevant.filter((c: any) => c.review_status === 'pending').length };
+    });
+
+    // Audit actions per day
+    const actionsByDay = days.map(d => ({
+      v: pLogs.filter(l => dayKey(l.created_at) === d.key).length,
+    }));
+
+    return { published: publishedByDay, review: reviewByDay, pending: pendingByDay, actions: actionsByDay };
+  }, [versions, controls, auditLogs, selectedProjectId]);
+
   // Review status pie chart data
   const reviewPieData = useMemo(() => [
     { name: 'Approved', value: metrics.approvedControls, color: 'hsl(var(--success))' },
