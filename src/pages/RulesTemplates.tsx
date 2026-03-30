@@ -574,6 +574,35 @@ const RulesTemplates: React.FC = () => {
                 )}
               </div>
 
+              {/* Preview of changes */}
+              <div className="max-h-56 overflow-y-auto space-y-2">
+                {Object.entries(importPreview.data).map(([ruleId, newVal]) => {
+                  const section = DEFAULT_SECTIONS.find(s => s.id === ruleId);
+                  if (!section) return null;
+                  const label = (t.rules as Record<string, string>)[section.labelKey] || section.labelKey;
+                  const currentVal = values[ruleId];
+                  const isChanged = currentVal !== newVal;
+                  if (!isChanged) return null;
+                  return (
+                    <div key={ruleId} className="bg-muted/20 border border-border/30 rounded-lg p-3 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <section.icon className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="text-xs font-semibold text-foreground">{label}</span>
+                        {currentVal !== DEFAULT_VALUES[ruleId] && (
+                          <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/30 ml-auto">overwrite</Badge>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                        <span className="text-destructive/70 line-through">{currentVal.slice(0, 80)}{currentVal.length > 80 ? '…' : ''}</span>
+                      </div>
+                      <div className="text-[11px] text-emerald-500 line-clamp-2 leading-relaxed">
+                        → {newVal.slice(0, 80)}{newVal.length > 80 ? '…' : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setImportPreview(null)}>
                   Cancel
