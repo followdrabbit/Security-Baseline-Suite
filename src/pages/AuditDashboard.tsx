@@ -144,10 +144,10 @@ const AuditDashboard: React.FC = () => {
   // Versions per project bar chart
   const versionsPerProject = useMemo(() => {
     const map = new Map<string, { name: string; published: number; draft: number }>();
-    for (const p of projects) {
+    for (const p of filteredProjects) {
       map.set(p.id, { name: p.name.length > 18 ? p.name.slice(0, 18) + '…' : p.name, published: 0, draft: 0 });
     }
-    for (const v of versions) {
+    for (const v of filteredVersions) {
       const entry = map.get(v.project_id);
       if (entry) {
         if (v.status === 'published') entry.published++;
@@ -155,12 +155,12 @@ const AuditDashboard: React.FC = () => {
       }
     }
     return Array.from(map.values());
-  }, [projects, versions]);
+  }, [filteredProjects, filteredVersions]);
 
   // Criticality breakdown
   const criticalityData = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-    for (const c of controls) {
+    for (const c of filteredControls) {
       const crit = (c.criticality || 'medium').toLowerCase();
       if (crit in counts) counts[crit as keyof typeof counts]++;
     }
@@ -170,7 +170,7 @@ const AuditDashboard: React.FC = () => {
       { name: 'Medium', value: counts.medium, color: '#eab308' },
       { name: 'Low', value: counts.low, color: '#22c55e' },
     ].filter(d => d.value > 0);
-  }, [controls]);
+  }, [filteredControls]);
 
   // Find project name by id
   const projectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown';
