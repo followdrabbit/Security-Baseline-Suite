@@ -377,6 +377,9 @@ const translations = {
       compareRemoved: 'removed',
       compareModified: 'modified',
       compareVersions: 'Compare',
+      exportCSV: 'Export CSV',
+      exportPDF: 'Export PDF',
+      exportDiffTitle: 'Version Diff Report',
     },
     traceabilityPage: {
       title: 'Traceability',
@@ -1106,6 +1109,9 @@ const translations = {
       compareRemoved: 'removidos',
       compareModified: 'modificados',
       compareVersions: 'Comparar',
+      exportCSV: 'Exportar CSV',
+      exportPDF: 'Exportar PDF',
+      exportDiffTitle: 'Relatório de Diff de Versões',
     },
     traceabilityPage: {
       title: 'Rastreabilidade',
@@ -1835,6 +1841,9 @@ const translations = {
       compareRemoved: 'eliminados',
       compareModified: 'modificados',
       compareVersions: 'Comparar',
+      exportCSV: 'Exportar CSV',
+      exportPDF: 'Exportar PDF',
+      exportDiffTitle: 'Informe de Diff de Versiones',
     },
     traceabilityPage: {
       title: 'Trazabilidad',
