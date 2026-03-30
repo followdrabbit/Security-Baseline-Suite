@@ -904,6 +904,61 @@ const RulesTemplates: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Duplicate Version Dialog */}
+      <AnimatePresence>
+        {duplicateTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setDuplicateTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-sm w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <CopyPlus className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Duplicate Version</h3>
+                  <p className="text-sm text-muted-foreground">Create a copy of "{duplicateTarget.label}"</p>
+                </div>
+              </div>
+              <Input
+                placeholder="New version name"
+                value={duplicateLabel}
+                onChange={e => setDuplicateLabel(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setDuplicateTarget(null); setDuplicateLabel(''); }}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="gold-gradient text-primary-foreground hover:opacity-90"
+                  disabled={!duplicateLabel.trim()}
+                  onClick={async () => {
+                    await saveVersion(duplicateLabel.trim(), { ...duplicateTarget.snapshot });
+                    setDuplicateTarget(null);
+                    setDuplicateLabel('');
+                  }}
+                >
+                  <CopyPlus className="h-3.5 w-3.5 mr-1.5" />Duplicate
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
