@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User, Users, BookOpen,
+  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User, Users, BookOpen, ClipboardCheck,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useI18n } from '@/contexts/I18nContext';
