@@ -582,6 +582,20 @@ const RulesTemplates: React.FC = () => {
           )}
         </AnimatePresence>
 
+        {/* Version Compare Panel */}
+        <AnimatePresence>
+          {compareSelection.length === 2 && (
+            <VersionComparePanel
+              versionA={compareSelection[0]}
+              versionB={compareSelection[1]}
+              sections={DEFAULT_SECTIONS}
+              labels={t.rules as Record<string, string>}
+              defaults={DEFAULT_VALUES}
+              onClose={() => setCompareSelection([])}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Mobile section selector (visible on <xl) */}
         <div className="xl:hidden mb-4 flex gap-2 overflow-x-auto pb-2">
           {tocItems.map(item => (
