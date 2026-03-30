@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, Tooltip, Legend,
+} from 'recharts';
 import { useI18n } from '@/contexts/I18nContext';
 import InfoTooltip from '@/components/InfoTooltip';
 import HelpButton from '@/components/HelpButton';
@@ -255,6 +259,48 @@ const AIStrictnessSection: React.FC<{
           );
         })}
       </div>
+
+      {/* Radar comparison chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+        className="border border-border/50 rounded-xl bg-muted/20 p-4"
+      >
+        <h4 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
+          <BarChart3 className="h-3.5 w-3.5 text-primary" />
+          {rules.compareChartTitle}
+        </h4>
+        <div className="h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart
+              data={[
+                { metric: rules.precision, conservative: 95, balanced: 78, aggressive: 55 },
+                { metric: rules.coverage, conservative: 55, balanced: 78, aggressive: 95 },
+                { metric: `${rules.reviewEffort} (inv.)`, conservative: 80, balanced: 50, aggressive: 15 },
+              ]}
+              cx="50%" cy="50%" outerRadius="70%"
+            >
+              <PolarGrid stroke="hsl(var(--border))" opacity={0.5} />
+              <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <PolarRadiusAxis tick={false} axisLine={false} domain={[0, 100]} />
+              <Radar name={rules.conservative} dataKey="conservative" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={value === 'conservative' ? 0.25 : 0.08} strokeWidth={value === 'conservative' ? 2 : 1} strokeDasharray={value === 'conservative' ? undefined : '4 4'} />
+              <Radar name={rules.balanced} dataKey="balanced" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={value === 'balanced' ? 0.25 : 0.08} strokeWidth={value === 'balanced' ? 2 : 1} strokeDasharray={value === 'balanced' ? undefined : '4 4'} />
+              <Radar name={rules.aggressive} dataKey="aggressive" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={value === 'aggressive' ? 0.25 : 0.08} strokeWidth={value === 'aggressive' ? 2 : 1} strokeDasharray={value === 'aggressive' ? undefined : '4 4'} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--popover))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: '11px' }} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
+
       {isModified && (
         <button onClick={onRestore} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
           <Undo2 className="h-3 w-3" /> {rules.restoreDefaults}
