@@ -228,6 +228,9 @@ const AuditDashboard: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={loading}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />Export PDF
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/history"><History className="h-3.5 w-3.5 mr-1.5" />Version History</Link>
           </Button>
