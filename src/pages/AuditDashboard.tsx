@@ -238,6 +238,7 @@ const AuditDashboard: React.FC = () => {
   const projectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown';
 
   const [exporting, setExporting] = useState(false);
+  const [activeCriticality, setActiveCriticality] = useState<string | null>(null);
 
   const buildExportData = () => {
     const filterLabel = selectedProjectId === 'all'
