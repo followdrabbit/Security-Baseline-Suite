@@ -510,7 +510,7 @@ const RulesTemplates: React.FC = () => {
                       </span>
                       {compareSelection.length === 2 && (
                         <Badge className="text-[10px] bg-primary/10 text-primary border-primary/30 animate-pulse">
-                          Ready to compare
+                          {t.rules.readyToCompare}
                         </Badge>
                       )}
                       <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground" onClick={() => setCompareSelection([])}>
