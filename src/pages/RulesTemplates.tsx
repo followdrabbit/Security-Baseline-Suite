@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRuleValues } from '@/hooks/useRuleValues';
+import { useTemplateVersions, TemplateVersion } from '@/hooks/useTemplateVersions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock,
 } from 'lucide-react';
 
 interface RuleSection {
