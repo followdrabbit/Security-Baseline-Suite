@@ -188,6 +188,33 @@ const AuditDashboard: React.FC = () => {
       .map(([, v]) => v);
   }, [filteredAuditLogs, filteredVersions]);
 
+  // Compliance score trend from published versions
+  const complianceTrend = useMemo(() => {
+    const published = filteredVersions
+      .filter(v => v.status === 'published' && v.published_at)
+      .sort((a, b) => new Date(a.published_at!).getTime() - new Date(b.published_at!).getTime());
+
+    return published.map(v => {
+      const snapshot = Array.isArray(v.controls_snapshot) ? v.controls_snapshot as any[] : [];
+      const scores = snapshot
+        .map((c: any) => Number(c.confidence_score) || 0)
+        .filter((s: number) => s > 0);
+      const avgConf = scores.length > 0
+        ? Math.round(scores.reduce((sum: number, s: number) => sum + s, 0) / scores.length)
+        : 0;
+      const approved = snapshot.filter((c: any) => c.review_status === 'approved').length;
+      const reviewRate = snapshot.length > 0 ? Math.round((approved / snapshot.length) * 100) : 0;
+      const d = new Date(v.published_at!);
+      return {
+        label: `v${v.version}`,
+        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        confidence: avgConf,
+        reviewRate,
+        controls: snapshot.length,
+      };
+    });
+  }, [filteredVersions]);
+
   // Criticality breakdown
   const criticalityData = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
