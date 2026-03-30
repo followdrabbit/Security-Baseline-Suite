@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
+import { renderWordDiff } from '@/components/DiffHighlight';
 
 interface VersionEntry {
   id: string;
@@ -360,17 +361,21 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
                                 <span>{leftVersion.id === '__live__' ? 'Live' : `v${leftVersion.version}`} ({t.versioning.compareFrom})</span>
                                 <span>{rightVersion.id === '__live__' ? 'Live' : `v${rightVersion.version}`} ({t.versioning.compareTo})</span>
                               </div>
-                              {entry.fieldChanges!.map((fc, j) => (
-                                <div key={j} className="grid grid-cols-[140px_1fr_1fr] gap-0 px-3 py-2.5 border-b border-border/20 last:border-b-0">
-                                  <span className="text-xs font-medium text-muted-foreground">{fc.field}</span>
-                                  <span className="text-xs text-destructive/80 pr-2 break-words">
-                                    {fc.before || '—'}
-                                  </span>
-                                  <span className="text-xs text-success/90 break-words">
-                                    {fc.after || '—'}
-                                  </span>
-                                </div>
-                              ))}
+                              {entry.fieldChanges!.map((fc, j) => {
+                                const hasWordDiff = fc.before && fc.after && fc.before.length > 0 && fc.after.length > 0;
+                                const wordDiff = hasWordDiff ? renderWordDiff(fc.before, fc.after) : null;
+                                return (
+                                  <div key={j} className="grid grid-cols-[140px_1fr_1fr] gap-0 px-3 py-2.5 border-b border-border/20 last:border-b-0">
+                                    <span className="text-xs font-medium text-muted-foreground">{fc.field}</span>
+                                    <span className="text-xs text-destructive/80 pr-2 break-words">
+                                      {wordDiff ? wordDiff.removedNode : (fc.before || '—')}
+                                    </span>
+                                    <span className="text-xs text-success/90 break-words">
+                                      {wordDiff ? wordDiff.addedNode : (fc.after || '—')}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         </motion.div>

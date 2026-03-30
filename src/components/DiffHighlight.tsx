@@ -19,7 +19,7 @@ interface DiffEntry {
  * Word-level inline diff between two similar lines.
  * Returns React nodes with highlighted changed words.
  */
-function renderWordDiff(
+export function renderWordDiff(
   oldLine: string,
   newLine: string,
 ): { removedNode: React.ReactNode; addedNode: React.ReactNode } {
