@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+export const MAX_TEMPLATE_VERSIONS = 20;
+
 export interface TemplateVersion {
   id: string;
   label: string;
@@ -41,6 +43,18 @@ export function useTemplateVersions() {
 
   useEffect(() => { load(); }, [load]);
 
+  const pruneOldVersions = useCallback(async (currentVersions: TemplateVersion[]) => {
+    if (!user || currentVersions.length <= MAX_TEMPLATE_VERSIONS) return;
+    const toDelete = currentVersions.slice(MAX_TEMPLATE_VERSIONS);
+    for (const v of toDelete) {
+      await supabase
+        .from('rule_template_versions')
+        .delete()
+        .eq('id', v.id)
+        .eq('user_id', user.id);
+    }
+  }, [user]);
+
   const saveVersion = useCallback(async (label: string, snapshot: Record<string, string>) => {
     if (!user) return;
     try {
@@ -50,11 +64,22 @@ export function useTemplateVersions() {
       if (error) throw error;
       toast.success('Version saved');
       await load();
+      // Prune after reload so versions state is fresh
+      const { data } = await supabase
+        .from('rule_template_versions')
+        .select('id, label, snapshot, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (data && data.length > MAX_TEMPLATE_VERSIONS) {
+        await pruneOldVersions(data.map((r: any) => ({ id: r.id, label: r.label, snapshot: r.snapshot, created_at: r.created_at })));
+        await load();
+        toast.info(`Oldest version(s) removed (max ${MAX_TEMPLATE_VERSIONS})`);
+      }
     } catch (err) {
       console.error('Failed to save version:', err);
       toast.error('Failed to save version');
     }
-  }, [user, load]);
+  }, [user, load, pruneOldVersions]);
 
   const deleteVersion = useCallback(async (id: string) => {
     if (!user) return;
