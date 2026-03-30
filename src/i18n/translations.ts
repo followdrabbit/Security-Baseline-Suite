@@ -151,6 +151,7 @@ const translations = {
       coverageTip: 'How broadly the AI generates controls across all potential security areas. Higher means more comprehensive output.',
       reviewEffort: 'Review effort',
       reviewEffortTip: 'Estimated manual effort to review and validate AI-generated controls. Lower means less work for your team.',
+      estimatedControls: 'estimated controls',
       saveTemplate: 'Save Template',
       loadTemplate: 'Load Template',
       threatModeling: 'Threat Modeling',
