@@ -339,10 +339,9 @@ export function exportAuditPdf(data: AuditPdfData) {
       y: cy - radius * (d.coverage / 100) * Math.sin(angles[i]),
     }));
 
-    doc.setFillColor(99, 102, 241);
-    doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
-    // Fill polygon manually
-    const fillPath = dataPoints.map((p, i) => i === 0 ? p : p);
+    // Fill data polygon with light brand color (no opacity needed)
+    doc.setFillColor(220, 221, 252); // light indigo
+    const fillPath = dataPoints;
     doc.triangle(
       fillPath[0]?.x || cx, fillPath[0]?.y || cy,
       fillPath[1]?.x || cx, fillPath[1]?.y || cy,
@@ -362,7 +361,6 @@ export function exportAuditPdf(data: AuditPdfData) {
         fillPath[4]?.x || cx, fillPath[4]?.y || cy, 'F'
       );
     }
-    doc.setGState(new (doc as any).GState({ opacity: 1 }));
 
     // Draw data polygon outline
     doc.setDrawColor(...BRAND_COLOR);
