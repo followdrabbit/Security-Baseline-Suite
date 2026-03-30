@@ -754,7 +754,7 @@ const RulesTemplates: React.FC = () => {
                 </div>
                 {importPreview.overwriteCount > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-warning">Custom values to overwrite</span>
+                    <span className="text-warning">{t.rules.customOverwrite}</span>
                     <span className="font-medium text-warning">{importPreview.overwriteCount}</span>
                   </div>
                 )}
