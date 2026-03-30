@@ -320,7 +320,8 @@ const AuditDashboard: React.FC = () => {
           </motion.div>
 
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.05 }}
-            className="bg-card border border-border rounded-xl p-5 shadow-premium">
+            onClick={() => navigate('/editor?review=approved')}
+            className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-success/40 transition-colors group">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
                 <CheckCircle2 className="h-4 w-4 text-success" />
@@ -329,6 +330,7 @@ const AuditDashboard: React.FC = () => {
             </div>
             <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.approvedControls} of {metrics.totalControls} controls approved</p>
+            <p className="text-[10px] text-success opacity-0 group-hover:opacity-100 transition-opacity mt-1">View approved controls →</p>
           </motion.div>
 
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.1 }}
