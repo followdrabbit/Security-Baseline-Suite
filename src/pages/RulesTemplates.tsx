@@ -514,7 +514,7 @@ const RulesTemplates: React.FC = () => {
                         </Badge>
                       )}
                       <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground" onClick={() => setCompareSelection([])}>
-                        Clear
+                        {t.rules.clear}
                       </Button>
                     </div>
                   )}
