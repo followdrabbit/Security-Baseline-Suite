@@ -46,6 +46,7 @@ const App = () => (
                   <Route path="/workspace" element={<AIWorkspace />} />
                   <Route path="/editor" element={<BaselineEditor />} />
                   <Route path="/traceability" element={<Traceability />} />
+                  <Route path="/audit" element={<AuditDashboard />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/export-import" element={<ExportImport />} />
                   <Route path="/ai-integrations" element={<AIIntegrations />} />
