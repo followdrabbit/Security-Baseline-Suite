@@ -50,10 +50,13 @@ const AppSidebar: React.FC = () => {
     { title: t.nav.editor, url: '/editor', icon: FileEdit },
   ];
 
-  const insightItems = [
+  const auditItems = [
     { title: t.nav.traceability, url: '/traceability', icon: GitBranch },
     { title: t.nav.history, url: '/history', icon: History },
     { title: t.nav.exportImport, url: '/export-import', icon: ArrowUpDown },
+  ];
+
+  const toolItems = [
     { title: (t.nav as any).aiIntegrations || 'AI Integrations', url: '/ai-integrations', icon: Brain },
     { title: 'Teams', url: '/teams', icon: Users },
     { title: 'Docs', url: '/docs', icon: BookOpen },
