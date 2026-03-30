@@ -110,33 +110,29 @@ const AuditDashboard: React.FC = () => {
 
   // Compute metrics
   const metrics = useMemo(() => {
-    const publishedVersions = versions.filter(v => v.status === 'published');
-    const draftVersions = versions.filter(v => v.status === 'draft');
-    const publishActions = auditLogs.filter(l => l.action === 'publish');
-    const restoreActions = auditLogs.filter(l => l.action === 'restore');
-    const totalControls = controls.length;
-    const approvedControls = controls.filter(c => c.review_status === 'approved').length;
-    const pendingControls = controls.filter(c => c.review_status === 'pending').length;
-    const rejectedControls = controls.filter(c => c.review_status === 'rejected').length;
+    const publishedVersions = filteredVersions.filter(v => v.status === 'published');
+    const draftVersions = filteredVersions.filter(v => v.status === 'draft');
+    const totalControls = filteredControls.length;
+    const approvedControls = filteredControls.filter(c => c.review_status === 'approved').length;
+    const pendingControls = filteredControls.filter(c => c.review_status === 'pending').length;
+    const rejectedControls = filteredControls.filter(c => c.review_status === 'rejected').length;
     const reviewRate = totalControls > 0 ? Math.round((approvedControls / totalControls) * 100) : 0;
 
     return {
-      totalProjects: projects.length,
+      totalProjects: filteredProjects.length,
       publishedVersions: publishedVersions.length,
       draftVersions: draftVersions.length,
-      totalAuditActions: auditLogs.length,
-      publishActions: publishActions.length,
-      restoreActions: restoreActions.length,
+      totalAuditActions: filteredAuditLogs.length,
       totalControls,
       approvedControls,
       pendingControls,
       rejectedControls,
       reviewRate,
-      avgConfidence: projects.length > 0
-        ? Math.round(projects.reduce((sum, p) => sum + (Number(p.avg_confidence) || 0), 0) / projects.length)
+      avgConfidence: filteredProjects.length > 0
+        ? Math.round(filteredProjects.reduce((sum, p) => sum + (Number(p.avg_confidence) || 0), 0) / filteredProjects.length)
         : 0,
     };
-  }, [projects, versions, auditLogs, controls]);
+  }, [filteredProjects, filteredVersions, filteredAuditLogs, filteredControls]);
 
   // Review status pie chart data
   const reviewPieData = useMemo(() => [
