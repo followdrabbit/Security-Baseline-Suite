@@ -130,19 +130,27 @@ const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; 
 
 const ImpactBar: React.FC<{ label: string; tooltip?: string; value: number; isActive: boolean }> = ({ label, tooltip, value, isActive }) => (
   <div className="flex items-center gap-2">
-    <span className={cn("text-[10px] w-[72px] shrink-0 text-right inline-flex items-center justify-end gap-0.5", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
+    <span className={cn("text-[10px] w-[72px] shrink-0 text-right inline-flex items-center justify-end gap-0.5 transition-colors duration-300", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
       {label}
       {tooltip && <InfoTooltip content={tooltip} className="h-2.5 w-2.5 ml-0.5" />}
     </span>
     <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
-      <div
-        className={cn("h-full rounded-full transition-all duration-500", isActive ? 'bg-primary' : 'bg-muted-foreground/30')}
-        style={{ width: `${value}%` }}
+      <motion.div
+        className={cn("h-full rounded-full", isActive ? 'bg-primary' : 'bg-muted-foreground/30')}
+        initial={false}
+        animate={{ width: `${value}%` }}
+        transition={{ type: 'spring', stiffness: 120, damping: 18, mass: 0.8 }}
       />
     </div>
-    <span className={cn("text-[10px] w-7 tabular-nums", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
+    <motion.span
+      key={value}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={cn("text-[10px] w-7 tabular-nums transition-colors duration-300", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}
+    >
       {value}%
-    </span>
+    </motion.span>
   </div>
 );
 
