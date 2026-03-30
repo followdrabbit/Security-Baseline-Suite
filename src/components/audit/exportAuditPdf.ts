@@ -17,6 +17,13 @@ interface AuditPdfData {
     avgConfidence: number;
   };
   criticalityData: { name: string; value: number }[];
+  complianceTrend: {
+    label: string;
+    date: string;
+    confidence: number;
+    reviewRate: number;
+    controls: number;
+  }[];
   projects: {
     name: string;
     technology: string;
@@ -170,6 +177,74 @@ export function exportAuditPdf(data: AuditPdfData) {
   });
 
   y = (doc as any).lastAutoTable.finalY + 10;
+
+  // ── Compliance Score Trend ──
+  if (data.complianceTrend.length > 0) {
+    if (y > 220) { doc.addPage(); y = 20; }
+
+    doc.setTextColor(...DARK);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Compliance Score Trend', margin, y);
+    y += 7;
+
+    // Visual bar chart for each version
+    const barMaxWidth = contentWidth - 50;
+    const barHeight = 6;
+    const GREEN: [number, number, number] = [34, 197, 94];
+
+    for (const point of data.complianceTrend) {
+      if (y > 270) { doc.addPage(); y = 20; }
+
+      // Version label
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...DARK);
+      doc.text(`${point.label}`, margin, y + 3);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...MUTED);
+      doc.text(`${point.date}`, margin + 12, y + 3);
+
+      const barX = margin + 35;
+
+      // Confidence bar (background)
+      doc.setFillColor(...LIGHT_BG);
+      doc.roundedRect(barX, y, barMaxWidth, barHeight, 1, 1, 'F');
+      // Confidence bar (fill)
+      const confWidth = (point.confidence / 100) * barMaxWidth;
+      doc.setFillColor(...BRAND_COLOR);
+      doc.roundedRect(barX, y, Math.max(confWidth, 2), barHeight, 1, 1, 'F');
+
+      // Review rate bar (smaller, below)
+      doc.setFillColor(...LIGHT_BG);
+      doc.roundedRect(barX, y + barHeight + 1, barMaxWidth, 3, 1, 1, 'F');
+      const revWidth = (point.reviewRate / 100) * barMaxWidth;
+      doc.setFillColor(...GREEN);
+      doc.roundedRect(barX, y + barHeight + 1, Math.max(revWidth, 1), 3, 1, 1, 'F');
+
+      // Values
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BRAND_COLOR);
+      doc.text(`${point.confidence}%`, barX + barMaxWidth + 2, y + 4);
+      doc.setTextColor(...GREEN);
+      doc.text(`${point.reviewRate}%`, barX + barMaxWidth + 2, y + barHeight + 3.5);
+
+      y += barHeight + 9;
+    }
+
+    // Legend
+    y += 2;
+    doc.setFillColor(...BRAND_COLOR);
+    doc.circle(margin + 1.5, y + 0.5, 1.5, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(...DARK);
+    doc.text('Avg. Confidence', margin + 5, y + 1.5);
+    doc.setFillColor(...GREEN);
+    doc.circle(margin + 40, y + 0.5, 1.5, 'F');
+    doc.text('Review Rate', margin + 43, y + 1.5);
+    y += 10;
+  }
 
   // ── Project Compliance Summary ──
   if (y > 240) { doc.addPage(); y = 20; }
