@@ -53,10 +53,10 @@ describe('RulesTemplates', () => {
     expect(screen.getByText(/Rules & Templates/i)).toBeInTheDocument();
   });
 
-  it('renders save and load template buttons', () => {
+  it('renders export and import buttons', () => {
     renderRules();
-    expect(screen.getByText(/Save Template/i)).toBeInTheDocument();
-    expect(screen.getByText(/Load Template/i)).toBeInTheDocument();
+    expect(screen.getByText(/Export/i)).toBeInTheDocument();
+    expect(screen.getByText(/Import/i)).toBeInTheDocument();
   });
 
   it('renders sidebar navigation items', () => {

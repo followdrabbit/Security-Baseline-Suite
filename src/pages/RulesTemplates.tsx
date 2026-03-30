@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -256,19 +257,44 @@ const RulesTemplates: React.FC = () => {
     toast.success('Template exported');
   };
 
+  // Zod schema for imported template JSON
+  const templateSchema = useMemo(() => {
+    const knownKeys = Object.keys(DEFAULT_VALUES);
+    const ruleValueSchema = z.string().min(1, 'Rule value cannot be empty').max(10000, 'Rule value exceeds 10 000 characters');
+    const rulesRecord = z.record(z.string(), ruleValueSchema).refine(
+      (obj) => Object.keys(obj).some((k) => knownKeys.includes(k)),
+      { message: 'No recognised rule IDs found' }
+    );
+    return z.union([
+      z.object({ allValues: rulesRecord }).transform((d) => d.allValues),
+      z.object({ customValues: rulesRecord }).transform((d) => d.customValues),
+      rulesRecord,
+    ]);
+  }, []);
+
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 512 * 1024) {
+      toast.error('File too large (max 512 KB)');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const json = JSON.parse(ev.target?.result as string);
-        const imported: Record<string, string> = json.allValues || json.customValues || json;
-        if (typeof imported !== 'object' || Array.isArray(imported)) throw new Error('Invalid format');
+        const raw = JSON.parse(ev.target?.result as string);
+        const result = templateSchema.safeParse(raw);
+        if (!result.success) {
+          const firstIssue = result.error.issues[0];
+          toast.error(`Invalid template: ${firstIssue?.message || 'schema validation failed'}`);
+          return;
+        }
+        const imported = result.data;
         const validEntries: Record<string, string> = {};
         let overwriteCount = 0;
         for (const [key, val] of Object.entries(imported)) {
-          if (key in DEFAULT_VALUES && typeof val === 'string') {
+          if (key in DEFAULT_VALUES) {
             validEntries[key] = val;
             if (values[key] !== DEFAULT_VALUES[key]) overwriteCount++;
           }
@@ -279,7 +305,7 @@ const RulesTemplates: React.FC = () => {
         }
         setImportPreview({ data: validEntries, count: Object.keys(validEntries).length, overwriteCount });
       } catch {
-        toast.error('Invalid JSON template file');
+        toast.error('Invalid JSON file — could not parse');
       }
     };
     reader.readAsText(file);
