@@ -294,6 +294,7 @@ const AuditDashboard: React.FC = () => {
         details: l.details,
       })),
     });
+    toast.success('CSV report downloaded successfully');
   };
 
   return (
