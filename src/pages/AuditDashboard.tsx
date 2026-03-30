@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
+import { subDays } from 'date-fns';
 import { toast } from 'sonner';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,7 +11,7 @@ import HelpButton from '@/components/HelpButton';
 import { KPICardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import {
   Shield, CheckCircle2, Clock, Rocket, RotateCcw, GitBranch,
-  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter, Download, Loader2,
+  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter, Download, Loader2, CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -31,9 +32,26 @@ const AuditDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedProjectId = searchParams.get('project') || 'all';
+  const selectedPeriod = searchParams.get('period') || 'all';
   const setSelectedProjectId = useCallback((value: string) => {
-    setSearchParams(value === 'all' ? {} : { project: value }, { replace: true });
-  }, [setSearchParams]);
+    const params: Record<string, string> = {};
+    if (value !== 'all') params.project = value;
+    if (selectedPeriod !== 'all') params.period = selectedPeriod;
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams, selectedPeriod]);
+  const setSelectedPeriod = useCallback((value: string) => {
+    const params: Record<string, string> = {};
+    if (selectedProjectId !== 'all') params.project = selectedProjectId;
+    if (value !== 'all') params.period = value;
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams, selectedProjectId]);
+
+  const periodCutoff = useMemo(() => {
+    if (selectedPeriod === '7') return subDays(new Date(), 7);
+    if (selectedPeriod === '30') return subDays(new Date(), 30);
+    if (selectedPeriod === '90') return subDays(new Date(), 90);
+    return null;
+  }, [selectedPeriod]);
 
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
@@ -90,7 +108,7 @@ const AuditDashboard: React.FC = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from('controls')
-        .select('id, review_status, criticality, project_id, framework_mappings')
+        .select('id, review_status, criticality, project_id, framework_mappings, created_at')
         .eq('user_id', user.id);
       if (error) throw error;
       return data || [];
@@ -100,19 +118,22 @@ const AuditDashboard: React.FC = () => {
 
   const loading = loadingProjects || loadingVersions || loadingLogs;
 
-  // Filter data by selected project
-  const filteredVersions = useMemo(() =>
-    selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId),
-    [versions, selectedProjectId]
-  );
-  const filteredAuditLogs = useMemo(() =>
-    selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId),
-    [auditLogs, selectedProjectId]
-  );
-  const filteredControls = useMemo(() =>
-    selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId),
-    [controls, selectedProjectId]
-  );
+  // Filter data by selected project and period
+  const filteredVersions = useMemo(() => {
+    let result = selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId);
+    if (periodCutoff) result = result.filter(v => new Date(v.created_at) >= periodCutoff);
+    return result;
+  }, [versions, selectedProjectId, periodCutoff]);
+  const filteredAuditLogs = useMemo(() => {
+    let result = selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId);
+    if (periodCutoff) result = result.filter(l => new Date(l.created_at) >= periodCutoff);
+    return result;
+  }, [auditLogs, selectedProjectId, periodCutoff]);
+  const filteredControls = useMemo(() => {
+    let result = selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId);
+    if (periodCutoff) result = result.filter(c => new Date(c.created_at) >= periodCutoff);
+    return result;
+  }, [controls, selectedProjectId, periodCutoff]);
   const filteredProjects = useMemo(() =>
     selectedProjectId === 'all' ? projects : projects.filter(p => p.id === selectedProjectId),
     [projects, selectedProjectId]
@@ -318,6 +339,18 @@ const AuditDashboard: React.FC = () => {
               {projects.map(p => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-[160px] h-9 text-xs">
+              <CalendarDays className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="All Time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
           <DropdownMenu>
