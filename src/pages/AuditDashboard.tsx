@@ -37,25 +37,52 @@ const AuditDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedProjectId = searchParams.get('project') || 'all';
   const selectedPeriod = searchParams.get('period') || 'all';
+  const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
   const setSelectedProjectId = useCallback((value: string) => {
     const params: Record<string, string> = {};
     if (value !== 'all') params.project = value;
     if (selectedPeriod !== 'all') params.period = selectedPeriod;
     setSearchParams(params, { replace: true });
   }, [setSearchParams, selectedPeriod]);
+
   const setSelectedPeriod = useCallback((value: string) => {
     const params: Record<string, string> = {};
     if (selectedProjectId !== 'all') params.project = selectedProjectId;
     if (value !== 'all') params.period = value;
     setSearchParams(params, { replace: true });
+    if (value !== 'custom') setCustomDateRange({});
   }, [setSearchParams, selectedProjectId]);
 
   const periodCutoff = useMemo(() => {
     if (selectedPeriod === '7') return subDays(new Date(), 7);
     if (selectedPeriod === '30') return subDays(new Date(), 30);
     if (selectedPeriod === '90') return subDays(new Date(), 90);
+    if (selectedPeriod === 'custom' && customDateRange.from) return customDateRange.from;
     return null;
-  }, [selectedPeriod]);
+  }, [selectedPeriod, customDateRange.from]);
+
+  const periodEnd = useMemo(() => {
+    if (selectedPeriod === 'custom' && customDateRange.to) {
+      const end = new Date(customDateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return end;
+    }
+    return null;
+  }, [selectedPeriod, customDateRange.to]);
+
+  const periodLabel = useMemo(() => {
+    if (selectedPeriod === '7') return 'Last 7 days';
+    if (selectedPeriod === '30') return 'Last 30 days';
+    if (selectedPeriod === '90') return 'Last 90 days';
+    if (selectedPeriod === 'custom' && customDateRange.from) {
+      const from = format(customDateRange.from, 'MMM d');
+      const to = customDateRange.to ? format(customDateRange.to, 'MMM d') : '…';
+      return `${from} – ${to}`;
+    }
+    return 'All Time';
+  }, [selectedPeriod, customDateRange]);
 
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
