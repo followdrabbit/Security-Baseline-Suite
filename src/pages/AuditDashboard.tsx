@@ -9,7 +9,7 @@ import HelpButton from '@/components/HelpButton';
 import { KPICardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import {
   Shield, CheckCircle2, Clock, Rocket, RotateCcw, GitBranch,
-  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter,
+  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter, Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +17,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { exportAuditPdf } from '@/components/audit/exportAuditPdf';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
@@ -175,6 +176,34 @@ const AuditDashboard: React.FC = () => {
   // Find project name by id
   const projectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown';
 
+  const handleExportPdf = () => {
+    const filterLabel = selectedProjectId === 'all'
+      ? `All Projects (${filteredProjects.length})`
+      : filteredProjects[0]?.name || 'Unknown';
+
+    exportAuditPdf({
+      filterLabel,
+      metrics,
+      criticalityData,
+      projects: filteredProjects.map(p => ({
+        name: p.name,
+        technology: p.technology,
+        current_version: p.current_version,
+        control_count: p.control_count,
+        avg_confidence: p.avg_confidence,
+        status: p.status,
+      })),
+      auditLogs: filteredAuditLogs.map(l => ({
+        action: l.action,
+        version_number: l.version_number,
+        from_version: l.from_version,
+        created_at: l.created_at,
+        projectName: projectName(l.project_id),
+        details: l.details,
+      })),
+    });
+  };
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -199,6 +228,9 @@ const AuditDashboard: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={loading}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />Export PDF
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/history"><History className="h-3.5 w-3.5 mr-1.5" />Version History</Link>
           </Button>
