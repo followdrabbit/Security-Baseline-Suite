@@ -108,7 +108,7 @@ const AuditDashboard: React.FC = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from('controls')
-        .select('id, review_status, criticality, project_id, framework_mappings')
+        .select('id, review_status, criticality, project_id, framework_mappings, created_at')
         .eq('user_id', user.id);
       if (error) throw error;
       return data || [];
