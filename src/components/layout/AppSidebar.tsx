@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User, Users, BookOpen,
+  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User, Users, BookOpen, ClipboardCheck,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useI18n } from '@/contexts/I18nContext';
@@ -50,10 +50,13 @@ const AppSidebar: React.FC = () => {
     { title: t.nav.editor, url: '/editor', icon: FileEdit },
   ];
 
-  const insightItems = [
+  const auditItems = [
     { title: t.nav.traceability, url: '/traceability', icon: GitBranch },
     { title: t.nav.history, url: '/history', icon: History },
     { title: t.nav.exportImport, url: '/export-import', icon: ArrowUpDown },
+  ];
+
+  const toolItems = [
     { title: (t.nav as any).aiIntegrations || 'AI Integrations', url: '/ai-integrations', icon: Brain },
     { title: 'Teams', url: '/teams', icon: Users },
     { title: 'Docs', url: '/docs', icon: BookOpen },
@@ -100,9 +103,18 @@ const AppSidebar: React.FC = () => {
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">Insights</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">
+            <ClipboardCheck className="h-3 w-3 inline mr-1.5 -mt-0.5" />{(t.nav as any).auditGroup || 'Audit & Compliance'}
+          </SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu>{insightItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu>{auditItems.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">Tools</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>{toolItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
