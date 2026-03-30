@@ -306,7 +306,8 @@ const AuditDashboard: React.FC = () => {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0 }}
-            className="bg-card border border-border rounded-xl p-5 shadow-premium">
+            onClick={() => navigate('/history')}
+            className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-primary/40 transition-colors group">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Rocket className="h-4 w-4 text-primary" />
@@ -315,6 +316,7 @@ const AuditDashboard: React.FC = () => {
             </div>
             <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.draftVersions} drafts across {metrics.totalProjects} projects</p>
+            <p className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity mt-1">View version history →</p>
           </motion.div>
 
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.05 }}
