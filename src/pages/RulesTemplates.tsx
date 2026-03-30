@@ -838,10 +838,10 @@ const RulesTemplates: React.FC = () => {
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setShowSaveDialog(false); setSaveLabel(''); }}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleSaveVersion}>
-                  <Save className="h-3.5 w-3.5 mr-1.5" />Save
+                  <Save className="h-3.5 w-3.5 mr-1.5" />{t.rules.save}
                 </Button>
               </div>
             </motion.div>
