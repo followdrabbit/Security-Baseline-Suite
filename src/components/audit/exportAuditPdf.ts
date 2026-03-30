@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AUREUM_LOGO_BASE64 } from '@/assets/aureumLogoBase64';
 
 interface AuditPdfData {
   filterLabel: string;
