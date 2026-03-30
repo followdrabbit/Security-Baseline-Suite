@@ -115,5 +115,5 @@ export function useTemplateVersions() {
     }
   }, [user]);
 
-  return { versions, loading, saveVersion, deleteVersion, reload: load };
+  return { versions, loading, saveVersion, deleteVersion, renameVersion, reload: load };
 }
