@@ -380,6 +380,8 @@ const translations = {
       exportCSV: 'Export CSV',
       exportPDF: 'Export PDF',
       exportDiffTitle: 'Version Diff Report',
+      restoreVersion: 'Restore this Version',
+      restoreConfirm: 'This will replace all Live controls with the snapshot from this version. A traceability record will be created. Continue?',
     },
     traceabilityPage: {
       title: 'Traceability',
@@ -1112,6 +1114,8 @@ const translations = {
       exportCSV: 'Exportar CSV',
       exportPDF: 'Exportar PDF',
       exportDiffTitle: 'Relatório de Diff de Versões',
+      restoreVersion: 'Restaurar esta Versão',
+      restoreConfirm: 'Isso substituirá todos os controles Live pelo snapshot desta versão. Um registro de rastreabilidade será criado. Continuar?',
     },
     traceabilityPage: {
       title: 'Rastreabilidade',
@@ -1844,6 +1848,8 @@ const translations = {
       exportCSV: 'Exportar CSV',
       exportPDF: 'Exportar PDF',
       exportDiffTitle: 'Informe de Diff de Versiones',
+      restoreVersion: 'Restaurar esta Versión',
+      restoreConfirm: 'Esto reemplazará todos los controles Live con el snapshot de esta versión. Se creará un registro de trazabilidad. ¿Continuar?',
     },
     traceabilityPage: {
       title: 'Trazabilidad',
