@@ -284,6 +284,34 @@ const ExportImport: React.FC = () => {
     }
   };
 
+  const handleGenerateDocument = async () => {
+    if (!user || !selectedProjectId) return;
+    const { data } = await supabase
+      .from('controls')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('project_id', selectedProjectId)
+      .order('control_id', { ascending: true });
+    if (data && data.length > 0) {
+      setDocControls(data.map((c: any) => ({
+        id: c.id, projectId: c.project_id, controlId: c.control_id, title: c.title,
+        description: c.description || '', applicability: c.applicability || '',
+        securityRisk: c.security_risk || '', criticality: c.criticality || 'medium',
+        defaultBehaviorLimitations: c.default_behavior_limitations || '',
+        automation: c.automation || '', references: c.references || [],
+        frameworkMappings: c.framework_mappings || [],
+        threatScenarios: (c.threat_scenarios as any[]) || [],
+        sourceTraceability: (c.source_traceability as any[]) || [],
+        confidenceScore: Number(c.confidence_score) || 0,
+        reviewStatus: c.review_status || 'pending', reviewerNotes: c.reviewer_notes || '',
+        version: c.version || 1, category: c.category || '',
+      })));
+      setDocModalOpen(true);
+    } else {
+      toast.error('No controls found for this project');
+    }
+  };
+
   const exportItems = [
     {
       key: 'baseline',
@@ -291,6 +319,13 @@ const ExportImport: React.FC = () => {
       titleKey: 'exportBaseline',
       description: 'Export the current baseline with all controls, metadata, and framework mappings',
       hasFormats: true,
+    },
+    {
+      key: 'document',
+      icon: BookOpen,
+      titleKey: 'generateButton',
+      description: 'Generate a standardized PDF/DOCX baseline document with cover, executive summary, and annexes',
+      isDocument: true,
     },
     { key: 'project', icon: Archive, titleKey: 'exportProject', description: 'Complete project backup including sources, rules, versions, and configurations' },
     { key: 'config', icon: Settings2, titleKey: 'exportConfig', description: 'Export your workspace configuration, AI settings, and preferences' },
