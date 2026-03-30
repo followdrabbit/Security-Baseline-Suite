@@ -1012,7 +1012,7 @@ const RulesTemplates: React.FC = () => {
                     setRenameLabel('');
                   }}
                 >
-                  <Pencil className="h-3.5 w-3.5 mr-1.5" />Rename
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />{t.rules.rename}
                 </Button>
               </div>
             </motion.div>
