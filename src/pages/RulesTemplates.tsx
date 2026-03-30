@@ -212,9 +212,9 @@ const AIStrictnessSection: React.FC<{
 
               {/* Impact bars */}
               <div className="w-full space-y-1 mt-1 pt-2 border-t border-border/50">
-                <ImpactBar label={rules.precision} value={metrics.precision} isActive={isActive} />
-                <ImpactBar label={rules.coverage} value={metrics.coverage} isActive={isActive} />
-                <ImpactBar label={rules.reviewEffort} value={metrics.reviewEffort} isActive={isActive} />
+                <ImpactBar label={rules.precision} tooltip={rules.precisionTip} value={metrics.precision} isActive={isActive} />
+                <ImpactBar label={rules.coverage} tooltip={rules.coverageTip} value={metrics.coverage} isActive={isActive} />
+                <ImpactBar label={rules.reviewEffort} tooltip={rules.reviewEffortTip} value={metrics.reviewEffort} isActive={isActive} />
               </div>
 
               {/* Active indicator */}
