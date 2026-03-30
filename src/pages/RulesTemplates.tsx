@@ -532,6 +532,61 @@ const RulesTemplates: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Import Confirmation Modal */}
+      <AnimatePresence>
+        {importPreview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setImportPreview(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-md w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Confirm Import</h3>
+                  <p className="text-sm text-muted-foreground">This will overwrite current values</p>
+                </div>
+              </div>
+
+              <div className="bg-muted/30 border border-border/50 rounded-lg p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Rules to import</span>
+                  <span className="font-medium text-foreground">{importPreview.count}</span>
+                </div>
+                {importPreview.overwriteCount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-warning">Custom values to overwrite</span>
+                    <span className="font-medium text-warning">{importPreview.overwriteCount}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setImportPreview(null)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleConfirmImport} disabled={saving}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Import {importPreview.count} rule(s)
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
