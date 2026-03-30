@@ -38,6 +38,8 @@ const ExportImport: React.FC = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectTech, setNewProjectTech] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const [docControls, setDocControls] = useState<any[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
