@@ -126,11 +126,7 @@ const AIStrictnessSection: React.FC<{
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        {t.id === 'en'
-          ? 'Controls how strictly the AI engine follows the defined rules when generating baselines.'
-          : t.id === 'pt'
-            ? 'Controla o quão rigorosamente o motor de IA segue as regras definidas ao gerar baselines.'
-            : 'Controla qué tan estrictamente el motor de IA sigue las reglas definidas al generar baselines.'}
+        {(t.rules as Record<string, string>).aiStrictnessDesc}
       </p>
       <div className="flex gap-2">
         {(['conservative', 'balanced', 'aggressive'] as const).map(level => (
