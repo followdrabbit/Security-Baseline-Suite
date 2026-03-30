@@ -570,7 +570,7 @@ const RulesTemplates: React.FC = () => {
                           </div>
                           <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
-                              <Undo2 className="h-3 w-3 mr-1" />Restore
+                              <Undo2 className="h-3 w-3 mr-1" />{t.rules.restore}
                             </Button>
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setRenameTarget(v); setRenameLabel(v.label); }}>
                               <Pencil className="h-3 w-3" />
