@@ -749,7 +749,7 @@ const RulesTemplates: React.FC = () => {
 
               <div className="bg-muted/30 border border-border/50 rounded-lg p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rules to import</span>
+                  <span className="text-muted-foreground">{t.rules.rulesToImport}</span>
                   <span className="font-medium text-foreground">{importPreview.count}</span>
                 </div>
                 {importPreview.overwriteCount > 0 && (
