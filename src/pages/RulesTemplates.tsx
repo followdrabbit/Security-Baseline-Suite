@@ -988,8 +988,8 @@ const RulesTemplates: React.FC = () => {
                   <Pencil className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Rename Version</h3>
-                  <p className="text-sm text-muted-foreground">Change the label for this version</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.renameVersion}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.renameVersionSubtitle}</p>
                 </div>
               </div>
               <Input
