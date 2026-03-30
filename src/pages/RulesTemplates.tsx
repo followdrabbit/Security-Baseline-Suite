@@ -964,6 +964,61 @@ const RulesTemplates: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Rename Version Dialog */}
+      <AnimatePresence>
+        {renameTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setRenameTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-sm w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Pencil className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Rename Version</h3>
+                  <p className="text-sm text-muted-foreground">Change the label for this version</p>
+                </div>
+              </div>
+              <Input
+                placeholder="Version name"
+                value={renameLabel}
+                onChange={e => setRenameLabel(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setRenameTarget(null); setRenameLabel(''); }}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="gold-gradient text-primary-foreground hover:opacity-90"
+                  disabled={!renameLabel.trim() || renameLabel.trim() === renameTarget.label}
+                  onClick={async () => {
+                    await renameVersion(renameTarget.id, renameLabel.trim());
+                    setRenameTarget(null);
+                    setRenameLabel('');
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />Rename
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
