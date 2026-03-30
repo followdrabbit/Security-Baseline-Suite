@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,11 @@ const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 const AuditDashboard: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedProjectId = searchParams.get('project') || 'all';
+  const setSelectedProjectId = useCallback((value: string) => {
+    setSearchParams(value === 'all' ? {} : { project: value }, { replace: true });
+  }, [setSearchParams]);
 
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
