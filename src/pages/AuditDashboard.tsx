@@ -72,6 +72,7 @@ const AuditDashboard: React.FC = () => {
     if (value !== 'all') params.period = value;
     setSearchParams(params, { replace: true });
     if (value !== 'custom') setCustomDateRange({});
+    if (value === 'all') setCompareEnabled(false);
   }, [setSearchParams, selectedProjectId]);
 
   const periodCutoff = useMemo(() => {
