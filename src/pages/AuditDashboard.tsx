@@ -48,6 +48,26 @@ const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boo
   );
 };
 
+const Sparkline: React.FC<{ data: { v: number }[]; color?: string; height?: number }> = ({ data, color = 'hsl(var(--primary))', height = 24 }) => {
+  const width = 64;
+  const values = data.map(d => d.v);
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+  const areaPoints = `0,${height} ${points} ${width},${height}`;
+  return (
+    <svg width={width} height={height} className="shrink-0 opacity-70">
+      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+      <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
+    </svg>
+  );
+};
+
 const AuditDashboard: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -273,6 +293,55 @@ const AuditDashboard: React.FC = () => {
     if (previous === undefined || previous === null) return null;
     return current - previous;
   };
+
+  // Sparkline data (last 7 days, daily buckets)
+  const sparklineData = useMemo(() => {
+    const now = new Date();
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(now, 6 - i);
+      return { date: d, key: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` };
+    });
+    const dayKey = (dateStr: string) => {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    };
+    const projectFilter = (items: any[]) =>
+      selectedProjectId === 'all' ? items : items.filter((i: any) => i.project_id === selectedProjectId);
+
+    const pVersions = projectFilter(versions);
+    const pControls = projectFilter(controls);
+    const pLogs = projectFilter(auditLogs);
+
+    // Cumulative published versions per day
+    const publishedByDay = days.map(d => {
+      const count = pVersions.filter(v => v.status === 'published' && dayKey(v.created_at) === d.key).length;
+      return { v: count };
+    });
+
+    // Cumulative approved rate per day (controls created up to that day)
+    const reviewByDay = days.map(d => {
+      const cutoff = new Date(d.date);
+      cutoff.setHours(23, 59, 59, 999);
+      const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
+      const approved = relevant.filter((c: any) => c.review_status === 'approved').length;
+      return { v: relevant.length > 0 ? Math.round((approved / relevant.length) * 100) : 0 };
+    });
+
+    // Pending controls per day
+    const pendingByDay = days.map(d => {
+      const cutoff = new Date(d.date);
+      cutoff.setHours(23, 59, 59, 999);
+      const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
+      return { v: relevant.filter((c: any) => c.review_status === 'pending').length };
+    });
+
+    // Audit actions per day
+    const actionsByDay = days.map(d => ({
+      v: pLogs.filter(l => dayKey(l.created_at) === d.key).length,
+    }));
+
+    return { published: publishedByDay, review: reviewByDay, pending: pendingByDay, actions: actionsByDay };
+  }, [versions, controls, auditLogs, selectedProjectId]);
 
   // Review status pie chart data
   const reviewPieData = useMemo(() => [
@@ -560,11 +629,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0 }}
             onClick={() => navigate('/history')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-primary/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Rocket className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Rocket className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Published Versions</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Published Versions</span>
+              <Sparkline data={sparklineData.published} />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
@@ -577,11 +649,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.05 }}
             onClick={() => navigate('/editor?review=approved')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-success/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
+              <Sparkline data={sparklineData.review} color="hsl(var(--success))" />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
@@ -594,11 +669,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.1 }}
             onClick={() => navigate('/editor?review=pending')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-warning/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 text-warning" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending Review</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending Review</span>
+              <Sparkline data={sparklineData.pending} color="hsl(var(--warning))" />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
@@ -611,11 +689,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.15 }}
             onClick={() => navigate('/traceability')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-primary/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg. Confidence</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg. Confidence</span>
+              <Sparkline data={sparklineData.actions} />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
