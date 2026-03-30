@@ -629,11 +629,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0 }}
             onClick={() => navigate('/history')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-primary/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Rocket className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Rocket className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Published Versions</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Published Versions</span>
+              <Sparkline data={sparklineData.published} />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
@@ -646,11 +649,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.05 }}
             onClick={() => navigate('/editor?review=approved')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-success/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
+              <Sparkline data={sparklineData.review} color="hsl(var(--success))" />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
@@ -663,11 +669,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.1 }}
             onClick={() => navigate('/editor?review=pending')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-warning/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
-                <AlertTriangle className="h-4 w-4 text-warning" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending Review</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending Review</span>
+              <Sparkline data={sparklineData.pending} color="hsl(var(--warning))" />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
@@ -680,11 +689,14 @@ const AuditDashboard: React.FC = () => {
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.15 }}
             onClick={() => navigate('/traceability')}
             className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-primary/40 transition-colors group">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg. Confidence</span>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg. Confidence</span>
+              <Sparkline data={sparklineData.actions} />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
