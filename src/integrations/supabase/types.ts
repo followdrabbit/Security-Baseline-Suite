@@ -521,6 +521,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_rule_values: {
+        Row: {
+          id: string
+          rule_id: string
+          updated_at: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          id?: string
+          rule_id: string
+          updated_at?: string
+          user_id: string
+          value: string
+        }
+        Update: {
+          id?: string
+          rule_id?: string
+          updated_at?: string
+          user_id?: string
+          value?: string
+        }
+        Relationships: []
+      }
       version_audit_logs: {
         Row: {
           action: string
