@@ -11,7 +11,7 @@ import HelpButton from '@/components/HelpButton';
 import { KPICardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import {
   Shield, CheckCircle2, Clock, Rocket, RotateCcw, GitBranch,
-  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter, Download, Loader2, CalendarDays,
+  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter, Download, Loader2, CalendarDays, ArrowUpRight, ArrowDownRight, Minus, GitCompareArrows,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -30,6 +30,24 @@ import { exportAuditCsv } from '@/components/audit/exportAuditCsv';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
+const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boolean }> = ({ delta, suffix = '', invert = false }) => {
+  if (delta === null || delta === undefined) return null;
+  const isPositive = invert ? delta < 0 : delta > 0;
+  const isNegative = invert ? delta > 0 : delta < 0;
+  const isZero = delta === 0;
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+      isPositive && "bg-success/10 text-success",
+      isNegative && "bg-destructive/10 text-destructive",
+      isZero && "bg-muted text-muted-foreground",
+    )}>
+      {delta > 0 ? <ArrowUpRight className="h-2.5 w-2.5" /> : delta < 0 ? <ArrowDownRight className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />}
+      {Math.abs(delta)}{suffix}
+    </span>
+  );
+};
+
 const AuditDashboard: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -39,6 +57,7 @@ const AuditDashboard: React.FC = () => {
   const selectedPeriod = searchParams.get('period') || 'all';
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [compareEnabled, setCompareEnabled] = useState(false);
 
   const setSelectedProjectId = useCallback((value: string) => {
     const params: Record<string, string> = {};
@@ -53,6 +72,7 @@ const AuditDashboard: React.FC = () => {
     if (value !== 'all') params.period = value;
     setSearchParams(params, { replace: true });
     if (value !== 'custom') setCustomDateRange({});
+    if (value === 'all') setCompareEnabled(false);
   }, [setSearchParams, selectedProjectId]);
 
   const periodCutoff = useMemo(() => {
@@ -83,6 +103,29 @@ const AuditDashboard: React.FC = () => {
     }
     return 'All Time';
   }, [selectedPeriod, customDateRange]);
+
+  // Previous period for comparison
+  const previousPeriod = useMemo(() => {
+    if (!compareEnabled || selectedPeriod === 'all') return null;
+    const now = new Date();
+    if (selectedPeriod === '7') return { from: subDays(now, 14), to: subDays(now, 7) };
+    if (selectedPeriod === '30') return { from: subDays(now, 60), to: subDays(now, 30) };
+    if (selectedPeriod === '90') return { from: subDays(now, 180), to: subDays(now, 90) };
+    if (selectedPeriod === 'custom' && customDateRange.from) {
+      const from = customDateRange.from;
+      const to = customDateRange.to || now;
+      const duration = to.getTime() - from.getTime();
+      const prevTo = new Date(from.getTime() - 1);
+      const prevFrom = new Date(prevTo.getTime() - duration);
+      return { from: prevFrom, to: prevTo };
+    }
+    return null;
+  }, [compareEnabled, selectedPeriod, customDateRange]);
+
+  const previousPeriodLabel = useMemo(() => {
+    if (!previousPeriod) return '';
+    return `${format(previousPeriod.from, 'MMM d')} – ${format(previousPeriod.to, 'MMM d')}`;
+  }, [previousPeriod]);
 
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
@@ -202,6 +245,34 @@ const AuditDashboard: React.FC = () => {
         : 0,
     };
   }, [filteredProjects, filteredVersions, filteredAuditLogs, filteredControls]);
+
+  // Previous period metrics for comparison
+  const prevMetrics = useMemo(() => {
+    if (!previousPeriod || !compareEnabled) return null;
+    const isInPrev = (dateStr: string) => {
+      const d = new Date(dateStr);
+      return d >= previousPeriod.from && d <= previousPeriod.to;
+    };
+    const projectFilter = (items: any[], key = 'project_id') =>
+      selectedProjectId === 'all' ? items : items.filter((i: any) => i[key] === selectedProjectId);
+
+    const pVersions = projectFilter(versions).filter(v => isInPrev(v.created_at));
+    const pLogs = projectFilter(auditLogs).filter(l => isInPrev(l.created_at));
+    const pControls = projectFilter(controls).filter(c => isInPrev(c.created_at));
+
+    const publishedVersions = pVersions.filter(v => v.status === 'published').length;
+    const totalControls = pControls.length;
+    const approvedControls = pControls.filter((c: any) => c.review_status === 'approved').length;
+    const pendingControls = pControls.filter((c: any) => c.review_status === 'pending').length;
+    const reviewRate = totalControls > 0 ? Math.round((approvedControls / totalControls) * 100) : 0;
+
+    return { publishedVersions, reviewRate, pendingControls, avgConfidence: 0, totalAuditActions: pLogs.length };
+  }, [previousPeriod, compareEnabled, versions, auditLogs, controls, selectedProjectId]);
+
+  const getDelta = (current: number, previous: number | undefined) => {
+    if (previous === undefined || previous === null) return null;
+    return current - previous;
+  };
 
   // Review status pie chart data
   const reviewPieData = useMemo(() => [
@@ -428,6 +499,17 @@ const AuditDashboard: React.FC = () => {
               </div>
             </PopoverContent>
           </Popover>
+          <Button
+            variant={compareEnabled ? "default" : "outline"}
+            size="sm"
+            className="h-9 text-xs gap-1.5"
+            onClick={() => setCompareEnabled(prev => !prev)}
+            disabled={selectedPeriod === 'all'}
+            title={selectedPeriod === 'all' ? 'Select a time period first to compare' : 'Compare with previous period'}
+          >
+            <GitCompareArrows className="h-3.5 w-3.5" />
+            Compare
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={loading || exporting}>
@@ -455,6 +537,19 @@ const AuditDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Comparison banner */}
+      {compareEnabled && prevMetrics && previousPeriodLabel && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+          className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <GitCompareArrows className="h-3.5 w-3.5 text-primary" />
+          Comparing <span className="font-medium text-foreground">{periodLabel}</span> vs
+          <span className="font-medium text-foreground">{previousPeriodLabel}</span>
+          <button onClick={() => setCompareEnabled(false)} className="ml-auto text-muted-foreground hover:text-foreground text-xs underline">
+            Disable
+          </button>
+        </motion.div>
+      )}
+
       {/* KPI Cards */}
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -471,7 +566,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Published Versions</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
+              <DeltaBadge delta={getDelta(metrics.publishedVersions, prevMetrics?.publishedVersions)} />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.draftVersions} drafts across {metrics.totalProjects} projects</p>
             <p className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity mt-1">View version history →</p>
           </motion.div>
@@ -485,7 +583,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
+              <DeltaBadge delta={getDelta(metrics.reviewRate, prevMetrics?.reviewRate)} suffix="pp" />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.approvedControls} of {metrics.totalControls} controls approved</p>
             <p className="text-[10px] text-success opacity-0 group-hover:opacity-100 transition-opacity mt-1">View approved controls →</p>
           </motion.div>
@@ -499,7 +600,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending Review</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
+              <DeltaBadge delta={getDelta(metrics.pendingControls, prevMetrics?.pendingControls)} invert />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.rejectedControls} rejected controls</p>
             <p className="text-[10px] text-warning opacity-0 group-hover:opacity-100 transition-opacity mt-1">View pending controls →</p>
           </motion.div>
@@ -513,7 +617,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg. Confidence</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
+              <DeltaBadge delta={getDelta(metrics.avgConfidence, prevMetrics?.avgConfidence)} suffix="pp" />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.totalAuditActions} audit actions logged</p>
             <p className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity mt-1">View traceability →</p>
           </motion.div>
