@@ -2477,8 +2477,26 @@ const translations = {
       faq10Q: '¿Cómo cambiar el idioma de salida de los controles generados?',
       faq10A: 'Ve a Configuración y cambia la opción "Idioma de Salida". Esto afecta el idioma usado por la IA al generar títulos y descripciones de controles — independiente del idioma de la interfaz.',
     },
+    baselineDocument: {
+      generateTitle: 'Generar Documento de Baseline',
+      generateDesc: 'Genere un documento estandarizado con portada, resumen ejecutivo, controles por categoría y anexos.',
+      generateButton: 'Generar Documento',
+      project: 'Proyecto',
+      tech: 'Tecnología',
+      ver: 'Versión',
+      controlsLabel: 'Controles',
+      structure: 'Estructura del Documento',
+      coverPage: 'Portada',
+      toc: 'Índice',
+      execSummary: 'Resumen Ejecutivo',
+      projOverview: 'Visión General del Proyecto',
+      secControls: 'Controles de Seguridad (por categoría)',
+      annexFramework: 'Anexo A — Cobertura de Frameworks',
+      annexSources: 'Anexo B — Trazabilidad de Fuentes',
+      downloadPdf: 'Descargar PDF',
+      downloadDocx: 'Descargar DOCX',
+    },
   },
-} as const;
 
 export type TranslationKeys = typeof translations.en;
 export default translations;
