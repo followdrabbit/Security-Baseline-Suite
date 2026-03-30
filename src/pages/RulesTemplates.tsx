@@ -14,10 +14,11 @@ import { useRuleValues } from '@/hooks/useRuleValues';
 import { useTemplateVersions, TemplateVersion, MAX_TEMPLATE_VERSIONS } from '@/hooks/useTemplateVersions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import VersionComparePanel from '@/components/VersionComparePanel';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight,
 } from 'lucide-react';
 
 interface RuleSection {
