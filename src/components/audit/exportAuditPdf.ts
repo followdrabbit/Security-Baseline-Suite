@@ -17,6 +17,13 @@ interface AuditPdfData {
     avgConfidence: number;
   };
   criticalityData: { name: string; value: number }[];
+  complianceTrend: {
+    label: string;
+    date: string;
+    confidence: number;
+    reviewRate: number;
+    controls: number;
+  }[];
   projects: {
     name: string;
     technology: string;
