@@ -150,21 +150,28 @@ const AuditDashboard: React.FC = () => {
   const loading = loadingProjects || loadingVersions || loadingLogs;
 
   // Filter data by selected project and period
+  const isInPeriod = useCallback((dateStr: string) => {
+    const d = new Date(dateStr);
+    if (periodCutoff && d < periodCutoff) return false;
+    if (periodEnd && d > periodEnd) return false;
+    return true;
+  }, [periodCutoff, periodEnd]);
+
   const filteredVersions = useMemo(() => {
     let result = selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId);
-    if (periodCutoff) result = result.filter(v => new Date(v.created_at) >= periodCutoff);
+    if (periodCutoff) result = result.filter(v => isInPeriod(v.created_at));
     return result;
-  }, [versions, selectedProjectId, periodCutoff]);
+  }, [versions, selectedProjectId, periodCutoff, periodEnd, isInPeriod]);
   const filteredAuditLogs = useMemo(() => {
     let result = selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId);
-    if (periodCutoff) result = result.filter(l => new Date(l.created_at) >= periodCutoff);
+    if (periodCutoff) result = result.filter(l => isInPeriod(l.created_at));
     return result;
-  }, [auditLogs, selectedProjectId, periodCutoff]);
+  }, [auditLogs, selectedProjectId, periodCutoff, periodEnd, isInPeriod]);
   const filteredControls = useMemo(() => {
     let result = selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId);
-    if (periodCutoff) result = result.filter(c => new Date(c.created_at) >= periodCutoff);
+    if (periodCutoff) result = result.filter(c => isInPeriod(c.created_at));
     return result;
-  }, [controls, selectedProjectId, periodCutoff]);
+  }, [controls, selectedProjectId, periodCutoff, periodEnd, isInPeriod]);
   const filteredProjects = useMemo(() =>
     selectedProjectId === 'all' ? projects : projects.filter(p => p.id === selectedProjectId),
     [projects, selectedProjectId]
