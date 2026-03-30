@@ -688,7 +688,7 @@ const AuditDashboard: React.FC = () => {
                 </div>
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
               </div>
-              <Sparkline data={sparklineData.review} color="hsl(var(--success))" />
+              <Sparkline data={sparklineData.review} color="hsl(var(--success))" suffix="%" />
             </div>
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
