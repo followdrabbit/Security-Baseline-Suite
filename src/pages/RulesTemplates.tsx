@@ -506,7 +506,7 @@ const RulesTemplates: React.FC = () => {
                   {compareSelection.length > 0 && (
                     <div className="ml-auto flex items-center gap-2">
                       <span className="text-[11px] text-muted-foreground">
-                        {compareSelection.length}/2 selected
+                        {compareSelection.length}/2 {t.rules.selected}
                       </span>
                       {compareSelection.length === 2 && (
                         <Badge className="text-[10px] bg-primary/10 text-primary border-primary/30 animate-pulse">
