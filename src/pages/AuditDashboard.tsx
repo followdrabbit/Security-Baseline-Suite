@@ -237,64 +237,48 @@ const AuditDashboard: React.FC = () => {
   // Find project name by id
   const projectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown';
 
-  const handleExportPdf = () => {
+  const [exporting, setExporting] = useState(false);
+
+  const buildExportData = () => {
     const filterLabel = selectedProjectId === 'all'
       ? `All Projects (${filteredProjects.length})`
       : filteredProjects[0]?.name || 'Unknown';
-
-    exportAuditPdf({
+    return {
       filterLabel,
       metrics,
       criticalityData,
       complianceTrend,
       projects: filteredProjects.map(p => ({
-        name: p.name,
-        technology: p.technology,
-        current_version: p.current_version,
-        control_count: p.control_count,
-        avg_confidence: p.avg_confidence,
-        status: p.status,
+        name: p.name, technology: p.technology, current_version: p.current_version,
+        control_count: p.control_count, avg_confidence: p.avg_confidence, status: p.status,
       })),
       auditLogs: filteredAuditLogs.map(l => ({
-        action: l.action,
-        version_number: l.version_number,
-        from_version: l.from_version,
-        created_at: l.created_at,
-        projectName: projectName(l.project_id),
-        details: l.details,
+        action: l.action, version_number: l.version_number, from_version: l.from_version,
+        created_at: l.created_at, projectName: projectName(l.project_id), details: l.details,
       })),
-    });
-    toast.success('PDF report downloaded successfully');
+    };
   };
 
-  const handleExportCsv = () => {
-    const filterLabel = selectedProjectId === 'all'
-      ? `All Projects (${filteredProjects.length})`
-      : filteredProjects[0]?.name || 'Unknown';
+  const handleExportPdf = async () => {
+    setExporting(true);
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      exportAuditPdf(buildExportData());
+      toast.success('PDF report downloaded successfully');
+    } finally {
+      setExporting(false);
+    }
+  };
 
-    exportAuditCsv({
-      filterLabel,
-      metrics,
-      criticalityData,
-      complianceTrend,
-      projects: filteredProjects.map(p => ({
-        name: p.name,
-        technology: p.technology,
-        current_version: p.current_version,
-        control_count: p.control_count,
-        avg_confidence: p.avg_confidence,
-        status: p.status,
-      })),
-      auditLogs: filteredAuditLogs.map(l => ({
-        action: l.action,
-        version_number: l.version_number,
-        from_version: l.from_version,
-        created_at: l.created_at,
-        projectName: projectName(l.project_id),
-        details: l.details,
-      })),
-    });
-    toast.success('CSV report downloaded successfully');
+  const handleExportCsv = async () => {
+    setExporting(true);
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      exportAuditCsv(buildExportData());
+      toast.success('CSV report downloaded successfully');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
