@@ -232,8 +232,13 @@ const RulesTemplates: React.FC = () => {
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
   const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
+  const { versions, loading: versionsLoading, saveVersion, deleteVersion } = useTemplateVersions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<{ data: Record<string, string>; count: number; overwriteCount: number } | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [saveLabel, setSaveLabel] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [restorePreview, setRestorePreview] = useState<TemplateVersion | null>(null);
 
   const handleExportJSON = () => {
     const onlyCustom: Record<string, string> = {};
