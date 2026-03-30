@@ -405,8 +405,8 @@ const RulesTemplates: React.FC = () => {
                   <RuleContentSection
                     value={values[activeContent.id]}
                     defaultValue={activeContent.defaultContent}
-                    onChange={v => updateValue(activeContent.id, v)}
-                    onRestore={() => restoreOne(activeContent.id)}
+                    onChange={v => handleUpdateValue(activeContent.id, v)}
+                    onRestore={() => handleRestoreOne(activeContent.id)}
                     t={t}
                   />
                 )}
