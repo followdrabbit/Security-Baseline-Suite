@@ -16,6 +16,7 @@ import AIWorkspace from "@/pages/AIWorkspace";
 import BaselineEditor from "@/pages/BaselineEditor";
 import Traceability from "@/pages/Traceability";
 import HistoryPage from "@/pages/HistoryPage";
+import AuditDashboard from "@/pages/AuditDashboard";
 import ExportImport from "@/pages/ExportImport";
 import Settings from "@/pages/Settings";
 import AIIntegrations from "@/pages/AIIntegrations";
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/workspace" element={<AIWorkspace />} />
                   <Route path="/editor" element={<BaselineEditor />} />
                   <Route path="/traceability" element={<Traceability />} />
+                  <Route path="/audit" element={<AuditDashboard />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/export-import" element={<ExportImport />} />
                   <Route path="/ai-integrations" element={<AIIntegrations />} />

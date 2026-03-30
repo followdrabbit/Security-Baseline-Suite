@@ -51,6 +51,7 @@ const AppSidebar: React.FC = () => {
   ];
 
   const auditItems = [
+    { title: 'Audit Dashboard', url: '/audit', icon: ClipboardCheck },
     { title: t.nav.traceability, url: '/traceability', icon: GitBranch },
     { title: t.nav.history, url: '/history', icon: History },
     { title: t.nav.exportImport, url: '/export-import', icon: ArrowUpDown },
