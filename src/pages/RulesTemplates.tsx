@@ -1000,7 +1000,7 @@ const RulesTemplates: React.FC = () => {
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setRenameTarget(null); setRenameLabel(''); }}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button
                   size="sm"
