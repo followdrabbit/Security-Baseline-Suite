@@ -17,7 +17,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket, CalendarIcon, X, Download } from 'lucide-react';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket, CalendarIcon, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
@@ -49,6 +49,8 @@ const History: React.FC = () => {
   const [auditActionFilter, setAuditActionFilter] = useState<string>('all');
   const [auditDateFrom, setAuditDateFrom] = useState<Date | undefined>();
   const [auditDateTo, setAuditDateTo] = useState<Date | undefined>();
+  const [auditPage, setAuditPage] = useState(0);
+  const AUDIT_PAGE_SIZE = 10;
 
   const { data: projects = [] } = useQuery({
     queryKey: ['history-projects', user?.id],
@@ -286,6 +288,9 @@ const History: React.FC = () => {
         });
         const hasActiveFilters = auditActionFilter !== 'all' || auditDateFrom || auditDateTo;
 
+        const totalPages = Math.ceil(filteredLogs.length / AUDIT_PAGE_SIZE);
+        const paginatedLogs = filteredLogs.slice(auditPage * AUDIT_PAGE_SIZE, (auditPage + 1) * AUDIT_PAGE_SIZE);
+
         return (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -295,7 +300,7 @@ const History: React.FC = () => {
 
           {/* Audit Filters */}
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={auditActionFilter} onValueChange={setAuditActionFilter}>
+            <Select value={auditActionFilter} onValueChange={(v) => { setAuditActionFilter(v); setAuditPage(0); }}>
               <SelectTrigger className="h-8 w-[140px] text-xs">
                 <SelectValue />
               </SelectTrigger>
@@ -314,7 +319,7 @@ const History: React.FC = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={auditDateFrom} onSelect={setAuditDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+                <Calendar mode="single" selected={auditDateFrom} onSelect={(d) => { setAuditDateFrom(d); setAuditPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} />
               </PopoverContent>
             </Popover>
 
@@ -326,12 +331,12 @@ const History: React.FC = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={auditDateTo} onSelect={setAuditDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+                <Calendar mode="single" selected={auditDateTo} onSelect={(d) => { setAuditDateTo(d); setAuditPage(0); }} initialFocus className={cn("p-3 pointer-events-auto")} />
               </PopoverContent>
             </Popover>
 
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => { setAuditActionFilter('all'); setAuditDateFrom(undefined); setAuditDateTo(undefined); }}>
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => { setAuditActionFilter('all'); setAuditDateFrom(undefined); setAuditDateTo(undefined); setAuditPage(0); }}>
                 <X className="h-3 w-3" /> Clear
               </Button>
             )}
@@ -388,7 +393,7 @@ const History: React.FC = () => {
             {filteredLogs.length === 0 ? (
               <div className="px-4 py-6 text-center text-xs text-muted-foreground">No audit entries match the selected filters.</div>
             ) : (
-            filteredLogs.map((log: any) => {
+            paginatedLogs.map((log: any) => {
               const isPublish = log.action === 'publish';
               const details = log.details || {};
               return (
@@ -414,6 +419,23 @@ const History: React.FC = () => {
             })
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-muted-foreground">
+                Page {auditPage + 1} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={auditPage === 0} onClick={() => setAuditPage(p => p - 1)}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={auditPage >= totalPages - 1} onClick={() => setAuditPage(p => p + 1)}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         );
       })()}
