@@ -229,6 +229,57 @@ const RulesTemplates: React.FC = () => {
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
   const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportJSON = () => {
+    const onlyCustom: Record<string, string> = {};
+    DEFAULT_SECTIONS.forEach(s => {
+      if (values[s.id] !== s.defaultContent) {
+        onlyCustom[s.id] = values[s.id];
+      }
+    });
+    const payload = {
+      _type: 'aureum-rules-template',
+      _version: 1,
+      exportedAt: new Date().toISOString(),
+      allValues: values,
+      customValues: onlyCustom,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rules-template-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template exported');
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const json = JSON.parse(ev.target?.result as string);
+        const imported: Record<string, string> = json.allValues || json.customValues || json;
+        if (typeof imported !== 'object' || Array.isArray(imported)) throw new Error('Invalid format');
+        let count = 0;
+        for (const [key, val] of Object.entries(imported)) {
+          if (key in DEFAULT_VALUES && typeof val === 'string') {
+            await updateValue(key, val);
+            count++;
+          }
+        }
+        toast.success(`Imported ${count} rule(s)`);
+      } catch {
+        toast.error('Invalid JSON template file');
+      }
+    };
+    reader.readAsText(file);
+    // reset so the same file can be re-imported
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleUpdateValue = async (id: string, val: string) => {
     await updateValue(id, val);
