@@ -2504,6 +2504,10 @@ const translations = {
       annexSources: 'Anexo B — Trazabilidad de Fuentes',
       downloadPdf: 'Descargar PDF',
       downloadDocx: 'Descargar DOCX',
+      customizeSections: 'Personalizar secciones',
+      selectAll: 'Seleccionar todas',
+      deselectAll: 'Deseleccionar todas',
+      noSections: 'Ninguna sección seleccionada',
     },
   },
 } as const;
