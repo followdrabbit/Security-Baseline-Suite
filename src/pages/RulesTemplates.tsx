@@ -365,8 +365,13 @@ const RulesTemplates: React.FC = () => {
                   <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{modifiedCount}</Badge>
                 </Button>
               )}
-              <Button variant="outline" size="sm"><FolderOpen className="h-4 w-4 mr-1.5" />{t.rules.loadTemplate}</Button>
-              <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90"><Save className="h-4 w-4 mr-1.5" />{t.rules.saveTemplate}</Button>
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-1.5" />Import
+              </Button>
+              <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleExportJSON}>
+                <Download className="h-4 w-4 mr-1.5" />Export
+              </Button>
             </div>
           </div>
 
