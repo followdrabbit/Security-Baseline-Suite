@@ -61,38 +61,65 @@ const Sparkline: React.FC<{ data: { v: number; label?: string }[]; color?: strin
   }));
   const points = coords.map(c => `${c.x},${c.y}`).join(' ');
   const areaPoints = `0,${height} ${points} ${width},${height}`;
+  const [tooltipData, setTooltipData] = React.useState<{ x: number; v: number; label?: string } | null>(null);
+
+  React.useEffect(() => {
+    if (hovered !== null) {
+      setTooltipData({ x: coords[hovered].x, v: data[hovered].v, label: data[hovered].label });
+    }
+  }, [hovered]);
+
   return (
     <div className="relative shrink-0" style={{ width, height: height + 4 }}>
       <svg width={width} height={height} className="opacity-70">
         <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
         <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
         {coords.map((c, i) => (
-          <circle
-            key={i}
-            cx={c.x}
-            cy={c.y}
-            r={hovered === i ? 3 : 6}
-            fill={hovered === i ? color : 'transparent'}
-            stroke="none"
-            className="cursor-pointer"
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-          />
+          <React.Fragment key={i}>
+            <circle
+              cx={c.x}
+              cy={c.y}
+              r={6}
+              fill="transparent"
+              stroke="none"
+              className="cursor-pointer"
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+            />
+            <circle
+              cx={c.x}
+              cy={c.y}
+              r={3}
+              fill={color}
+              stroke="none"
+              className="pointer-events-none"
+              style={{
+                opacity: hovered === i ? 1 : 0,
+                transform: `scale(${hovered === i ? 1 : 0})`,
+                transformOrigin: `${c.x}px ${c.y}px`,
+                transition: 'opacity 0.2s ease, transform 0.15s ease',
+              }}
+            />
+          </React.Fragment>
         ))}
       </svg>
-      {hovered !== null && (
-        <div
-          className="absolute z-50 pointer-events-none bg-popover border border-border rounded px-1.5 py-0.5 text-[9px] text-foreground shadow-md whitespace-nowrap"
-          style={{
-            left: coords[hovered].x,
-            top: -2,
-            transform: `translate(${coords[hovered].x > width / 2 ? '-100%' : '0%'}, -100%)`,
-          }}
-        >
-          <span className="font-semibold">{data[hovered].v}{suffix}</span>
-          {data[hovered].label && <span className="text-muted-foreground ml-1">{data[hovered].label}</span>}
-        </div>
-      )}
+      <div
+        className="absolute z-50 pointer-events-none bg-popover border border-border rounded px-1.5 py-0.5 text-[9px] text-foreground shadow-md whitespace-nowrap"
+        style={{
+          left: tooltipData?.x ?? 0,
+          top: -2,
+          transform: `translate(${(tooltipData?.x ?? 0) > width / 2 ? '-100%' : '0%'}, -100%)`,
+          opacity: hovered !== null ? 1 : 0,
+          transition: 'left 0.2s ease, opacity 0.15s ease, transform 0.2s ease',
+        }}
+      >
+        {tooltipData && (
+          <>
+            <span className="font-semibold">{tooltipData.v}{suffix}</span>
+            {tooltipData.label && <span className="text-muted-foreground ml-1">{tooltipData.label}</span>}
+          </>
+        )}
+      </div>
     </div>
   );
 };
