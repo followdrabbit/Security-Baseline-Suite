@@ -122,10 +122,10 @@ const STRICTNESS_ICONS: Record<string, React.FC<{ className?: string }>> = {
   aggressive: (props) => <Zap {...props} />,
 };
 
-const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; reviewEffort: number }> = {
-  conservative: { precision: 95, coverage: 55, reviewEffort: 20 },
-  balanced:     { precision: 78, coverage: 78, reviewEffort: 50 },
-  aggressive:   { precision: 55, coverage: 95, reviewEffort: 85 },
+const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; reviewEffort: number; estimatedControls: [number, number] }> = {
+  conservative: { precision: 95, coverage: 55, reviewEffort: 20, estimatedControls: [15, 30] },
+  balanced:     { precision: 78, coverage: 78, reviewEffort: 50, estimatedControls: [30, 60] },
+  aggressive:   { precision: 55, coverage: 95, reviewEffort: 85, estimatedControls: [55, 100] },
 };
 
 const ImpactBar: React.FC<{ label: string; tooltip?: string; value: number; isActive: boolean }> = ({ label, tooltip, value, isActive }) => (
@@ -217,6 +217,25 @@ const AIStrictnessSection: React.FC<{
               )}>
                 {rules[`${level}Desc`]}
               </p>
+
+              {/* Estimated controls */}
+              <div className={cn(
+                "w-full flex items-center justify-center gap-1.5 mt-1 pt-2 border-t border-border/50",
+              )}>
+                <Layers className={cn("h-3 w-3", isActive ? 'text-primary' : 'text-muted-foreground/50')} />
+                <motion.span
+                  key={`${level}-controls`}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className={cn("text-xs font-semibold tabular-nums", isActive ? 'text-foreground' : 'text-muted-foreground/60')}
+                >
+                  {metrics.estimatedControls[0]}–{metrics.estimatedControls[1]}
+                </motion.span>
+                <span className={cn("text-[10px]", isActive ? 'text-foreground/60' : 'text-muted-foreground/40')}>
+                  {rules.estimatedControls}
+                </span>
+              </div>
 
               {/* Impact bars */}
               <div className="w-full space-y-1 mt-1 pt-2 border-t border-border/50">
