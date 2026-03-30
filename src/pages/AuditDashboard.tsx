@@ -39,6 +39,7 @@ const AuditDashboard: React.FC = () => {
   const selectedPeriod = searchParams.get('period') || 'all';
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [compareEnabled, setCompareEnabled] = useState(false);
 
   const setSelectedProjectId = useCallback((value: string) => {
     const params: Record<string, string> = {};
