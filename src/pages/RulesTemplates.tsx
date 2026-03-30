@@ -570,6 +570,9 @@ const RulesTemplates: React.FC = () => {
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
                               <Undo2 className="h-3 w-3 mr-1" />Restore
                             </Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setDuplicateTarget(v); setDuplicateLabel(`${v.label} (copy)`); }}>
+                              <CopyPlus className="h-3 w-3" />
+                            </Button>
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteVersion(v.id)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
