@@ -899,10 +899,10 @@ const RulesTemplates: React.FC = () => {
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setRestorePreview(null)}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => handleRestoreVersion(restorePreview)} disabled={saving}>
-                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />Restore
+                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />{t.rules.restore}
                 </Button>
               </div>
             </motion.div>
