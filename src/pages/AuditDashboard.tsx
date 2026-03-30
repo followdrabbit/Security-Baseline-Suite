@@ -416,10 +416,10 @@ const AuditDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {projects.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No projects yet</td></tr>
+              {filteredProjects.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No projects found</td></tr>
               ) : (
-                projects.map(p => (
+                filteredProjects.map(p => (
                   <tr key={p.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 transition-colors">
                     <td className="py-2.5 px-3 font-medium text-foreground">{p.name}</td>
                     <td className="py-2.5 px-3 text-muted-foreground">{p.technology}</td>
