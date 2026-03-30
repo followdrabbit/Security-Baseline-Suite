@@ -85,7 +85,10 @@ const BaselineEditor: React.FC = () => {
 
   const [search, setSearch] = useState('');
   const [critFilter, setCritFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('review') || 'all';
+  });
   const [strideFromUrl] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('stride') || null;
