@@ -94,6 +94,16 @@ export function exportAuditCsv(data: AuditCsvData) {
     lines.push('');
   }
 
+  // Framework Coverage
+  if (data.frameworkRadarData && data.frameworkRadarData.length > 0) {
+    lines.push(row(['FRAMEWORK COVERAGE']));
+    lines.push(row(['Framework', 'Coverage (%)', 'Mapped Controls']));
+    data.frameworkRadarData.forEach(d =>
+      lines.push(row([d.framework, d.coverage, d.controls]))
+    );
+    lines.push('');
+  }
+
   // Projects
   lines.push(row(['PROJECT SUMMARY']));
   lines.push(row(['Project', 'Technology', 'Version', 'Controls', 'Confidence (%)', 'Status']));
