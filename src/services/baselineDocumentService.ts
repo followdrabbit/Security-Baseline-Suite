@@ -237,6 +237,7 @@ function getSourceIndex(controls: ControlItem[]) {
 
 export function generateBaselinePDF(opts: DocumentOptions): void {
   const l = labels[opts.locale] || labels.en;
+  const sec = opts.sections || DEFAULT_SECTIONS;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
