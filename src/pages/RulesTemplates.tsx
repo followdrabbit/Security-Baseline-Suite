@@ -40,18 +40,10 @@ const DEFAULT_SECTIONS: RuleSection[] = [
   { id: 'threatModeling', icon: Crosshair, labelKey: 'threatModeling', tooltipKey: 'threatModeling', defaultContent: 'STRIDE-based threat analysis per control. Each threat scenario must include: threat name, STRIDE category (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege), attack vector description, threat agent identification, preconditions for exploitation, impact assessment, likelihood rating (Very High/High/Medium/Low/Very Low), specific mitigations, and residual risk evaluation. Minimum 1 threat scenario per control. Align threat likelihood with control criticality level.' },
 ];
 
-const STORAGE_KEY = 'aureum-rules-values';
-
-function loadSavedValues(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function persistValues(values: Record<string, string>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
-}
+const DEFAULT_VALUES: Record<string, string> = DEFAULT_SECTIONS.reduce((acc, s) => {
+  acc[s.id] = s.defaultContent;
+  return acc;
+}, {} as Record<string, string>);
 
 /* ── Sidebar TOC ── */
 const RulesToc: React.FC<{
