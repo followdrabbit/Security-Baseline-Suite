@@ -122,6 +122,29 @@ const STRICTNESS_ICONS: Record<string, React.FC<{ className?: string }>> = {
   aggressive: (props) => <Zap {...props} />,
 };
 
+const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; reviewEffort: number }> = {
+  conservative: { precision: 95, coverage: 55, reviewEffort: 20 },
+  balanced:     { precision: 78, coverage: 78, reviewEffort: 50 },
+  aggressive:   { precision: 55, coverage: 95, reviewEffort: 85 },
+};
+
+const ImpactBar: React.FC<{ label: string; value: number; isActive: boolean }> = ({ label, value, isActive }) => (
+  <div className="flex items-center gap-2">
+    <span className={cn("text-[10px] w-[72px] shrink-0 text-right", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
+      {label}
+    </span>
+    <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
+      <div
+        className={cn("h-full rounded-full transition-all duration-500", isActive ? 'bg-primary' : 'bg-muted-foreground/30')}
+        style={{ width: `${value}%` }}
+      />
+    </div>
+    <span className={cn("text-[10px] w-7 tabular-nums", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
+      {value}%
+    </span>
+  </div>
+);
+
 const AIStrictnessSection: React.FC<{
   value: string;
   defaultValue: string;
@@ -140,6 +163,7 @@ const AIStrictnessSection: React.FC<{
         {(['conservative', 'balanced', 'aggressive'] as const).map(level => {
           const isActive = value === level;
           const Icon = STRICTNESS_ICONS[level];
+          const metrics = STRICTNESS_METRICS[level];
           return (
             <button
               key={level}
@@ -184,6 +208,13 @@ const AIStrictnessSection: React.FC<{
               )}>
                 {rules[`${level}Desc`]}
               </p>
+
+              {/* Impact bars */}
+              <div className="w-full space-y-1 mt-1 pt-2 border-t border-border/50">
+                <ImpactBar label={rules.precision} value={metrics.precision} isActive={isActive} />
+                <ImpactBar label={rules.coverage} value={metrics.coverage} isActive={isActive} />
+                <ImpactBar label={rules.reviewEffort} value={metrics.reviewEffort} isActive={isActive} />
+              </div>
 
               {/* Active indicator */}
               {isActive && (
