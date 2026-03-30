@@ -90,6 +90,24 @@ const AuditDashboard: React.FC = () => {
 
   const loading = loadingProjects || loadingVersions || loadingLogs;
 
+  // Filter data by selected project
+  const filteredVersions = useMemo(() =>
+    selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId),
+    [versions, selectedProjectId]
+  );
+  const filteredAuditLogs = useMemo(() =>
+    selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId),
+    [auditLogs, selectedProjectId]
+  );
+  const filteredControls = useMemo(() =>
+    selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId),
+    [controls, selectedProjectId]
+  );
+  const filteredProjects = useMemo(() =>
+    selectedProjectId === 'all' ? projects : projects.filter(p => p.id === selectedProjectId),
+    [projects, selectedProjectId]
+  );
+
   // Compute metrics
   const metrics = useMemo(() => {
     const publishedVersions = versions.filter(v => v.status === 'published');
