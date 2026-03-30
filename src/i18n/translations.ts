@@ -135,6 +135,7 @@ const translations = {
       references: 'Reference Rules',
       outputLanguage: 'Output Language',
       aiStrictness: 'AI Strictness Level',
+      aiStrictnessDesc: 'Controls how strictly the AI engine follows the defined rules when generating baselines.',
       conservative: 'Conservative',
       balanced: 'Balanced',
       aggressive: 'Aggressive',
