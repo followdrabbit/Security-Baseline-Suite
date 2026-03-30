@@ -935,6 +935,7 @@ const translations = {
       references: 'Regras de Referências',
       outputLanguage: 'Idioma de Saída',
       aiStrictness: 'Nível de Rigor da IA',
+      aiStrictnessDesc: 'Controla o quão rigorosamente o motor de IA segue as regras definidas ao gerar baselines.',
       conservative: 'Conservador',
       balanced: 'Balanceado',
       aggressive: 'Agressivo',
