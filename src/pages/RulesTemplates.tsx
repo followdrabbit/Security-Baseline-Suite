@@ -299,7 +299,7 @@ const RulesTemplates: React.FC = () => {
             </div>
             <div className="flex gap-2">
               {modifiedCount > 0 && (
-                <Button variant="outline" size="sm" onClick={restoreAll} className="text-muted-foreground">
+                <Button variant="outline" size="sm" onClick={handleRestoreAll} disabled={saving} className="text-muted-foreground">
                   <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> {t.rules.restoreAll}
                   <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{modifiedCount}</Badge>
                 </Button>
