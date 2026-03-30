@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -9,9 +9,10 @@ import HelpButton from '@/components/HelpButton';
 import { KPICardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import {
   Shield, CheckCircle2, Clock, Rocket, RotateCcw, GitBranch,
-  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3,
+  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -22,6 +23,7 @@ const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 const AuditDashboard: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
@@ -88,35 +90,49 @@ const AuditDashboard: React.FC = () => {
 
   const loading = loadingProjects || loadingVersions || loadingLogs;
 
+  // Filter data by selected project
+  const filteredVersions = useMemo(() =>
+    selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId),
+    [versions, selectedProjectId]
+  );
+  const filteredAuditLogs = useMemo(() =>
+    selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId),
+    [auditLogs, selectedProjectId]
+  );
+  const filteredControls = useMemo(() =>
+    selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId),
+    [controls, selectedProjectId]
+  );
+  const filteredProjects = useMemo(() =>
+    selectedProjectId === 'all' ? projects : projects.filter(p => p.id === selectedProjectId),
+    [projects, selectedProjectId]
+  );
+
   // Compute metrics
   const metrics = useMemo(() => {
-    const publishedVersions = versions.filter(v => v.status === 'published');
-    const draftVersions = versions.filter(v => v.status === 'draft');
-    const publishActions = auditLogs.filter(l => l.action === 'publish');
-    const restoreActions = auditLogs.filter(l => l.action === 'restore');
-    const totalControls = controls.length;
-    const approvedControls = controls.filter(c => c.review_status === 'approved').length;
-    const pendingControls = controls.filter(c => c.review_status === 'pending').length;
-    const rejectedControls = controls.filter(c => c.review_status === 'rejected').length;
+    const publishedVersions = filteredVersions.filter(v => v.status === 'published');
+    const draftVersions = filteredVersions.filter(v => v.status === 'draft');
+    const totalControls = filteredControls.length;
+    const approvedControls = filteredControls.filter(c => c.review_status === 'approved').length;
+    const pendingControls = filteredControls.filter(c => c.review_status === 'pending').length;
+    const rejectedControls = filteredControls.filter(c => c.review_status === 'rejected').length;
     const reviewRate = totalControls > 0 ? Math.round((approvedControls / totalControls) * 100) : 0;
 
     return {
-      totalProjects: projects.length,
+      totalProjects: filteredProjects.length,
       publishedVersions: publishedVersions.length,
       draftVersions: draftVersions.length,
-      totalAuditActions: auditLogs.length,
-      publishActions: publishActions.length,
-      restoreActions: restoreActions.length,
+      totalAuditActions: filteredAuditLogs.length,
       totalControls,
       approvedControls,
       pendingControls,
       rejectedControls,
       reviewRate,
-      avgConfidence: projects.length > 0
-        ? Math.round(projects.reduce((sum, p) => sum + (Number(p.avg_confidence) || 0), 0) / projects.length)
+      avgConfidence: filteredProjects.length > 0
+        ? Math.round(filteredProjects.reduce((sum, p) => sum + (Number(p.avg_confidence) || 0), 0) / filteredProjects.length)
         : 0,
     };
-  }, [projects, versions, auditLogs, controls]);
+  }, [filteredProjects, filteredVersions, filteredAuditLogs, filteredControls]);
 
   // Review status pie chart data
   const reviewPieData = useMemo(() => [
@@ -128,10 +144,10 @@ const AuditDashboard: React.FC = () => {
   // Versions per project bar chart
   const versionsPerProject = useMemo(() => {
     const map = new Map<string, { name: string; published: number; draft: number }>();
-    for (const p of projects) {
+    for (const p of filteredProjects) {
       map.set(p.id, { name: p.name.length > 18 ? p.name.slice(0, 18) + '…' : p.name, published: 0, draft: 0 });
     }
-    for (const v of versions) {
+    for (const v of filteredVersions) {
       const entry = map.get(v.project_id);
       if (entry) {
         if (v.status === 'published') entry.published++;
@@ -139,12 +155,12 @@ const AuditDashboard: React.FC = () => {
       }
     }
     return Array.from(map.values());
-  }, [projects, versions]);
+  }, [filteredProjects, filteredVersions]);
 
   // Criticality breakdown
   const criticalityData = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-    for (const c of controls) {
+    for (const c of filteredControls) {
       const crit = (c.criticality || 'medium').toLowerCase();
       if (crit in counts) counts[crit as keyof typeof counts]++;
     }
@@ -154,7 +170,7 @@ const AuditDashboard: React.FC = () => {
       { name: 'Medium', value: counts.medium, color: '#eab308' },
       { name: 'Low', value: counts.low, color: '#22c55e' },
     ].filter(d => d.value > 0);
-  }, [controls]);
+  }, [filteredControls]);
 
   // Find project name by id
   const projectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown';
@@ -170,7 +186,19 @@ const AuditDashboard: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Consolidated compliance metrics, version governance and audit activity</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-[220px] h-9 text-xs">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {projects.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" asChild>
             <Link to="/history"><History className="h-3.5 w-3.5 mr-1.5" />Version History</Link>
           </Button>
@@ -333,11 +361,11 @@ const AuditDashboard: React.FC = () => {
             <Link to="/history">View all →</Link>
           </Button>
         </div>
-        {auditLogs.length === 0 ? (
+        {filteredAuditLogs.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-6">No audit activity yet. Publish or restore a version to generate entries.</p>
         ) : (
           <div className="space-y-3">
-            {auditLogs.slice(0, 8).map((log) => {
+            {filteredAuditLogs.slice(0, 8).map((log) => {
               const isPublish = log.action === 'publish';
               const details = (log.details as any) || {};
               return (
@@ -388,10 +416,10 @@ const AuditDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {projects.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No projects yet</td></tr>
+              {filteredProjects.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No projects found</td></tr>
               ) : (
-                projects.map(p => (
+                filteredProjects.map(p => (
                   <tr key={p.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 transition-colors">
                     <td className="py-2.5 px-3 font-medium text-foreground">{p.name}</td>
                     <td className="py-2.5 px-3 text-muted-foreground">{p.technology}</td>
