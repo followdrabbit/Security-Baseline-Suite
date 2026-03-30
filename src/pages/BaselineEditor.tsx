@@ -309,6 +309,65 @@ const BaselineEditor: React.FC = () => {
         .select('*')
         .eq('project_id', selectedProject);
 
+      // Deduplicate controls
+      const seen = new Set<string>();
+      const deduped = (controlsData || []).filter((c: any) => {
+        if (seen.has(c.control_id)) return false;
+        seen.add(c.control_id);
+        return true;
+      });
+
+      // Compute diff summary against previous version
+      let changesSummary = '';
+      const prevVersion = publishedVersions.length > 0 ? publishedVersions[0] : null;
+      if (prevVersion && Array.isArray(prevVersion.controls_snapshot)) {
+        const oldMap = new Map<string, any>();
+        for (const c of prevVersion.controls_snapshot as any[]) {
+          if (!oldMap.has(c.control_id)) oldMap.set(c.control_id, c);
+        }
+        const newMap = new Map<string, any>();
+        for (const c of deduped) {
+          if (!newMap.has(c.control_id)) newMap.set(c.control_id, c);
+        }
+
+        const added: string[] = [];
+        const removed: string[] = [];
+        const modified: string[] = [];
+
+        for (const [cid, ctrl] of newMap) {
+          if (!oldMap.has(cid)) {
+            added.push(`${cid} (${ctrl.title})`);
+          }
+        }
+        for (const [cid, ctrl] of oldMap) {
+          if (!newMap.has(cid)) {
+            removed.push(`${cid} (${ctrl.title})`);
+          }
+        }
+        for (const [cid, newCtrl] of newMap) {
+          const oldCtrl = oldMap.get(cid);
+          if (!oldCtrl) continue;
+          const fields = ['title', 'description', 'criticality', 'review_status', 'applicability', 'security_risk', 'automation', 'default_behavior_limitations', 'reviewer_notes'];
+          const changedFields: string[] = [];
+          for (const f of fields) {
+            if (String(oldCtrl[f] || '') !== String(newCtrl[f] || '')) changedFields.push(f);
+          }
+          if (changedFields.length > 0) {
+            modified.push(`${cid}: ${changedFields.join(', ')}`);
+          }
+        }
+
+        const parts: string[] = [];
+        if (added.length) parts.push(`Added ${added.length}: ${added.join('; ')}`);
+        if (removed.length) parts.push(`Removed ${removed.length}: ${removed.join('; ')}`);
+        if (modified.length) parts.push(`Modified ${modified.length}: ${modified.join('; ')}`);
+        changesSummary = parts.length > 0
+          ? `v${newVersion} (from v${prevVersion.version}): ${parts.join('. ')}`
+          : `v${newVersion}: No changes from v${prevVersion.version}`;
+      } else {
+        changesSummary = `v${newVersion}: Initial publication with ${deduped.length} controls and ${sourcesData?.length || 0} sources`;
+      }
+
       // Create the version snapshot
       const { error: versionError } = await supabase
         .from('baseline_versions')
@@ -316,19 +375,12 @@ const BaselineEditor: React.FC = () => {
           project_id: selectedProject,
           user_id: user.id,
           version: newVersion,
-          control_count: controlsData?.length || 0,
-      controls_snapshot: (() => {
-            const seen = new Set<string>();
-            return (controlsData || []).filter((c: any) => {
-              if (seen.has(c.control_id)) return false;
-              seen.add(c.control_id);
-              return true;
-            });
-          })() as any,
+          control_count: deduped.length,
+          controls_snapshot: deduped as any,
           sources_snapshot: (sourcesData || []) as any,
           project_snapshot: proj as any,
           status: 'published',
-          changes_summary: `Published version ${newVersion} with ${controlsData?.length || 0} controls and ${sourcesData?.length || 0} sources`,
+          changes_summary: changesSummary,
           published_at: new Date().toISOString(),
         });
       if (versionError) throw versionError;
