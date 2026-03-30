@@ -554,6 +554,7 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
 
 export function generateBaselineDOCX(opts: DocumentOptions): void {
   const l = labels[opts.locale] || labels.en;
+  const sec = opts.sections || DEFAULT_SECTIONS;
   const grouped = groupByCategory(opts.controls);
   const fwCoverage = getFrameworkCoverage(opts.controls);
   const srcIndex = getSourceIndex(opts.controls);
@@ -561,7 +562,6 @@ export function generateBaselineDOCX(opts: DocumentOptions): void {
     ? new Date(opts.publishedAt).toLocaleDateString(opts.locale === 'pt' ? 'pt-BR' : opts.locale === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString();
 
-  // Generate HTML-based DOCX
   let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
   <head><meta charset="utf-8"><style>
     body { font-family: Calibri, Arial, sans-serif; color: #1a1a2e; margin: 40px; line-height: 1.6; }
@@ -593,115 +593,118 @@ export function generateBaselineDOCX(opts: DocumentOptions): void {
     .footer { font-size: 8px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
   </style></head><body>`;
 
-  // Cover
-  html += `<div class="cover">
-    <h1>${l.title}</h1>
-    <div class="subtitle">${opts.projectName}</div>
-    <div class="subtitle" style="font-size:14px">${opts.technology} — v${opts.version}</div>
-    <div class="date">${dateStr}</div>
-    <div class="date" style="margin-top:40px">${l.confidential}</div>
-  </div>`;
+  let sn = 0;
 
-  // TOC
-  html += `<div class="toc"><h1>${l.toc}</h1><ol>
-    <li>${l.executiveSummary}</li>
-    <li>${l.projectOverview}</li>
-    <li>${l.securityControls}<ol>`;
-  grouped.forEach(g => {
-    html += `<li>${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})</li>`;
-  });
-  html += `</ol></li>
-    <li>${l.annexA}</li>
-    <li>${l.annexB}</li>
-  </ol></div>`;
+  if (sec.cover) {
+    html += `<div class="cover">
+      <h1>${l.title}</h1>
+      <div class="subtitle">${opts.projectName}</div>
+      <div class="subtitle" style="font-size:14px">${opts.technology} — v${opts.version}</div>
+      <div class="date">${dateStr}</div>
+      <div class="date" style="margin-top:40px">${l.confidential}</div>
+    </div>`;
+  }
 
-  // 1. Executive Summary
-  html += `<div class="page-break"><h1>1. ${l.executiveSummary}</h1>
-    <p>${l.executiveSummaryBody(opts)}</p>
-    <div class="stat-box">
-      <div class="stat-item"><div class="stat-value">${opts.controls.length}</div><div class="stat-label">${l.totalControls}</div></div>
-      <div class="stat-item"><div class="stat-value">${opts.controls.filter(c => c.criticality === 'critical').length}</div><div class="stat-label">Critical</div></div>
-      <div class="stat-item"><div class="stat-value">${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%</div><div class="stat-label">${l.confidence}</div></div>
-    </div>
-  </div>`;
+  if (sec.toc) {
+    html += `<div class="toc"><h1>${l.toc}</h1><ol>`;
+    if (sec.executiveSummary) html += `<li>${l.executiveSummary}</li>`;
+    if (sec.projectOverview) html += `<li>${l.projectOverview}</li>`;
+    if (sec.securityControls) {
+      html += `<li>${l.securityControls}<ol>`;
+      grouped.forEach(g => { html += `<li>${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})</li>`; });
+      html += `</ol></li>`;
+    }
+    if (sec.annexA) html += `<li>${l.annexA}</li>`;
+    if (sec.annexB) html += `<li>${l.annexB}</li>`;
+    html += `</ol></div>`;
+  }
 
-  // 2. Project Overview
-  html += `<h1>2. ${l.projectOverview}</h1>
-    <table>
-      <tr><td style="font-weight:bold;background:#f8fafc;width:180px">${l.projectName}</td><td>${opts.projectName}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.technology}</td><td>${opts.technology}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.version}</td><td>v${opts.version}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.totalControls}</td><td>${opts.controls.length}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.publishedDate}</td><td>${dateStr}</td></tr>
-    </table>`;
+  if (sec.executiveSummary) {
+    sn++;
+    html += `<div class="page-break"><h1>${sn}. ${l.executiveSummary}</h1>
+      <p>${l.executiveSummaryBody(opts)}</p>
+      <div class="stat-box">
+        <div class="stat-item"><div class="stat-value">${opts.controls.length}</div><div class="stat-label">${l.totalControls}</div></div>
+        <div class="stat-item"><div class="stat-value">${opts.controls.filter(c => c.criticality === 'critical').length}</div><div class="stat-label">Critical</div></div>
+        <div class="stat-item"><div class="stat-value">${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%</div><div class="stat-label">${l.confidence}</div></div>
+      </div>
+    </div>`;
+  }
 
-  // 3. Security Controls
-  html += `<div class="page-break"><h1>3. ${l.securityControls}</h1>`;
-  grouped.forEach((group, gi) => {
-    html += `<h2>3.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}</h2>`;
+  if (sec.projectOverview) {
+    sn++;
+    html += `<h1>${sn}. ${l.projectOverview}</h1>
+      <table>
+        <tr><td style="font-weight:bold;background:#f8fafc;width:180px">${l.projectName}</td><td>${opts.projectName}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.technology}</td><td>${opts.technology}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.version}</td><td>v${opts.version}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.totalControls}</td><td>${opts.controls.length}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.publishedDate}</td><td>${dateStr}</td></tr>
+      </table>`;
+  }
 
-    group.controls.forEach(ctrl => {
-      html += `<div class="control-header">
-        <span class="control-id">${ctrl.controlId}</span> &nbsp;
-        <span class="control-title">${ctrl.title}</span>
-        <span class="crit-badge crit-${ctrl.criticality}">${ctrl.criticality.toUpperCase()}</span>
-      </div>`;
-
-      html += `<table>`;
-      if (ctrl.description) html += `<tr><td style="font-weight:bold;width:160px">${l.description}</td><td>${ctrl.description}</td></tr>`;
-      if (ctrl.applicability) html += `<tr><td style="font-weight:bold">${l.applicability}</td><td>${ctrl.applicability}</td></tr>`;
-      if (ctrl.securityRisk) html += `<tr><td style="font-weight:bold">${l.securityRisk}</td><td>${ctrl.securityRisk}</td></tr>`;
-      if (ctrl.defaultBehaviorLimitations) html += `<tr><td style="font-weight:bold">${l.defaultBehavior}</td><td>${ctrl.defaultBehaviorLimitations}</td></tr>`;
-      if (ctrl.automation) html += `<tr><td style="font-weight:bold">${l.automation}</td><td>${ctrl.automation}</td></tr>`;
-      html += `<tr><td style="font-weight:bold">${l.confidence}</td><td>${Math.round(ctrl.confidenceScore * 100)}%</td></tr>`;
-      html += `<tr><td style="font-weight:bold">${l.reviewStatus}</td><td>${ctrl.reviewStatus}</td></tr>`;
-      if (ctrl.frameworkMappings.length > 0) {
-        html += `<tr><td style="font-weight:bold">${l.frameworkMappings}</td><td>${ctrl.frameworkMappings.join(', ')}</td></tr>`;
-      }
-      html += `</table>`;
-
-      // Threats
-      if (ctrl.threatScenarios.length > 0) {
-        html += `<div class="section-label">${l.threatModeling}</div>
-          <table><tr><th>${l.threatName}</th><th>${l.strideCategory}</th><th>${l.likelihood}</th><th>${l.impact}</th></tr>`;
-        ctrl.threatScenarios.forEach(ts => {
-          html += `<tr><td>${ts.threatName}</td><td>${ts.strideCategory.replace(/_/g, ' ')}</td><td>${ts.likelihood.replace(/_/g, ' ')}</td><td>${ts.impact}</td></tr>`;
-        });
+  if (sec.securityControls) {
+    sn++;
+    html += `<div class="page-break"><h1>${sn}. ${l.securityControls}</h1>`;
+    grouped.forEach((group, gi) => {
+      html += `<h2>${sn}.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}</h2>`;
+      group.controls.forEach(ctrl => {
+        html += `<div class="control-header">
+          <span class="control-id">${ctrl.controlId}</span> &nbsp;
+          <span class="control-title">${ctrl.title}</span>
+          <span class="crit-badge crit-${ctrl.criticality}">${ctrl.criticality.toUpperCase()}</span>
+        </div>`;
+        html += `<table>`;
+        if (ctrl.description) html += `<tr><td style="font-weight:bold;width:160px">${l.description}</td><td>${ctrl.description}</td></tr>`;
+        if (ctrl.applicability) html += `<tr><td style="font-weight:bold">${l.applicability}</td><td>${ctrl.applicability}</td></tr>`;
+        if (ctrl.securityRisk) html += `<tr><td style="font-weight:bold">${l.securityRisk}</td><td>${ctrl.securityRisk}</td></tr>`;
+        if (ctrl.defaultBehaviorLimitations) html += `<tr><td style="font-weight:bold">${l.defaultBehavior}</td><td>${ctrl.defaultBehaviorLimitations}</td></tr>`;
+        if (ctrl.automation) html += `<tr><td style="font-weight:bold">${l.automation}</td><td>${ctrl.automation}</td></tr>`;
+        html += `<tr><td style="font-weight:bold">${l.confidence}</td><td>${Math.round(ctrl.confidenceScore * 100)}%</td></tr>`;
+        html += `<tr><td style="font-weight:bold">${l.reviewStatus}</td><td>${ctrl.reviewStatus}</td></tr>`;
+        if (ctrl.frameworkMappings.length > 0) {
+          html += `<tr><td style="font-weight:bold">${l.frameworkMappings}</td><td>${ctrl.frameworkMappings.join(', ')}</td></tr>`;
+        }
         html += `</table>`;
-      }
-
-      // Sources
-      if (ctrl.sourceTraceability.length > 0) {
-        html += `<div class="section-label">${l.sourceTraceability}</div>
-          <table><tr><th>${l.sourceName}</th><th>${l.excerpt}</th><th>${l.sourceConfidence}</th></tr>`;
-        ctrl.sourceTraceability.forEach(s => {
-          html += `<tr><td>${s.sourceName}</td><td style="font-style:italic">${s.excerpt.length > 120 ? s.excerpt.substring(0, 120) + '...' : s.excerpt}</td><td>${Math.round(s.confidence * 100)}%</td></tr>`;
-        });
-        html += `</table>`;
-      }
+        if (ctrl.threatScenarios.length > 0) {
+          html += `<div class="section-label">${l.threatModeling}</div>
+            <table><tr><th>${l.threatName}</th><th>${l.strideCategory}</th><th>${l.likelihood}</th><th>${l.impact}</th></tr>`;
+          ctrl.threatScenarios.forEach(ts => {
+            html += `<tr><td>${ts.threatName}</td><td>${ts.strideCategory.replace(/_/g, ' ')}</td><td>${ts.likelihood.replace(/_/g, ' ')}</td><td>${ts.impact}</td></tr>`;
+          });
+          html += `</table>`;
+        }
+        if (ctrl.sourceTraceability.length > 0) {
+          html += `<div class="section-label">${l.sourceTraceability}</div>
+            <table><tr><th>${l.sourceName}</th><th>${l.excerpt}</th><th>${l.sourceConfidence}</th></tr>`;
+          ctrl.sourceTraceability.forEach(s => {
+            html += `<tr><td>${s.sourceName}</td><td style="font-style:italic">${s.excerpt.length > 120 ? s.excerpt.substring(0, 120) + '...' : s.excerpt}</td><td>${Math.round(s.confidence * 100)}%</td></tr>`;
+          });
+          html += `</table>`;
+        }
+      });
     });
-  });
-  html += `</div>`;
+    html += `</div>`;
+  }
 
-  // 4. Annex A
-  html += `<div class="page-break"><h1>4. ${l.annexA}</h1>
-    <table><tr><th>${l.framework}</th><th>${l.controlCount}</th><th>${l.coveragePercent}</th></tr>`;
-  fwCoverage.forEach(fw => {
-    html += `<tr><td>${fw.framework}</td><td>${fw.count}</td><td>${fw.percent}%</td></tr>`;
-  });
-  html += `</table></div>`;
+  if (sec.annexA) {
+    sn++;
+    html += `<div class="page-break"><h1>${sn}. ${l.annexA}</h1>
+      <table><tr><th>${l.framework}</th><th>${l.controlCount}</th><th>${l.coveragePercent}</th></tr>`;
+    fwCoverage.forEach(fw => { html += `<tr><td>${fw.framework}</td><td>${fw.count}</td><td>${fw.percent}%</td></tr>`; });
+    html += `</table></div>`;
+  }
 
-  // 5. Annex B
-  html += `<h1>5. ${l.annexB}</h1>
-    <table><tr><th>${l.sourceName}</th><th>${l.controlCount}</th><th>${l.sourceConfidence}</th></tr>`;
-  srcIndex.forEach(s => {
-    html += `<tr><td>${s.name}</td><td>${s.controlIds.length}</td><td>${s.avgConf}%</td></tr>`;
-  });
-  html += `</table>`;
+  if (sec.annexB) {
+    sn++;
+    html += `<h1>${sn}. ${l.annexB}</h1>
+      <table><tr><th>${l.sourceName}</th><th>${l.controlCount}</th><th>${l.sourceConfidence}</th></tr>`;
+    srcIndex.forEach(s => { html += `<tr><td>${s.name}</td><td>${s.controlIds.length}</td><td>${s.avgConf}%</td></tr>`; });
+    html += `</table>`;
+  }
 
   html += `<div class="footer">${l.generatedBy} — ${dateStr}</div></body></html>`;
 
-  // Download as .doc (Word-compatible HTML)
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
