@@ -118,19 +118,22 @@ const AuditDashboard: React.FC = () => {
 
   const loading = loadingProjects || loadingVersions || loadingLogs;
 
-  // Filter data by selected project
-  const filteredVersions = useMemo(() =>
-    selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId),
-    [versions, selectedProjectId]
-  );
-  const filteredAuditLogs = useMemo(() =>
-    selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId),
-    [auditLogs, selectedProjectId]
-  );
-  const filteredControls = useMemo(() =>
-    selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId),
-    [controls, selectedProjectId]
-  );
+  // Filter data by selected project and period
+  const filteredVersions = useMemo(() => {
+    let result = selectedProjectId === 'all' ? versions : versions.filter(v => v.project_id === selectedProjectId);
+    if (periodCutoff) result = result.filter(v => new Date(v.created_at) >= periodCutoff);
+    return result;
+  }, [versions, selectedProjectId, periodCutoff]);
+  const filteredAuditLogs = useMemo(() => {
+    let result = selectedProjectId === 'all' ? auditLogs : auditLogs.filter(l => l.project_id === selectedProjectId);
+    if (periodCutoff) result = result.filter(l => new Date(l.created_at) >= periodCutoff);
+    return result;
+  }, [auditLogs, selectedProjectId, periodCutoff]);
+  const filteredControls = useMemo(() => {
+    let result = selectedProjectId === 'all' ? controls : controls.filter(c => c.project_id === selectedProjectId);
+    if (periodCutoff) result = result.filter(c => new Date(c.created_at) >= periodCutoff);
+    return result;
+  }, [controls, selectedProjectId, periodCutoff]);
   const filteredProjects = useMemo(() =>
     selectedProjectId === 'all' ? projects : projects.filter(p => p.id === selectedProjectId),
     [projects, selectedProjectId]
