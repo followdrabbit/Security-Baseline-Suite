@@ -750,7 +750,7 @@ const translations = {
       rules: 'Regras e Templates', workspace: 'Workspace IA', editor: 'Editor de Baseline',
       traceability: 'Rastreabilidade', history: 'Histórico', exportImport: 'Exportar / Importar',
       settings: 'Configurações', collapse: 'Recolher', expand: 'Expandir',
-      aiIntegrations: 'Integrações de IA',
+      aiIntegrations: 'Integrações de IA', auditGroup: 'Auditoria & Conformidade',
     },
     dashboard: {
       welcome: 'Bem-vindo de volta',
@@ -1494,7 +1494,7 @@ const translations = {
       rules: 'Reglas y Plantillas', workspace: 'Workspace IA', editor: 'Editor de Baseline',
       traceability: 'Trazabilidad', history: 'Historial', exportImport: 'Exportar / Importar',
       settings: 'Configuración', collapse: 'Colapsar', expand: 'Expandir',
-      aiIntegrations: 'Integraciones de IA',
+      aiIntegrations: 'Integraciones de IA', auditGroup: 'Auditoría & Cumplimiento',
     },
     dashboard: {
       welcome: 'Bienvenido de vuelta',
