@@ -938,7 +938,7 @@ const RulesTemplates: React.FC = () => {
                 </div>
               </div>
               <Input
-                placeholder="New version name"
+                placeholder={t.rules.newVersionName}
                 value={duplicateLabel}
                 onChange={e => setDuplicateLabel(e.target.value)}
                 autoFocus
