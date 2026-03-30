@@ -445,18 +445,18 @@ const RulesTemplates: React.FC = () => {
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
-                <History className="h-4 w-4 mr-1.5" />History
+                <History className="h-4 w-4 mr-1.5" />{t.rules.history}
                 {versions.length > 0 && <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{versions.length}</Badge>}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
-                <Save className="h-4 w-4 mr-1.5" />Save Version
+                <Save className="h-4 w-4 mr-1.5" />{t.rules.saveVersion}
               </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileSelected} />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4 mr-1.5" />Import
+                <Upload className="h-4 w-4 mr-1.5" />{t.rules.import}
               </Button>
               <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleExportJSON}>
-                <Download className="h-4 w-4 mr-1.5" />Export
+                <Download className="h-4 w-4 mr-1.5" />{t.rules.export}
               </Button>
             </div>
           </div>
