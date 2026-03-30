@@ -298,7 +298,8 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
 
   doc.setFontSize(11);
   for (const item of tocItems) {
-    doc.setTextColor(item.startsWith('   ') ? ...GRAY : ...DARK);
+    const clr = item.startsWith('   ') ? GRAY : DARK;
+    doc.setTextColor(clr[0], clr[1], clr[2]);
     doc.text(item, item.startsWith('   ') ? margin + 8 : margin, y);
     y += 7;
   }
