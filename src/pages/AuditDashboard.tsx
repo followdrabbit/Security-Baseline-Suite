@@ -318,12 +318,21 @@ const AuditDashboard: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={handleExportPdf} disabled={loading}>
-            <Download className="h-3.5 w-3.5 mr-1.5" />Export PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={loading}>
-            <FileText className="h-3.5 w-3.5 mr-1.5" />Export CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={loading}>
+                <Download className="h-3.5 w-3.5 mr-1.5" />Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <FileText className="h-3.5 w-3.5 mr-2" />Export PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCsv}>
+                <BarChart3 className="h-3.5 w-3.5 mr-2" />Export CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" size="sm" asChild>
             <Link to="/history"><History className="h-3.5 w-3.5 mr-1.5" />Version History</Link>
           </Button>
