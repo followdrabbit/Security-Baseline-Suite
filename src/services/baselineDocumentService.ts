@@ -3,6 +3,26 @@ import autoTable from 'jspdf-autotable';
 import type { ControlItem } from '@/types';
 import { AUREUM_LOGO_BASE64 } from '@/assets/aureumLogoBase64';
 
+export interface DocumentSections {
+  cover: boolean;
+  toc: boolean;
+  executiveSummary: boolean;
+  projectOverview: boolean;
+  securityControls: boolean;
+  annexA: boolean;
+  annexB: boolean;
+}
+
+export const DEFAULT_SECTIONS: DocumentSections = {
+  cover: true,
+  toc: true,
+  executiveSummary: true,
+  projectOverview: true,
+  securityControls: true,
+  annexA: true,
+  annexB: true,
+};
+
 interface DocumentOptions {
   projectName: string;
   technology: string;
@@ -11,6 +31,7 @@ interface DocumentOptions {
   locale: 'en' | 'pt' | 'es';
   controls: ControlItem[];
   sources?: any[];
+  sections?: DocumentSections;
 }
 
 const CATEGORY_LABELS: Record<string, Record<string, string>> = {
