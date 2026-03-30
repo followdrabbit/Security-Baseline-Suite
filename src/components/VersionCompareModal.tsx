@@ -394,6 +394,14 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
                   className="h-8 pl-8 w-[200px] text-xs"
                 />
               </div>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExportCSV} disabled={filteredDiffs.length === 0}>
+                <Download className="h-3.5 w-3.5" />
+                {t.versioning.exportCSV}
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExportPDF} disabled={filteredDiffs.length === 0}>
+                <FileText className="h-3.5 w-3.5" />
+                {t.versioning.exportPDF}
+              </Button>
             </div>
           )}
         </div>
