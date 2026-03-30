@@ -103,9 +103,18 @@ const AppSidebar: React.FC = () => {
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">Insights</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">
+            <ClipboardCheck className="h-3 w-3 inline mr-1.5 -mt-0.5" />{(t.nav as any).auditGroup || 'Audit & Compliance'}
+          </SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu>{insightItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu>{auditItems.map(renderItem)}</SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">Tools</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>{toolItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
