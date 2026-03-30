@@ -366,54 +366,60 @@ const ExportImport: React.FC = () => {
                       <item.icon className="h-4 w-4 text-accent-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">{(t.exportImport as Record<string, string>)[item.titleKey]}</h3>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {(item as any).isDocument
+                          ? ((t as any).baselineDocument?.generateButton || 'Generate Document')
+                          : (t.exportImport as Record<string, string>)[item.titleKey]}
+                      </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                     </div>
                   </div>
 
-                  {item.hasFormats && (
-                    <>
-                      <div className="mb-3">
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">Project</label>
-                        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Select a project" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {projects.map(p => (
-                              <SelectItem key={p.id} value={p.id}>
-                                <div className="flex items-center gap-1.5">
-                                  <span>{p.name}</span>
-                                  <span className="text-muted-foreground text-[10px]">({p.control_count || 0} controls)</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  {((item as any).isDocument || item.hasFormats) && (
+                    <div className="mb-3">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">Project</label>
+                      <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              <div className="flex items-center gap-1.5">
+                                <span>{p.name}</span>
+                                <span className="text-muted-foreground text-[10px]">({p.control_count || 0} controls)</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-                      <div className="mb-3">
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">{t.exportImport.format}</label>
-                        <Select value={exportFormat} onValueChange={setExportFormat}>
-                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="json"><div className="flex items-center gap-1.5"><FileJson className="h-3 w-3" />{t.exportImport.json}</div></SelectItem>
-                            <SelectItem value="csv"><div className="flex items-center gap-1.5"><FileSpreadsheet className="h-3 w-3" />CSV</div></SelectItem>
-                            <SelectItem value="pdf"><div className="flex items-center gap-1.5"><FileType className="h-3 w-3" />{t.exportImport.pdf}</div></SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
+                  {item.hasFormats && (
+                    <div className="mb-3">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">{t.exportImport.format}</label>
+                      <Select value={exportFormat} onValueChange={setExportFormat}>
+                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="json"><div className="flex items-center gap-1.5"><FileJson className="h-3 w-3" />{t.exportImport.json}</div></SelectItem>
+                          <SelectItem value="csv"><div className="flex items-center gap-1.5"><FileSpreadsheet className="h-3 w-3" />CSV</div></SelectItem>
+                          <SelectItem value="pdf"><div className="flex items-center gap-1.5"><FileType className="h-3 w-3" />{t.exportImport.pdf}</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
 
                   <Button
                     size="sm"
                     className="w-full gold-gradient text-primary-foreground hover:opacity-90"
-                    onClick={item.hasFormats ? handleExportBaseline : undefined}
-                    disabled={item.hasFormats ? (!selectedProjectId || exporting) : false}
+                    onClick={(item as any).isDocument ? handleGenerateDocument : item.hasFormats ? handleExportBaseline : undefined}
+                    disabled={((item as any).isDocument || item.hasFormats) ? (!selectedProjectId || exporting) : false}
                   >
                     {exporting && item.hasFormats ? (
                       <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Exporting...</>
+                    ) : (item as any).isDocument ? (
+                      <><BookOpen className="h-3.5 w-3.5 mr-1.5" />{(t as any).baselineDocument?.generateButton || 'Generate Document'}</>
                     ) : (
                       <><Download className="h-3.5 w-3.5 mr-1.5" />{t.exportImport.download}</>
                     )}
