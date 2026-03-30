@@ -993,7 +993,7 @@ const RulesTemplates: React.FC = () => {
                 </div>
               </div>
               <Input
-                placeholder="Version name"
+                placeholder={t.rules.versionName}
                 value={renameLabel}
                 onChange={e => setRenameLabel(e.target.value)}
                 autoFocus
