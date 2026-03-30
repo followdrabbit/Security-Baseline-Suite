@@ -46,6 +46,9 @@ const History: React.FC = () => {
     left: { version: number; controls: any[] };
     right: { version: number; controls: any[] };
   }>({ open: false, left: { version: 0, controls: [] }, right: { version: 0, controls: [] } });
+  const [auditActionFilter, setAuditActionFilter] = useState<string>('all');
+  const [auditDateFrom, setAuditDateFrom] = useState<Date | undefined>();
+  const [auditDateTo, setAuditDateTo] = useState<Date | undefined>();
 
   const { data: projects = [] } = useQuery({
     queryKey: ['history-projects', user?.id],
