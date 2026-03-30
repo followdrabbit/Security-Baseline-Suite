@@ -16,7 +16,7 @@ import HelpButton from '@/components/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Upload, FileJson, FileText, FileType, Archive, Settings2, Layers, Sparkles, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Upload, FileJson, FileText, FileType, Archive, Settings2, Layers, Sparkles, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ControlItem, SourceTraceability, ThreatScenario } from '@/types';
 import { exportToCSV, exportToPDF, exportToJSON } from '@/components/traceability/exportUtils';
