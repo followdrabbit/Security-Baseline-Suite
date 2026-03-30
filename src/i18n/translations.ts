@@ -1665,6 +1665,7 @@ const translations = {
       downloadDocx: 'Baixar DOCX',
     },
   },
+  es: {
     app: { name: 'Aureum Baseline Studio', tagline: 'Generación Enterprise de Baselines de Seguridad' },
     nav: {
       dashboard: 'Panel', newProject: 'Nuevo Proyecto', sources: 'Biblioteca de Fuentes',
