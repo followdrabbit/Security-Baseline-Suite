@@ -20,6 +20,7 @@ interface AuditCsvData {
     reviewRate: number;
     controls: number;
   }[];
+  frameworkRadarData?: { framework: string; coverage: number; controls: number }[];
   projects: {
     name: string;
     technology: string;
