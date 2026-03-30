@@ -32,9 +32,26 @@ const AuditDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedProjectId = searchParams.get('project') || 'all';
+  const selectedPeriod = searchParams.get('period') || 'all';
   const setSelectedProjectId = useCallback((value: string) => {
-    setSearchParams(value === 'all' ? {} : { project: value }, { replace: true });
-  }, [setSearchParams]);
+    const params: Record<string, string> = {};
+    if (value !== 'all') params.project = value;
+    if (selectedPeriod !== 'all') params.period = selectedPeriod;
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams, selectedPeriod]);
+  const setSelectedPeriod = useCallback((value: string) => {
+    const params: Record<string, string> = {};
+    if (selectedProjectId !== 'all') params.project = selectedProjectId;
+    if (value !== 'all') params.period = value;
+    setSearchParams(params, { replace: true });
+  }, [setSearchParams, selectedProjectId]);
+
+  const periodCutoff = useMemo(() => {
+    if (selectedPeriod === '7') return subDays(new Date(), 7);
+    if (selectedPeriod === '30') return subDays(new Date(), 30);
+    if (selectedPeriod === '90') return subDays(new Date(), 90);
+    return null;
+  }, [selectedPeriod]);
 
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
