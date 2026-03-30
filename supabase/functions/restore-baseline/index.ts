@@ -63,7 +63,45 @@ Deno.serve(async (req) => {
 
     const snapshot = version.controls_snapshot as any[];
 
-    // 2. Delete current controls for this project
+    // 2. Get current controls for diff computation
+    const { data: currentControls } = await admin
+      .from("controls")
+      .select("control_id, title, criticality, review_status, description")
+      .eq("project_id", projectId)
+      .eq("user_id", user.id);
+
+    // Compute diff between current and restored snapshot
+    const currentMap = new Map<string, any>();
+    for (const c of (currentControls || [])) {
+      if (!currentMap.has(c.control_id)) currentMap.set(c.control_id, c);
+    }
+    const snapMap = new Map<string, any>();
+    for (const c of snapshot) {
+      if (!snapMap.has(c.control_id)) snapMap.set(c.control_id, c);
+    }
+
+    const added: string[] = [];
+    const removed: string[] = [];
+    const modified: string[] = [];
+
+    for (const [cid, ctrl] of snapMap) {
+      if (!currentMap.has(cid)) added.push(cid);
+    }
+    for (const [cid] of currentMap) {
+      if (!snapMap.has(cid)) removed.push(cid);
+    }
+    const compareFields = ["title", "criticality", "review_status", "description"];
+    for (const [cid, snapCtrl] of snapMap) {
+      const curCtrl = currentMap.get(cid);
+      if (!curCtrl) continue;
+      const changedFields: string[] = [];
+      for (const f of compareFields) {
+        if (String(curCtrl[f] || "") !== String(snapCtrl[f] || "")) changedFields.push(f);
+      }
+      if (changedFields.length > 0) modified.push(`${cid} (${changedFields.join(", ")})`);
+    }
+
+    // 3. Delete current controls for this project
     const { error: deleteError } = await admin
       .from("controls")
       .delete()
@@ -78,7 +116,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Insert snapshot controls
+    // 4. Insert snapshot controls
     if (snapshot.length > 0) {
       const controlRows = snapshot.map((c: any) => ({
         project_id: projectId,
@@ -112,7 +150,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Get the latest version number
+    // 5. Get the latest version number
     const { data: latestVersion } = await admin
       .from("baseline_versions")
       .select("version")
@@ -124,7 +162,16 @@ Deno.serve(async (req) => {
 
     const newVersionNum = (latestVersion?.version || 0) + 1;
 
-    // 5. Create a new version entry for the restore
+    // 6. Build detailed changes summary
+    const parts: string[] = [`Restored from v${version.version}`];
+    if (added.length) parts.push(`+${added.length} added`);
+    if (removed.length) parts.push(`-${removed.length} removed`);
+    if (modified.length) parts.push(`~${modified.length} modified: ${modified.join("; ")}`);
+    if (!added.length && !removed.length && !modified.length) parts.push("no differences from current");
+    parts.push(`(${snapshot.length} controls total)`);
+    const changesSummary = parts.join(" · ");
+
+    // 7. Create a new version entry for the restore
     const { error: versionInsertError } = await admin
       .from("baseline_versions")
       .insert({
@@ -134,7 +181,7 @@ Deno.serve(async (req) => {
         control_count: snapshot.length,
         controls_snapshot: snapshot,
         status: "draft",
-        changes_summary: `Restored from Version ${version.version} (${snapshot.length} controls)`,
+        changes_summary: changesSummary,
       });
 
     if (versionInsertError) {
