@@ -158,6 +158,32 @@ const AuditDashboard: React.FC = () => {
     return Array.from(map.values());
   }, [filteredProjects, filteredVersions]);
 
+  // Activity timeline data (grouped by month)
+  const timelineData = useMemo(() => {
+    const map = new Map<string, { month: string; publish: number; restore: number }>();
+    for (const log of filteredAuditLogs) {
+      const d = new Date(log.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      if (!map.has(key)) map.set(key, { month: label, publish: 0, restore: 0 });
+      const entry = map.get(key)!;
+      if (log.action === 'publish') entry.publish++;
+      else entry.restore++;
+    }
+    // Also scan published_at from versions for richer data
+    for (const v of filteredVersions) {
+      if (v.status === 'published' && v.published_at) {
+        const d = new Date(v.published_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        if (!map.has(key)) map.set(key, { month: label, publish: 0, restore: 0 });
+      }
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => v);
+  }, [filteredAuditLogs, filteredVersions]);
+
   // Criticality breakdown
   const criticalityData = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
