@@ -339,6 +339,43 @@ const History: React.FC = () => {
             <span className="text-[10px] text-muted-foreground ml-auto">
               {filteredLogs.length} / {auditLogs.length} entries
             </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              disabled={filteredLogs.length === 0}
+              onClick={() => {
+                const projectName = projects.find(p => p.id === selectedProjectId)?.name || 'project';
+                const headers = ['Version', 'Action', 'From Version', 'Details', 'Date'];
+                const rows = filteredLogs.map((log: any) => {
+                  const details = log.details || {};
+                  const isPublish = log.action === 'publish';
+                  const summary = details.changes_summary || (isPublish
+                    ? `${details.control_count || '?'} controls, ${details.source_count || '?'} sources`
+                    : `From v${log.from_version} · ${details.added || 0} added, ${details.removed || 0} removed, ${details.modified || 0} modified`
+                  );
+                  return [
+                    `v${log.version_number}`,
+                    log.action,
+                    log.from_version ? `v${log.from_version}` : '',
+                    `"${summary.replace(/"/g, '""')}"`,
+                    new Date(log.created_at).toISOString(),
+                  ].join(',');
+                });
+                const csv = [headers.join(','), ...rows].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audit-log-${projectName.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: '📄 CSV exported', description: `${filteredLogs.length} audit entries exported.` });
+              }}
+            >
+              <Download className="h-3.5 w-3.5" /> Export CSV
+            </Button>
           </div>
 
           <div className="border border-border rounded-lg overflow-hidden">
