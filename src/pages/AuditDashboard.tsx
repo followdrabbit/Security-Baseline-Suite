@@ -18,6 +18,7 @@ import {
   PieChart, Pie, Cell, AreaChart, Area, Legend, LineChart, Line, ReferenceLine,
 } from 'recharts';
 import { exportAuditPdf } from '@/components/audit/exportAuditPdf';
+import { exportAuditCsv } from '@/components/audit/exportAuditCsv';
 
 const fadeIn = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } };
 
