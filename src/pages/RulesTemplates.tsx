@@ -431,13 +431,20 @@ const RulesTemplates: React.FC = () => {
               </div>
               <HelpButton section="rules" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {modifiedCount > 0 && (
                 <Button variant="outline" size="sm" onClick={handleRestoreAll} disabled={saving} className="text-muted-foreground">
                   <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> {t.rules.restoreAll}
                   <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{modifiedCount}</Badge>
                 </Button>
               )}
+              <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+                <History className="h-4 w-4 mr-1.5" />History
+                {versions.length > 0 && <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{versions.length}</Badge>}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
+                <Save className="h-4 w-4 mr-1.5" />Save Version
+              </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileSelected} />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-1.5" />Import
