@@ -361,11 +361,11 @@ const AuditDashboard: React.FC = () => {
             <Link to="/history">View all →</Link>
           </Button>
         </div>
-        {auditLogs.length === 0 ? (
+        {filteredAuditLogs.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-6">No audit activity yet. Publish or restore a version to generate entries.</p>
         ) : (
           <div className="space-y-3">
-            {auditLogs.slice(0, 8).map((log) => {
+            {filteredAuditLogs.slice(0, 8).map((log) => {
               const isPublish = log.action === 'publish';
               const details = (log.details as any) || {};
               return (
