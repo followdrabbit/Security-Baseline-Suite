@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,8 +13,11 @@ import HelpButton from '@/components/HelpButton';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket, CalendarIcon, X } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
@@ -42,6 +46,9 @@ const History: React.FC = () => {
     left: { version: number; controls: any[] };
     right: { version: number; controls: any[] };
   }>({ open: false, left: { version: 0, controls: [] }, right: { version: 0, controls: [] } });
+  const [auditActionFilter, setAuditActionFilter] = useState<string>('all');
+  const [auditDateFrom, setAuditDateFrom] = useState<Date | undefined>();
+  const [auditDateTo, setAuditDateTo] = useState<Date | undefined>();
 
   const { data: projects = [] } = useQuery({
     queryKey: ['history-projects', user?.id],
@@ -265,12 +272,75 @@ const History: React.FC = () => {
       </div>
 
       {/* Audit Log Section */}
-      {selectedProjectId && auditLogs.length > 0 && (
+      {selectedProjectId && auditLogs.length > 0 && (() => {
+        const filteredLogs = auditLogs.filter((log: any) => {
+          if (auditActionFilter !== 'all' && log.action !== auditActionFilter) return false;
+          const logDate = new Date(log.created_at);
+          if (auditDateFrom && logDate < auditDateFrom) return false;
+          if (auditDateTo) {
+            const endOfDay = new Date(auditDateTo);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (logDate > endOfDay) return false;
+          }
+          return true;
+        });
+        const hasActiveFilters = auditActionFilter !== 'all' || auditDateFrom || auditDateTo;
+
+        return (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
             <h2 className="text-lg font-display font-semibold text-foreground">{t.history.audit.title}</h2>
           </div>
+
+          {/* Audit Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={auditActionFilter} onValueChange={setAuditActionFilter}>
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All actions</SelectItem>
+                <SelectItem value="publish">Publish</SelectItem>
+                <SelectItem value="restore">Restore</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", !auditDateFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {auditDateFrom ? format(auditDateFrom, 'PP') : 'From date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={auditDateFrom} onSelect={setAuditDateFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("h-8 text-xs gap-1.5", !auditDateTo && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {auditDateTo ? format(auditDateTo, 'PP') : 'To date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={auditDateTo} onSelect={setAuditDateTo} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" onClick={() => { setAuditActionFilter('all'); setAuditDateFrom(undefined); setAuditDateTo(undefined); }}>
+                <X className="h-3 w-3" /> Clear
+              </Button>
+            )}
+
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              {filteredLogs.length} / {auditLogs.length} entries
+            </span>
+          </div>
+
           <div className="border border-border rounded-lg overflow-hidden">
             <div className="grid grid-cols-[100px_80px_1fr_180px] gap-0 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 px-4 py-2.5 border-b border-border">
               <span>{t.history.audit.version}</span>
@@ -278,7 +348,10 @@ const History: React.FC = () => {
               <span>Details</span>
               <span>{t.history.date}</span>
             </div>
-            {auditLogs.map((log: any) => {
+            {filteredLogs.length === 0 ? (
+              <div className="px-4 py-6 text-center text-xs text-muted-foreground">No audit entries match the selected filters.</div>
+            ) : (
+            filteredLogs.map((log: any) => {
               const isPublish = log.action === 'publish';
               const details = log.details || {};
               return (
@@ -301,10 +374,12 @@ const History: React.FC = () => {
                   </span>
                 </div>
               );
-            })}
+            })
+            )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <ConfirmationModal
         open={restoreModal.open}
