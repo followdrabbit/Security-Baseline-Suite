@@ -188,7 +188,24 @@ Deno.serve(async (req) => {
       console.error("Version insert error:", versionInsertError);
     }
 
-    // 6. Update project control count
+    // 8. Audit log
+    await admin.from("version_audit_logs").insert({
+      user_id: user.id,
+      project_id: projectId,
+      action: "restore",
+      version_number: newVersionNum,
+      from_version: version.version,
+      details: {
+        restored_from: version.version,
+        control_count: snapshot.length,
+        added: added.length,
+        removed: removed.length,
+        modified: modified.length,
+        changes_summary: changesSummary,
+      },
+    });
+
+    // 9. Update project control count
     await admin
       .from("projects")
       .update({ control_count: snapshot.length })
