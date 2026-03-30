@@ -48,23 +48,52 @@ const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boo
   );
 };
 
-const Sparkline: React.FC<{ data: { v: number }[]; color?: string; height?: number }> = ({ data, color = 'hsl(var(--primary))', height = 24 }) => {
+const Sparkline: React.FC<{ data: { v: number; label?: string }[]; color?: string; height?: number; suffix?: string }> = ({ data, color = 'hsl(var(--primary))', height = 24, suffix = '' }) => {
+  const [hovered, setHovered] = React.useState<number | null>(null);
   const width = 64;
   const values = data.map(d => d.v);
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const range = max - min || 1;
-  const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * width;
-    const y = height - ((v - min) / range) * (height - 4) - 2;
-    return `${x},${y}`;
-  }).join(' ');
+  const coords = values.map((v, i) => ({
+    x: (i / (values.length - 1)) * width,
+    y: height - ((v - min) / range) * (height - 4) - 2,
+  }));
+  const points = coords.map(c => `${c.x},${c.y}`).join(' ');
   const areaPoints = `0,${height} ${points} ${width},${height}`;
   return (
-    <svg width={width} height={height} className="shrink-0 opacity-70">
-      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
-      <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
-    </svg>
+    <div className="relative shrink-0" style={{ width, height: height + 4 }}>
+      <svg width={width} height={height} className="opacity-70">
+        <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+        <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
+        {coords.map((c, i) => (
+          <circle
+            key={i}
+            cx={c.x}
+            cy={c.y}
+            r={hovered === i ? 3 : 6}
+            fill={hovered === i ? color : 'transparent'}
+            stroke="none"
+            className="cursor-pointer"
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+          />
+        ))}
+      </svg>
+      {hovered !== null && (
+        <div
+          className="absolute z-50 pointer-events-none bg-popover border border-border rounded px-1.5 py-0.5 text-[9px] text-foreground shadow-md whitespace-nowrap"
+          style={{
+            left: coords[hovered].x,
+            top: -2,
+            transform: `translate(${coords[hovered].x > width / 2 ? '-100%' : '0%'}, -100%)`,
+          }}
+        >
+          <span className="font-semibold">{data[hovered].v}{suffix}</span>
+          {data[hovered].label && <span className="text-muted-foreground ml-1">{data[hovered].label}</span>}
+        </div>
+      )}
+    </div>
   );
 };
 
