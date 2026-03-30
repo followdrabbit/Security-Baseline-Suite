@@ -52,9 +52,9 @@ const AuditDashboard: React.FC = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from('baseline_versions')
-        .select('id, project_id, version, status, control_count, changes_summary, created_at, published_at')
+        .select('id, project_id, version, status, control_count, changes_summary, created_at, published_at, controls_snapshot')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
       if (error) throw error;
       return data || [];
     },
