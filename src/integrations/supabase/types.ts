@@ -521,6 +521,39 @@ export type Database = {
         }
         Relationships: []
       }
+      version_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          from_version: number | null
+          id: string
+          project_id: string
+          user_id: string
+          version_number: number | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          from_version?: number | null
+          id?: string
+          project_id: string
+          user_id: string
+          version_number?: number | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          from_version?: number | null
+          id?: string
+          project_id?: string
+          user_id?: string
+          version_number?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
