@@ -2497,6 +2497,7 @@ const translations = {
       downloadDocx: 'Descargar DOCX',
     },
   },
+} as const;
 
 export type TranslationKeys = typeof translations.en;
 export default translations;
