@@ -233,7 +233,7 @@ const RulesTemplates: React.FC = () => {
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
   const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
-  const { versions, loading: versionsLoading, saveVersion, deleteVersion } = useTemplateVersions();
+  const { versions, loading: versionsLoading, saveVersion, deleteVersion, renameVersion } = useTemplateVersions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<{ data: Record<string, string>; count: number; overwriteCount: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -242,6 +242,8 @@ const RulesTemplates: React.FC = () => {
   const [restorePreview, setRestorePreview] = useState<TemplateVersion | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<TemplateVersion | null>(null);
   const [duplicateLabel, setDuplicateLabel] = useState('');
+  const [renameTarget, setRenameTarget] = useState<TemplateVersion | null>(null);
+  const [renameLabel, setRenameLabel] = useState('');
   const [compareSelection, setCompareSelection] = useState<TemplateVersion[]>([]);
 
   const handleExportJSON = () => {
