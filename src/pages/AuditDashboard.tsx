@@ -235,7 +235,19 @@ const AuditDashboard: React.FC = () => {
     ].filter(d => d.value > 0);
   }, [filteredControls]);
 
-  // Find project name by id
+  // Framework coverage radar data
+  const frameworkRadarData = useMemo(() => {
+    const frameworks = ['NIST', 'CIS', 'ISO', 'SOC', 'PCI'];
+    const total = filteredControls.length;
+    if (total === 0) return [];
+    return frameworks.map(fw => {
+      const mapped = filteredControls.filter(c =>
+        Array.isArray(c.framework_mappings) && c.framework_mappings.some((m: string) => m.toUpperCase().includes(fw))
+      ).length;
+      return { framework: fw, coverage: Math.round((mapped / total) * 100), controls: mapped };
+    });
+  }, [filteredControls]);
+
   const projectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown';
 
   const [exporting, setExporting] = useState(false);
