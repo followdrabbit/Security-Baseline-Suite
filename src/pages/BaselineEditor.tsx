@@ -406,9 +406,37 @@ const BaselineEditor: React.FC = () => {
     },
   });
 
+  // Restore version mutation
+  const restoreMutation = useMutation({
+    mutationFn: async (versionId: string) => {
+      if (!user || selectedProject === 'all') throw new Error('Select a project');
+      const { data, error } = await supabase.functions.invoke('restore-baseline', {
+        body: { versionId, projectId: selectedProject },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['baseline-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['baseline-controls'] });
+      queryClient.invalidateQueries({ queryKey: ['baseline-versions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-projects'] });
+      setViewingVersionId(null);
+      toast({
+        title: `🔄 ${t.toasts.restored}`,
+        description: `${t.toasts.restoredDesc} v${data?.restoredVersion || '?'}`,
+      });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to restore version.', variant: 'destructive' });
+    },
+  });
+
   const handleConfirm = () => {
     if (confirmModal.variant === 'publish') {
       publishMutation.mutate();
+    } else if (confirmModal.variant === 'restore') {
+      if (viewingVersionId) restoreMutation.mutate(viewingVersionId);
     } else if (confirmModal.variant === 'approveAll') {
       bulkApproveMutation.mutate();
       toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
