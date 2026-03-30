@@ -472,6 +472,43 @@ const AuditDashboard: React.FC = () => {
         )}
       </motion.div>
 
+      {/* Compliance Score Trend */}
+      <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.33 }}
+        className="bg-card border border-border rounded-xl p-5 shadow-premium">
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-success" /> Compliance Score Trend
+        </h3>
+        {complianceTrend.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-8">No published versions yet. Publish a version to start tracking compliance evolution.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={complianceTrend}>
+              <defs>
+                <linearGradient id="fillConfidence" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} unit="%" />
+              <Tooltip
+                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                formatter={(value: number, name: string) => [`${value}%`, name]}
+                labelFormatter={(label) => {
+                  const point = complianceTrend.find(p => p.label === label);
+                  return point ? `${label} — ${point.date} (${point.controls} controls)` : label;
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <ReferenceLine y={80} stroke="hsl(var(--success))" strokeDasharray="6 3" strokeOpacity={0.5} label={{ value: '80% target', position: 'right', fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+              <Line type="monotone" dataKey="confidence" name="Avg. Confidence" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="reviewRate" name="Review Rate" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="5 3" dot={{ r: 3, fill: 'hsl(var(--success))' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </motion.div>
+
       {/* Recent Audit Activity */}
       <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.35 }}
         className="bg-card border border-border rounded-xl p-5 shadow-premium">
