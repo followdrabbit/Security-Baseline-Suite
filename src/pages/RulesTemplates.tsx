@@ -945,7 +945,7 @@ const RulesTemplates: React.FC = () => {
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setDuplicateTarget(null); setDuplicateLabel(''); }}>
-                  Cancel
+                  {t.rules.cancel}
                 </Button>
                 <Button
                   size="sm"
