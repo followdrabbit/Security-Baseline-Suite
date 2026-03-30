@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import InfoTooltip from '@/components/InfoTooltip';
