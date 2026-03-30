@@ -274,6 +274,16 @@ const RulesTemplates: React.FC = () => {
     if (mainEl?.scrollTo) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
       <RulesToc
