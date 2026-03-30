@@ -85,6 +85,29 @@ const AuditDashboard: React.FC = () => {
     return 'All Time';
   }, [selectedPeriod, customDateRange]);
 
+  // Previous period for comparison
+  const previousPeriod = useMemo(() => {
+    if (!compareEnabled || selectedPeriod === 'all') return null;
+    const now = new Date();
+    if (selectedPeriod === '7') return { from: subDays(now, 14), to: subDays(now, 7) };
+    if (selectedPeriod === '30') return { from: subDays(now, 60), to: subDays(now, 30) };
+    if (selectedPeriod === '90') return { from: subDays(now, 180), to: subDays(now, 90) };
+    if (selectedPeriod === 'custom' && customDateRange.from) {
+      const from = customDateRange.from;
+      const to = customDateRange.to || now;
+      const duration = to.getTime() - from.getTime();
+      const prevTo = new Date(from.getTime() - 1);
+      const prevFrom = new Date(prevTo.getTime() - duration);
+      return { from: prevFrom, to: prevTo };
+    }
+    return null;
+  }, [compareEnabled, selectedPeriod, customDateRange]);
+
+  const previousPeriodLabel = useMemo(() => {
+    if (!previousPeriod) return '';
+    return `${format(previousPeriod.from, 'MMM d')} – ${format(previousPeriod.to, 'MMM d')}`;
+  }, [previousPeriod]);
+
   // Fetch all projects
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['audit-projects', user?.id],
