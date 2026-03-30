@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import InfoTooltip from '@/components/InfoTooltip';
