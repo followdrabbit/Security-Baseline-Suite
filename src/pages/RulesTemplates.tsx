@@ -742,8 +742,8 @@ const RulesTemplates: React.FC = () => {
                   <AlertTriangle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Confirm Import</h3>
-                  <p className="text-sm text-muted-foreground">This will overwrite current values</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.confirmImport}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.overwriteWarning}</p>
                 </div>
               </div>
 
