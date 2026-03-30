@@ -292,6 +292,126 @@ export function exportAuditPdf(data: AuditPdfData) {
     y += 10;
   }
 
+  // ── Framework Coverage Radar ──
+  if (data.frameworkRadarData && data.frameworkRadarData.length > 0 && data.frameworkRadarData.some(d => d.controls > 0)) {
+    if (y > 200) { doc.addPage(); y = 20; }
+
+    doc.setTextColor(...DARK);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Framework Coverage', margin, y);
+    y += 8;
+
+    // Draw radar-style visualization as horizontal bars with pentagon hint
+    const radarData = data.frameworkRadarData;
+    const barMaxWidth = contentWidth - 45;
+
+    // Pentagon shape (simplified radar)
+    const cx = margin + 35;
+    const cy = y + 28;
+    const radius = 22;
+    const angles = radarData.map((_, i) => (Math.PI / 2) + (2 * Math.PI * i) / radarData.length);
+
+    // Draw pentagon grid rings
+    [0.25, 0.5, 0.75, 1].forEach(scale => {
+      const points = angles.map(a => ({
+        x: cx + radius * scale * Math.cos(a),
+        y: cy - radius * scale * Math.sin(a),
+      }));
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.2);
+      for (let i = 0; i < points.length; i++) {
+        const next = points[(i + 1) % points.length];
+        doc.line(points[i].x, points[i].y, next.x, next.y);
+      }
+    });
+
+    // Draw axes
+    angles.forEach(a => {
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.15);
+      doc.line(cx, cy, cx + radius * Math.cos(a), cy - radius * Math.sin(a));
+    });
+
+    // Draw data polygon
+    const dataPoints = radarData.map((d, i) => ({
+      x: cx + radius * (d.coverage / 100) * Math.cos(angles[i]),
+      y: cy - radius * (d.coverage / 100) * Math.sin(angles[i]),
+    }));
+
+    doc.setFillColor(99, 102, 241);
+    doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
+    // Fill polygon manually
+    const fillPath = dataPoints.map((p, i) => i === 0 ? p : p);
+    doc.triangle(
+      fillPath[0]?.x || cx, fillPath[0]?.y || cy,
+      fillPath[1]?.x || cx, fillPath[1]?.y || cy,
+      fillPath[2]?.x || cx, fillPath[2]?.y || cy, 'F'
+    );
+    if (fillPath.length > 3) {
+      doc.triangle(
+        fillPath[0]?.x || cx, fillPath[0]?.y || cy,
+        fillPath[2]?.x || cx, fillPath[2]?.y || cy,
+        fillPath[3]?.x || cx, fillPath[3]?.y || cy, 'F'
+      );
+    }
+    if (fillPath.length > 4) {
+      doc.triangle(
+        fillPath[0]?.x || cx, fillPath[0]?.y || cy,
+        fillPath[3]?.x || cx, fillPath[3]?.y || cy,
+        fillPath[4]?.x || cx, fillPath[4]?.y || cy, 'F'
+      );
+    }
+    doc.setGState(new (doc as any).GState({ opacity: 1 }));
+
+    // Draw data polygon outline
+    doc.setDrawColor(...BRAND_COLOR);
+    doc.setLineWidth(0.6);
+    for (let i = 0; i < dataPoints.length; i++) {
+      const next = dataPoints[(i + 1) % dataPoints.length];
+      doc.line(dataPoints[i].x, dataPoints[i].y, next.x, next.y);
+    }
+
+    // Draw dots and labels on axes
+    radarData.forEach((d, i) => {
+      doc.setFillColor(...BRAND_COLOR);
+      doc.circle(dataPoints[i].x, dataPoints[i].y, 1, 'F');
+      // Label at end of axis
+      const lx = cx + (radius + 4) * Math.cos(angles[i]);
+      const ly = cy - (radius + 4) * Math.sin(angles[i]);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...DARK);
+      doc.text(d.framework, lx - 4, ly + 2);
+    });
+
+    // Coverage bars on the right side
+    const barsX = cx + radius + 30;
+    const barsY = y;
+    radarData.forEach((d, i) => {
+      const rowY = barsY + i * 11;
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...DARK);
+      doc.text(d.framework, barsX, rowY + 4);
+
+      const barX = barsX + 18;
+      const barW = barMaxWidth - 45;
+      doc.setFillColor(...LIGHT_BG);
+      doc.roundedRect(barX, rowY, barW, 5, 1, 1, 'F');
+      const fillW = (d.coverage / 100) * barW;
+      doc.setFillColor(...BRAND_COLOR);
+      doc.roundedRect(barX, rowY, Math.max(fillW, 1), 5, 1, 1, 'F');
+
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...MUTED);
+      doc.text(`${d.coverage}% (${d.controls})`, barX + barW + 2, rowY + 4);
+    });
+
+    y += Math.max(60, radarData.length * 11 + 5);
+  }
+
   // ── Project Compliance Summary ──
   if (y > 240) { doc.addPage(); y = 20; }
 
