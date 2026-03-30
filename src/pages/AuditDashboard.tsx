@@ -186,7 +186,19 @@ const AuditDashboard: React.FC = () => {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Consolidated compliance metrics, version governance and audit activity</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+            <SelectTrigger className="w-[220px] h-9 text-xs">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {projects.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" asChild>
             <Link to="/history"><History className="h-3.5 w-3.5 mr-1.5" />Version History</Link>
           </Button>
