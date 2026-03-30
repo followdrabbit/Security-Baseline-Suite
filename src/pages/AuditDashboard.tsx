@@ -341,32 +341,35 @@ const AuditDashboard: React.FC = () => {
     const pControls = projectFilter(controls);
     const pLogs = projectFilter(auditLogs);
 
+    const dayLabels = days.map(d => format(d.date, 'EEE'));
+
     // Cumulative published versions per day
-    const publishedByDay = days.map(d => {
+    const publishedByDay = days.map((d, i) => {
       const count = pVersions.filter(v => v.status === 'published' && dayKey(v.created_at) === d.key).length;
-      return { v: count };
+      return { v: count, label: dayLabels[i] };
     });
 
     // Cumulative approved rate per day (controls created up to that day)
-    const reviewByDay = days.map(d => {
+    const reviewByDay = days.map((d, i) => {
       const cutoff = new Date(d.date);
       cutoff.setHours(23, 59, 59, 999);
       const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
       const approved = relevant.filter((c: any) => c.review_status === 'approved').length;
-      return { v: relevant.length > 0 ? Math.round((approved / relevant.length) * 100) : 0 };
+      return { v: relevant.length > 0 ? Math.round((approved / relevant.length) * 100) : 0, label: dayLabels[i] };
     });
 
     // Pending controls per day
-    const pendingByDay = days.map(d => {
+    const pendingByDay = days.map((d, i) => {
       const cutoff = new Date(d.date);
       cutoff.setHours(23, 59, 59, 999);
       const relevant = pControls.filter(c => new Date(c.created_at) <= cutoff);
-      return { v: relevant.filter((c: any) => c.review_status === 'pending').length };
+      return { v: relevant.filter((c: any) => c.review_status === 'pending').length, label: dayLabels[i] };
     });
 
     // Audit actions per day
-    const actionsByDay = days.map(d => ({
+    const actionsByDay = days.map((d, i) => ({
       v: pLogs.filter(l => dayKey(l.created_at) === d.key).length,
+      label: dayLabels[i],
     }));
 
     return { published: publishedByDay, review: reviewByDay, pending: pendingByDay, actions: actionsByDay };
