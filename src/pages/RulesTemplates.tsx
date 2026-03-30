@@ -128,10 +128,11 @@ const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; 
   aggressive:   { precision: 55, coverage: 95, reviewEffort: 85 },
 };
 
-const ImpactBar: React.FC<{ label: string; value: number; isActive: boolean }> = ({ label, value, isActive }) => (
+const ImpactBar: React.FC<{ label: string; tooltip?: string; value: number; isActive: boolean }> = ({ label, tooltip, value, isActive }) => (
   <div className="flex items-center gap-2">
-    <span className={cn("text-[10px] w-[72px] shrink-0 text-right", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
+    <span className={cn("text-[10px] w-[72px] shrink-0 text-right inline-flex items-center justify-end gap-0.5", isActive ? 'text-foreground/60' : 'text-muted-foreground/50')}>
       {label}
+      {tooltip && <InfoTooltip content={tooltip} className="h-2.5 w-2.5 ml-0.5" />}
     </span>
     <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
       <div
