@@ -933,8 +933,8 @@ const RulesTemplates: React.FC = () => {
                   <CopyPlus className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Duplicate Version</h3>
-                  <p className="text-sm text-muted-foreground">Create a copy of "{duplicateTarget.label}"</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.duplicateVersion}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.duplicateVersionSubtitle} "{duplicateTarget.label}"</p>
                 </div>
               </div>
               <Input
