@@ -17,7 +17,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket, CalendarIcon, X, Download } from 'lucide-react';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket, CalendarIcon, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
