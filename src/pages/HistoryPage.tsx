@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,8 +13,11 @@ import HelpButton from '@/components/HelpButton';
 import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket, CalendarIcon, X } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
