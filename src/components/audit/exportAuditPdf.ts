@@ -110,6 +110,51 @@ export function exportAuditPdf(data: AuditPdfData) {
   });
   y += 30;
 
+  // ── Executive Narrative ──
+  const m = data.metrics;
+  const narrativeLines: string[] = [];
+
+  // Overall posture
+  if (m.reviewRate >= 90 && m.avgConfidence >= 80) {
+    narrativeLines.push(`The overall compliance posture is strong: ${m.reviewRate}% of controls have been reviewed with an average confidence score of ${m.avgConfidence}%.`);
+  } else if (m.reviewRate >= 60) {
+    narrativeLines.push(`Compliance review is progressing: ${m.reviewRate}% of controls reviewed so far, with an average confidence of ${m.avgConfidence}%. Continued effort is needed to close remaining gaps.`);
+  } else {
+    narrativeLines.push(`Compliance review requires immediate attention: only ${m.reviewRate}% of controls have been reviewed. Average confidence stands at ${m.avgConfidence}%.`);
+  }
+
+  // Pending & rejected highlights
+  if (m.pendingControls > 0 || m.rejectedControls > 0) {
+    const parts: string[] = [];
+    if (m.pendingControls > 0) parts.push(`${m.pendingControls} control${m.pendingControls > 1 ? 's' : ''} pending review`);
+    if (m.rejectedControls > 0) parts.push(`${m.rejectedControls} rejected`);
+    narrativeLines.push(`Action items: ${parts.join(', ')} out of ${m.totalControls} total controls.`);
+  }
+
+  // Version activity
+  narrativeLines.push(`Across ${m.totalProjects} project${m.totalProjects > 1 ? 's' : ''}, ${m.publishedVersions} version${m.publishedVersions !== 1 ? 's have' : ' has'} been published (${m.draftVersions} draft${m.draftVersions !== 1 ? 's' : ''} in progress), generating ${m.totalAuditActions} audit action${m.totalAuditActions !== 1 ? 's' : ''}.`);
+
+  // Criticality warning
+  const criticalCount = data.criticalityData.find(d => d.name === 'Critical')?.value || 0;
+  const highCount = data.criticalityData.find(d => d.name === 'High')?.value || 0;
+  if (criticalCount > 0 || highCount > 0) {
+    narrativeLines.push(`Risk note: ${criticalCount} critical and ${highCount} high-criticality controls require priority attention.`);
+  }
+
+  doc.setFillColor(240, 244, 255);
+  const narrativeText = narrativeLines.join(' ');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const splitNarrative = doc.splitTextToSize(narrativeText, contentWidth - 10);
+  const boxHeight = splitNarrative.length * 4 + 8;
+  doc.roundedRect(margin, y, contentWidth, boxHeight, 2, 2, 'F');
+  // Accent bar
+  doc.setFillColor(...BRAND_COLOR);
+  doc.rect(margin, y, 1.5, boxHeight, 'F');
+  doc.setTextColor(...DARK);
+  doc.text(splitNarrative, margin + 6, y + 6);
+  y += boxHeight + 6;
+
   // ── Control Criticality Breakdown ──
   if (data.criticalityData.length > 0) {
     doc.setTextColor(...DARK);
