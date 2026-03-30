@@ -122,10 +122,10 @@ const STRICTNESS_ICONS: Record<string, React.FC<{ className?: string }>> = {
   aggressive: (props) => <Zap {...props} />,
 };
 
-const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; reviewEffort: number }> = {
-  conservative: { precision: 95, coverage: 55, reviewEffort: 20 },
-  balanced:     { precision: 78, coverage: 78, reviewEffort: 50 },
-  aggressive:   { precision: 55, coverage: 95, reviewEffort: 85 },
+const STRICTNESS_METRICS: Record<string, { precision: number; coverage: number; reviewEffort: number; estimatedControls: [number, number] }> = {
+  conservative: { precision: 95, coverage: 55, reviewEffort: 20, estimatedControls: [15, 30] },
+  balanced:     { precision: 78, coverage: 78, reviewEffort: 50, estimatedControls: [30, 60] },
+  aggressive:   { precision: 55, coverage: 95, reviewEffort: 85, estimatedControls: [55, 100] },
 };
 
 const ImpactBar: React.FC<{ label: string; tooltip?: string; value: number; isActive: boolean }> = ({ label, tooltip, value, isActive }) => (
