@@ -964,6 +964,7 @@ const translations = {
       coverageTip: 'Quão amplamente a IA gera controles em todas as áreas de segurança. Maior significa saída mais abrangente.',
       reviewEffort: 'Esforço de revisão',
       reviewEffortTip: 'Esforço manual estimado para revisar e validar controles gerados pela IA. Menor significa menos trabalho para sua equipe.',
+      estimatedControls: 'controles estimados',
       saveTemplate: 'Salvar Template',
       loadTemplate: 'Carregar Template',
       threatModeling: 'Modelagem de Ameaças',
