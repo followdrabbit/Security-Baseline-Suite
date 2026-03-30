@@ -6,7 +6,7 @@ const translations = {
       rules: 'Rules & Templates', workspace: 'AI Workspace', editor: 'Baseline Editor',
       traceability: 'Traceability', history: 'History', exportImport: 'Export / Import',
       settings: 'Settings', collapse: 'Collapse', expand: 'Expand',
-      aiIntegrations: 'AI Integrations',
+      aiIntegrations: 'AI Integrations', auditGroup: 'Audit & Compliance',
     },
     dashboard: {
       welcome: 'Welcome back',
