@@ -262,6 +262,7 @@ const AuditDashboard: React.FC = () => {
       metrics,
       criticalityData,
       complianceTrend,
+      frameworkRadarData,
       projects: filteredProjects.map(p => ({
         name: p.name, technology: p.technology, current_version: p.current_version,
         control_count: p.control_count, avg_confidence: p.avg_confidence, status: p.status,

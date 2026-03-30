@@ -20,6 +20,7 @@ interface AuditCsvData {
     reviewRate: number;
     controls: number;
   }[];
+  frameworkRadarData?: { framework: string; coverage: number; controls: number }[];
   projects: {
     name: string;
     technology: string;
@@ -89,6 +90,16 @@ export function exportAuditCsv(data: AuditCsvData) {
     lines.push(row(['Version', 'Date', 'Confidence (%)', 'Review Rate (%)', 'Controls']));
     data.complianceTrend.forEach(p =>
       lines.push(row([p.label, p.date, p.confidence, p.reviewRate, p.controls]))
+    );
+    lines.push('');
+  }
+
+  // Framework Coverage
+  if (data.frameworkRadarData && data.frameworkRadarData.length > 0) {
+    lines.push(row(['FRAMEWORK COVERAGE']));
+    lines.push(row(['Framework', 'Coverage (%)', 'Mapped Controls']));
+    data.frameworkRadarData.forEach(d =>
+      lines.push(row([d.framework, d.coverage, d.controls]))
     );
     lines.push('');
   }
