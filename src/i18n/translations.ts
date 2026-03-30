@@ -260,6 +260,16 @@ const translations = {
         criticality: 'Criticality',
         category: 'Category',
       },
+      audit: {
+        title: 'Audit Log',
+        publish: 'Published',
+        restore: 'Restored',
+        version: 'Version',
+        from: 'from',
+        controls: 'controls',
+        sources: 'sources',
+        noLogs: 'No audit events yet',
+      },
     },
     exportImport: {
       title: 'Export & Import Center',
