@@ -496,7 +496,7 @@ const RulesTemplates: React.FC = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <History className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Version History</h3>
-                  <span className="text-xs text-muted-foreground">({versions.length} saved)</span>
+                  <span className="text-xs text-muted-foreground">({versions.length}/{MAX_TEMPLATE_VERSIONS})</span>
                 </div>
                 {versionsLoading ? (
                   <Skeleton className="h-16 w-full" />
