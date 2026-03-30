@@ -19,6 +19,7 @@ import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
   ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight, CopyPlus, Pencil,
+  Shield, Scale, Zap,
 } from 'lucide-react';
 
 interface RuleSection {
@@ -115,6 +116,12 @@ const RulesToc: React.FC<{
 };
 
 /* ── AI Strictness Section ── */
+const STRICTNESS_ICONS: Record<string, React.FC<{ className?: string }>> = {
+  conservative: (props) => <Shield {...props} />,
+  balanced: (props) => <Scale {...props} />,
+  aggressive: (props) => <Zap {...props} />,
+};
+
 const AIStrictnessSection: React.FC<{
   value: string;
   defaultValue: string;
@@ -123,30 +130,75 @@ const AIStrictnessSection: React.FC<{
   t: any;
 }> = ({ value, defaultValue, onChange, onRestore, t }) => {
   const isModified = value !== defaultValue;
+  const rules = t.rules as Record<string, string>;
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
-        {(t.rules as Record<string, string>).aiStrictnessDesc}
+        {rules.aiStrictnessDesc}
       </p>
-      <div className="flex gap-2">
-        {(['conservative', 'balanced', 'aggressive'] as const).map(level => (
-          <button
-            key={level}
-            onClick={() => onChange(level)}
-            className={cn(
-              "px-5 py-2.5 rounded-lg text-xs font-medium transition-all border",
-              value === level
-                ? 'gold-gradient text-primary-foreground border-transparent shadow-md'
-                : 'bg-muted/50 text-muted-foreground border-border hover:text-foreground hover:bg-muted'
-            )}
-          >
-            {(t.rules as Record<string, string>)[level]}
-          </button>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {(['conservative', 'balanced', 'aggressive'] as const).map(level => {
+          const isActive = value === level;
+          const Icon = STRICTNESS_ICONS[level];
+          return (
+            <button
+              key={level}
+              onClick={() => onChange(level)}
+              className={cn(
+                "relative flex flex-col items-start gap-2 p-4 rounded-xl text-left transition-all border-2",
+                isActive
+                  ? 'border-primary bg-primary/5 shadow-md'
+                  : 'border-border bg-muted/30 hover:border-muted-foreground/30 hover:bg-muted/50'
+              )}
+            >
+              {/* Tag badge */}
+              <span className={cn(
+                "absolute top-2.5 right-2.5 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide",
+                isActive
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-muted text-muted-foreground'
+              )}>
+                {rules[`${level}Tag`]}
+              </span>
+
+              {/* Icon + title */}
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "flex items-center justify-center h-8 w-8 rounded-lg",
+                  isActive ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+                )}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <span className={cn(
+                  "text-sm font-semibold",
+                  isActive ? 'text-foreground' : 'text-muted-foreground'
+                )}>
+                  {rules[level]}
+                </span>
+              </div>
+
+              {/* Description */}
+              <p className={cn(
+                "text-xs leading-relaxed",
+                isActive ? 'text-foreground/80' : 'text-muted-foreground/70'
+              )}>
+                {rules[`${level}Desc`]}
+              </p>
+
+              {/* Active indicator */}
+              {isActive && (
+                <div className="flex items-center gap-1 mt-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-medium text-primary uppercase tracking-wider">Active</span>
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
       {isModified && (
         <button onClick={onRestore} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <Undo2 className="h-3 w-3" /> {t.rules.restoreDefaults}
+          <Undo2 className="h-3 w-3" /> {rules.restoreDefaults}
         </button>
       )}
     </div>
