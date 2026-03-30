@@ -223,10 +223,10 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
   const contentW = pageW - margin * 2;
   let y = 0;
 
-  const PRIMARY = [109, 40, 217]; // #6d28d9
-  const DARK = [26, 26, 46]; // #1a1a2e
-  const GRAY = [100, 116, 139];
-  const LIGHT_BG = [248, 250, 252];
+  const PRIMARY: [number, number, number] = [109, 40, 217]; // #6d28d9
+  const DARK: [number, number, number] = [26, 26, 46]; // #1a1a2e
+  const GRAY: [number, number, number] = [100, 116, 139];
+  const LIGHT_BG: [number, number, number] = [248, 250, 252];
 
   // Helper: add page footer
   const addFooter = (pageNum: number) => {
