@@ -307,8 +307,11 @@ const AuditDashboard: React.FC = () => {
           </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={loading}>
-                <Download className="h-3.5 w-3.5 mr-1.5" />Export
+              <Button variant="outline" size="sm" disabled={loading || exporting}>
+                {exporting
+                  ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  : <Download className="h-3.5 w-3.5 mr-1.5" />}
+                {exporting ? 'Exporting…' : 'Export'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
