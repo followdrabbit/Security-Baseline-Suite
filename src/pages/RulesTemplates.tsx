@@ -872,12 +872,12 @@ const RulesTemplates: React.FC = () => {
                   <Undo2 className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Restore Version</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.restoreVersion}</h3>
                   <p className="text-sm text-muted-foreground">"{restorePreview.label}"</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                This will replace all current rule values with the ones saved in this version. Any unsaved changes will be lost.
+                {t.rules.restoreVersionWarning}
               </p>
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {Object.entries(restorePreview.snapshot)
