@@ -521,7 +521,7 @@ const RulesTemplates: React.FC = () => {
                 </div>
                 {versions.length >= 2 && compareSelection.length === 0 && (
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <ArrowLeftRight className="h-3 w-3" /> Click two versions to compare them side-by-side
+                    <ArrowLeftRight className="h-3 w-3" /> {t.rules.compareTip}
                   </p>
                 )}
                 {versionsLoading ? (
