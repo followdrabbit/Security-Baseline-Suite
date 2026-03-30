@@ -1004,6 +1004,16 @@ const translations = {
         criticality: 'Criticidade',
         category: 'Categoria',
       },
+      audit: {
+        title: 'Log de Auditoria',
+        publish: 'Publicado',
+        restore: 'Restaurado',
+        version: 'Versão',
+        from: 'de',
+        controls: 'controles',
+        sources: 'fontes',
+        noLogs: 'Nenhum evento de auditoria ainda',
+      },
     },
     exportImport: {
       title: 'Central de Exportação e Importação',
@@ -1737,6 +1747,16 @@ const translations = {
         status: 'Estado',
         criticality: 'Criticidad',
         category: 'Categoría',
+      },
+      audit: {
+        title: 'Registro de Auditoría',
+        publish: 'Publicado',
+        restore: 'Restaurado',
+        version: 'Versión',
+        from: 'de',
+        controls: 'controles',
+        sources: 'fuentes',
+        noLogs: 'Sin eventos de auditoría aún',
       },
     },
     exportImport: {
