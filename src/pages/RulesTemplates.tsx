@@ -732,6 +732,113 @@ const RulesTemplates: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Save Version Dialog */}
+      <AnimatePresence>
+        {showSaveDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setShowSaveDialog(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-sm w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Save className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Save Version</h3>
+                  <p className="text-sm text-muted-foreground">Create a snapshot of current rules</p>
+                </div>
+              </div>
+              <Input
+                placeholder={`Version ${format(new Date(), 'yyyy-MM-dd HH:mm')}`}
+                value={saveLabel}
+                onChange={e => setSaveLabel(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setShowSaveDialog(false); setSaveLabel(''); }}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleSaveVersion}>
+                  <Save className="h-3.5 w-3.5 mr-1.5" />Save
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Restore Version Confirm Modal */}
+      <AnimatePresence>
+        {restorePreview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setRestorePreview(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-md w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <Undo2 className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Restore Version</h3>
+                  <p className="text-sm text-muted-foreground">"{restorePreview.label}"</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This will replace all current rule values with the ones saved in this version. Any unsaved changes will be lost.
+              </p>
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {Object.entries(restorePreview.snapshot)
+                  .filter(([k, v]) => k in DEFAULT_VALUES && v !== values[k])
+                  .map(([ruleId, newVal]) => {
+                    const section = DEFAULT_SECTIONS.find(s => s.id === ruleId);
+                    if (!section) return null;
+                    const label = (t.rules as Record<string, string>)[section.labelKey] || section.labelKey;
+                    return (
+                      <div key={ruleId} className="bg-muted/20 border border-border/30 rounded-lg p-3 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <section.icon className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="text-xs font-semibold text-foreground">{label}</span>
+                        </div>
+                        <div className="text-[11px] text-primary line-clamp-2">→ {newVal.slice(0, 100)}{newVal.length > 100 ? '…' : ''}</div>
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setRestorePreview(null)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => handleRestoreVersion(restorePreview)} disabled={saving}>
+                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />Restore
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
