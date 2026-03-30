@@ -268,35 +268,44 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
     }
   };
 
-  // ─── COVER PAGE ───
-  doc.setFillColor(...DARK);
-  doc.rect(0, 0, pageW, pageH, 'F');
-
-  // Logo
-  try {
-    doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageW / 2 - 20, 50, 40, 40);
-  } catch { /* logo optional */ }
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text(l.title, pageW / 2, 115, { align: 'center' });
-
-  doc.setFontSize(16);
-  doc.setTextColor(180, 180, 200);
-  doc.text(opts.projectName, pageW / 2, 135, { align: 'center' });
-
-  doc.setFontSize(12);
-  doc.text(`${opts.technology} — v${opts.version}`, pageW / 2, 150, { align: 'center' });
-
   const dateStr = opts.publishedAt
     ? new Date(opts.publishedAt).toLocaleDateString(opts.locale === 'pt' ? 'pt-BR' : opts.locale === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString();
-  doc.setFontSize(10);
-  doc.setTextColor(140, 140, 160);
-  doc.text(dateStr, pageW / 2, 170, { align: 'center' });
+  const grouped = groupByCategory(opts.controls);
+  let isFirstPage = true;
 
-  doc.setFontSize(8);
-  doc.text(l.confidential, pageW / 2, pageH - 20, { align: 'center' });
+  const addNewPage = () => {
+    if (!isFirstPage) {
+      addFooter(doc.getNumberOfPages());
+      doc.addPage();
+    } else {
+      isFirstPage = false;
+    }
+    y = margin;
+  };
+
+  // ─── COVER PAGE ───
+  if (sec.cover) {
+    doc.setFillColor(...DARK);
+    doc.rect(0, 0, pageW, pageH, 'F');
+    try {
+      doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageW / 2 - 20, 50, 40, 40);
+    } catch { /* logo optional */ }
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.text(l.title, pageW / 2, 115, { align: 'center' });
+    doc.setFontSize(16);
+    doc.setTextColor(180, 180, 200);
+    doc.text(opts.projectName, pageW / 2, 135, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(`${opts.technology} — v${opts.version}`, pageW / 2, 150, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setTextColor(140, 140, 160);
+    doc.text(dateStr, pageW / 2, 170, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(l.confidential, pageW / 2, pageH - 20, { align: 'center' });
+    isFirstPage = false;
+  }
 
   // ─── TABLE OF CONTENTS ───
   doc.addPage();
