@@ -290,7 +290,7 @@ const RulesTemplates: React.FC = () => {
   const handleSelect = (id: string) => {
     setActiveSection(id);
     const mainEl = document.querySelector('[data-rules-main]');
-    if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+    if (mainEl?.scrollTo) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (

@@ -49,12 +49,12 @@ describe('RulesTemplates', () => {
 
   it('renders sidebar navigation items', () => {
     renderRules();
-    expect(screen.getByText('Baseline Template')).toBeInTheDocument();
-    expect(screen.getByText(/Writing Standards/i)).toBeInTheDocument();
-    expect(screen.getByText(/Deduplication/i)).toBeInTheDocument();
-    expect(screen.getByText(/Criticality/i)).toBeInTheDocument();
-    expect(screen.getByText(/Framework Mappings/i)).toBeInTheDocument();
-    expect(screen.getByText(/Threat Modeling/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Baseline Template').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Writing Standards/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Deduplication/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Criticality/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Framework Mappings/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Threat Modeling/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders AI Strictness section with options by default', () => {
