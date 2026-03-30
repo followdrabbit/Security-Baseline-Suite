@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRuleValues } from '@/hooks/useRuleValues';
-import { useTemplateVersions, TemplateVersion } from '@/hooks/useTemplateVersions';
+import { useTemplateVersions, TemplateVersion, MAX_TEMPLATE_VERSIONS } from '@/hooks/useTemplateVersions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import {
