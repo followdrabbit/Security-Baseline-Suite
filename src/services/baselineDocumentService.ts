@@ -398,7 +398,7 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
       doc.setFont(undefined!, 'normal');
 
       // Criticality badge
-      const critColors: Record<string, number[]> = {
+      const critColors: Record<string, [number, number, number]> = {
         critical: [220, 38, 38],
         high: [234, 88, 12],
         medium: [202, 138, 4],
