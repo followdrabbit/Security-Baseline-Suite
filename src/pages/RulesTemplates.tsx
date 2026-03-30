@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload,
 } from 'lucide-react';
 
 interface RuleSection {
