@@ -317,7 +317,14 @@ const BaselineEditor: React.FC = () => {
           user_id: user.id,
           version: newVersion,
           control_count: controlsData?.length || 0,
-          controls_snapshot: (controlsData || []) as any,
+      controls_snapshot: (() => {
+            const seen = new Set<string>();
+            return (controlsData || []).filter((c: any) => {
+              if (seen.has(c.control_id)) return false;
+              seen.add(c.control_id);
+              return true;
+            });
+          })() as any,
           sources_snapshot: (sourcesData || []) as any,
           project_snapshot: proj as any,
           status: 'published',
