@@ -1780,6 +1780,7 @@ const translations = {
       reviewEffort: 'Esfuerzo de revisión',
       reviewEffortTip: 'Esfuerzo manual estimado para revisar y validar controles generados por la IA. Menor significa menos trabajo para su equipo.',
       estimatedControls: 'controles estimados',
+      compareChartTitle: 'Comparación de Niveles',
       saveTemplate: 'Guardar Plantilla',
       loadTemplate: 'Cargar Plantilla',
       threatModeling: 'Modelado de Amenazas',
