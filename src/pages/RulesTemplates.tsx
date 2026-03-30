@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useRuleValues } from '@/hooks/useRuleValues';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
@@ -38,18 +40,10 @@ const DEFAULT_SECTIONS: RuleSection[] = [
   { id: 'threatModeling', icon: Crosshair, labelKey: 'threatModeling', tooltipKey: 'threatModeling', defaultContent: 'STRIDE-based threat analysis per control. Each threat scenario must include: threat name, STRIDE category (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege), attack vector description, threat agent identification, preconditions for exploitation, impact assessment, likelihood rating (Very High/High/Medium/Low/Very Low), specific mitigations, and residual risk evaluation. Minimum 1 threat scenario per control. Align threat likelihood with control criticality level.' },
 ];
 
-const STORAGE_KEY = 'aureum-rules-values';
-
-function loadSavedValues(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function persistValues(values: Record<string, string>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
-}
+const DEFAULT_VALUES: Record<string, string> = DEFAULT_SECTIONS.reduce((acc, s) => {
+  acc[s.id] = s.defaultContent;
+  return acc;
+}, {} as Record<string, string>);
 
 /* ── Sidebar TOC ── */
 const RulesToc: React.FC<{
@@ -234,35 +228,22 @@ const RulesTemplates: React.FC = () => {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const saved = loadSavedValues();
-    const init: Record<string, string> = {};
-    DEFAULT_SECTIONS.forEach(s => { init[s.id] = saved[s.id] ?? s.defaultContent; });
-    return init;
-  });
+  const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
 
-  const updateValue = useCallback((id: string, val: string) => {
-    setValues(prev => {
-      const next = { ...prev, [id]: val };
-      persistValues(next);
-      return next;
-    });
-  }, []);
+  const handleUpdateValue = async (id: string, val: string) => {
+    await updateValue(id, val);
+    toast.success(t.rules.saved);
+  };
 
-  const restoreOne = useCallback((id: string) => {
-    const section = DEFAULT_SECTIONS.find(s => s.id === id);
-    if (!section) return;
-    updateValue(id, section.defaultContent);
+  const handleRestoreOne = async (id: string) => {
+    await restoreOne(id);
     toast.success(t.rules.restoreDefaults);
-  }, [updateValue, t]);
+  };
 
-  const restoreAll = useCallback(() => {
-    const init: Record<string, string> = {};
-    DEFAULT_SECTIONS.forEach(s => { init[s.id] = s.defaultContent; });
-    setValues(init);
-    persistValues(init);
+  const handleRestoreAll = async () => {
+    await restoreAll();
     toast.success(t.rules.restoreAll);
-  }, [t]);
+  };
 
   const searchLower = search.toLowerCase();
   const filteredSections = useMemo(() =>
@@ -293,6 +274,16 @@ const RulesTemplates: React.FC = () => {
     if (mainEl?.scrollTo) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto flex gap-8">
       <RulesToc
@@ -318,7 +309,7 @@ const RulesTemplates: React.FC = () => {
             </div>
             <div className="flex gap-2">
               {modifiedCount > 0 && (
-                <Button variant="outline" size="sm" onClick={restoreAll} className="text-muted-foreground">
+                <Button variant="outline" size="sm" onClick={handleRestoreAll} disabled={saving} className="text-muted-foreground">
                   <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> {t.rules.restoreAll}
                   <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{modifiedCount}</Badge>
                 </Button>
@@ -416,16 +407,16 @@ const RulesTemplates: React.FC = () => {
                   <AIStrictnessSection
                     value={values[activeContent.id]}
                     defaultValue={activeContent.defaultContent}
-                    onChange={v => updateValue(activeContent.id, v)}
-                    onRestore={() => restoreOne(activeContent.id)}
+                    onChange={v => handleUpdateValue(activeContent.id, v)}
+                    onRestore={() => handleRestoreOne(activeContent.id)}
                     t={t}
                   />
                 ) : (
                   <RuleContentSection
                     value={values[activeContent.id]}
                     defaultValue={activeContent.defaultContent}
-                    onChange={v => updateValue(activeContent.id, v)}
-                    onRestore={() => restoreOne(activeContent.id)}
+                    onChange={v => handleUpdateValue(activeContent.id, v)}
+                    onRestore={() => handleRestoreOne(activeContent.id)}
                     t={t}
                   />
                 )}
