@@ -501,7 +501,7 @@ const RulesTemplates: React.FC = () => {
               <div className="bg-card border border-border rounded-xl p-5 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <History className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">Version History</h3>
+                  <h3 className="text-sm font-semibold text-foreground">{t.rules.versionHistory}</h3>
                   <span className="text-xs text-muted-foreground">({versions.length}/{MAX_TEMPLATE_VERSIONS})</span>
                   {compareSelection.length > 0 && (
                     <div className="ml-auto flex items-center gap-2">
