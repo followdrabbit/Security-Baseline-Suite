@@ -334,7 +334,8 @@ const AuditDashboard: React.FC = () => {
           </motion.div>
 
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.1 }}
-            className="bg-card border border-border rounded-xl p-5 shadow-premium">
+            onClick={() => navigate('/editor?review=pending')}
+            className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-warning/40 transition-colors group">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
                 <AlertTriangle className="h-4 w-4 text-warning" />
@@ -343,10 +344,12 @@ const AuditDashboard: React.FC = () => {
             </div>
             <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.rejectedControls} rejected controls</p>
+            <p className="text-[10px] text-warning opacity-0 group-hover:opacity-100 transition-opacity mt-1">View pending controls →</p>
           </motion.div>
 
           <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.15 }}
-            className="bg-card border border-border rounded-xl p-5 shadow-premium">
+            onClick={() => navigate('/traceability')}
+            className="bg-card border border-border rounded-xl p-5 shadow-premium cursor-pointer hover:border-primary/40 transition-colors group">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 text-primary" />
@@ -355,6 +358,7 @@ const AuditDashboard: React.FC = () => {
             </div>
             <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.totalAuditActions} audit actions logged</p>
+            <p className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity mt-1">View traceability →</p>
           </motion.div>
         </div>
       )}
