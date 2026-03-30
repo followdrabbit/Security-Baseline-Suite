@@ -319,6 +319,30 @@ export type Database = {
           },
         ]
       }
+      rule_template_versions: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          snapshot: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          snapshot?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          snapshot?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       source_activity_logs: {
         Row: {
           created_at: string

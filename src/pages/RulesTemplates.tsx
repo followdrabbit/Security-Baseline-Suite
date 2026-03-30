@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useRuleValues } from '@/hooks/useRuleValues';
+import { useTemplateVersions, TemplateVersion } from '@/hooks/useTemplateVersions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock,
 } from 'lucide-react';
 
 interface RuleSection {
@@ -230,8 +232,13 @@ const RulesTemplates: React.FC = () => {
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
   const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
+  const { versions, loading: versionsLoading, saveVersion, deleteVersion } = useTemplateVersions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<{ data: Record<string, string>; count: number; overwriteCount: number } | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [saveLabel, setSaveLabel] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [restorePreview, setRestorePreview] = useState<TemplateVersion | null>(null);
 
   const handleExportJSON = () => {
     const onlyCustom: Record<string, string> = {};
@@ -340,6 +347,28 @@ const RulesTemplates: React.FC = () => {
     toast.success(t.rules.restoreAll);
   };
 
+  const handleSaveVersion = async () => {
+    const label = saveLabel.trim() || `Version ${format(new Date(), 'yyyy-MM-dd HH:mm')}`;
+    await saveVersion(label, { ...values });
+    setShowSaveDialog(false);
+    setSaveLabel('');
+  };
+
+  const handleRestoreVersion = async (version: TemplateVersion) => {
+    try {
+      for (const [key, val] of Object.entries(version.snapshot)) {
+        if (key in DEFAULT_VALUES) {
+          await updateValue(key, val);
+        }
+      }
+      toast.success(`Restored "${version.label}"`);
+      setRestorePreview(null);
+      setShowHistory(false);
+    } catch {
+      toast.error('Failed to restore version');
+    }
+  };
+
   const searchLower = search.toLowerCase();
   const filteredSections = useMemo(() =>
     DEFAULT_SECTIONS.filter(s => {
@@ -402,13 +431,20 @@ const RulesTemplates: React.FC = () => {
               </div>
               <HelpButton section="rules" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {modifiedCount > 0 && (
                 <Button variant="outline" size="sm" onClick={handleRestoreAll} disabled={saving} className="text-muted-foreground">
                   <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> {t.rules.restoreAll}
                   <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{modifiedCount}</Badge>
                 </Button>
               )}
+              <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+                <History className="h-4 w-4 mr-1.5" />History
+                {versions.length > 0 && <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{versions.length}</Badge>}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
+                <Save className="h-4 w-4 mr-1.5" />Save Version
+              </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileSelected} />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-1.5" />Import
@@ -445,6 +481,60 @@ const RulesTemplates: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Version History Panel */}
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <History className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Version History</h3>
+                  <span className="text-xs text-muted-foreground">({versions.length} saved)</span>
+                </div>
+                {versionsLoading ? (
+                  <Skeleton className="h-16 w-full" />
+                ) : versions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center">No saved versions yet. Click "Save Version" to create a snapshot.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {versions.map(v => {
+                      const changedKeys = Object.keys(v.snapshot).filter(k => k in DEFAULT_VALUES && v.snapshot[k] !== DEFAULT_VALUES[k]);
+                      return (
+                        <div key={v.id} className="flex items-center gap-3 bg-muted/30 border border-border/50 rounded-lg p-3 group">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Clock className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{v.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {format(new Date(v.created_at), 'MMM d, yyyy HH:mm')}
+                              {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} custom rule(s)</span>}
+                            </p>
+                          </div>
+                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
+                              <Undo2 className="h-3 w-3 mr-1" />Restore
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteVersion(v.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile section selector (visible on <xl) */}
         <div className="xl:hidden mb-4 flex gap-2 overflow-x-auto pb-2">
@@ -636,6 +726,113 @@ const RulesTemplates: React.FC = () => {
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleConfirmImport} disabled={saving}>
                   <Upload className="h-3.5 w-3.5 mr-1.5" />
                   Import {importPreview.count} rule(s)
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Save Version Dialog */}
+      <AnimatePresence>
+        {showSaveDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setShowSaveDialog(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-sm w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Save className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Save Version</h3>
+                  <p className="text-sm text-muted-foreground">Create a snapshot of current rules</p>
+                </div>
+              </div>
+              <Input
+                placeholder={`Version ${format(new Date(), 'yyyy-MM-dd HH:mm')}`}
+                value={saveLabel}
+                onChange={e => setSaveLabel(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setShowSaveDialog(false); setSaveLabel(''); }}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleSaveVersion}>
+                  <Save className="h-3.5 w-3.5 mr-1.5" />Save
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Restore Version Confirm Modal */}
+      <AnimatePresence>
+        {restorePreview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setRestorePreview(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-md w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <Undo2 className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Restore Version</h3>
+                  <p className="text-sm text-muted-foreground">"{restorePreview.label}"</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This will replace all current rule values with the ones saved in this version. Any unsaved changes will be lost.
+              </p>
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {Object.entries(restorePreview.snapshot)
+                  .filter(([k, v]) => k in DEFAULT_VALUES && v !== values[k])
+                  .map(([ruleId, newVal]) => {
+                    const section = DEFAULT_SECTIONS.find(s => s.id === ruleId);
+                    if (!section) return null;
+                    const label = (t.rules as Record<string, string>)[section.labelKey] || section.labelKey;
+                    return (
+                      <div key={ruleId} className="bg-muted/20 border border-border/30 rounded-lg p-3 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <section.icon className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="text-xs font-semibold text-foreground">{label}</span>
+                        </div>
+                        <div className="text-[11px] text-primary line-clamp-2">→ {newVal.slice(0, 100)}{newVal.length > 100 ? '…' : ''}</div>
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setRestorePreview(null)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => handleRestoreVersion(restorePreview)} disabled={saving}>
+                  <Undo2 className="h-3.5 w-3.5 mr-1.5" />Restore
                 </Button>
               </div>
             </motion.div>
