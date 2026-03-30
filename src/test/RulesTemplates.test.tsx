@@ -24,6 +24,18 @@ vi.mock('framer-motion', async () => {
   };
 });
 
+// Mock useRuleValues to avoid needing AuthProvider/Supabase
+vi.mock('@/hooks/useRuleValues', () => ({
+  useRuleValues: ({ defaults }: { defaults: Record<string, string> }) => ({
+    values: defaults,
+    loading: false,
+    saving: false,
+    updateValue: vi.fn(),
+    restoreOne: vi.fn(),
+    restoreAll: vi.fn(),
+  }),
+}));
+
 const renderRules = () =>
   render(
     <MemoryRouter>
@@ -71,7 +83,6 @@ describe('RulesTemplates', () => {
 
   it('shows Edit button for active section content', () => {
     renderRules();
-    // Navigate to template section
     const templateBtn = screen.getAllByText('Baseline Template')[0];
     act(() => templateBtn.click());
     expect(screen.getByText(/Edit/i)).toBeInTheDocument();
