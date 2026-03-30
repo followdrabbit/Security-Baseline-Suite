@@ -74,6 +74,24 @@ const History: React.FC = () => {
     enabled: !!user && !!selectedProjectId,
   });
 
+  // Fetch audit logs
+  const { data: auditLogs = [] } = useQuery({
+    queryKey: ['version-audit-logs', user?.id, selectedProjectId],
+    queryFn: async () => {
+      if (!user || !selectedProjectId) return [];
+      const { data, error } = await supabase
+        .from('version_audit_logs' as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('project_id', selectedProjectId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!user && !!selectedProjectId,
+  });
+
   // Auto-select first project
   React.useEffect(() => {
     if (projects.length > 0 && !selectedProjectId) {
