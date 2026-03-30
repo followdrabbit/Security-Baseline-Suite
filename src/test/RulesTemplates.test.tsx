@@ -36,6 +36,16 @@ vi.mock('@/hooks/useRuleValues', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useTemplateVersions', () => ({
+  useTemplateVersions: () => ({
+    versions: [],
+    loading: false,
+    saveVersion: vi.fn(),
+    deleteVersion: vi.fn(),
+    reload: vi.fn(),
+  }),
+}));
+
 const renderRules = () =>
   render(
     <MemoryRouter>
