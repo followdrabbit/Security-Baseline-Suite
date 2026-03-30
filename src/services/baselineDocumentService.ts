@@ -405,170 +405,147 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
   }
 
   // ─── 3. SECURITY CONTROLS ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`3. ${l.securityControls}`, margin, y);
-  y += 12;
+  if (sec.securityControls) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.securityControls}`, margin, y);
+    y += 12;
 
-  grouped.forEach((group, gi) => {
-    checkPageBreak(30);
-    doc.setFontSize(14);
-    doc.setTextColor(...DARK);
-    doc.text(`3.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}`, margin, y);
-    y += 8;
-
-    group.controls.forEach((ctrl) => {
-      checkPageBreak(60);
-
-      // Control header
-      doc.setFillColor(245, 243, 255);
-      doc.roundedRect(margin, y, contentW, 8, 1, 1, 'F');
-      doc.setFontSize(9);
-      doc.setTextColor(...PRIMARY);
-      doc.text(ctrl.controlId, margin + 3, y + 5.5);
+    grouped.forEach((group, gi) => {
+      checkPageBreak(30);
+      doc.setFontSize(14);
       doc.setTextColor(...DARK);
-      doc.setFont(undefined!, 'bold');
-      doc.text(ctrl.title, margin + 30, y + 5.5);
-      doc.setFont(undefined!, 'normal');
+      doc.text(`${sn}.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}`, margin, y);
+      y += 8;
 
-      // Criticality badge
-      const critColors: Record<string, [number, number, number]> = {
-        critical: [220, 38, 38],
-        high: [234, 88, 12],
-        medium: [202, 138, 4],
-        low: [22, 163, 74],
-      };
-      const cc = critColors[ctrl.criticality] || GRAY;
-      doc.setTextColor(...cc);
-      doc.text(ctrl.criticality.toUpperCase(), pageW - margin - 3, y + 5.5, { align: 'right' });
-      y += 12;
-
-      // Control details table
-      const detailRows: string[][] = [];
-      if (ctrl.description) detailRows.push([l.description, ctrl.description]);
-      if (ctrl.applicability) detailRows.push([l.applicability, ctrl.applicability]);
-      if (ctrl.securityRisk) detailRows.push([l.securityRisk, ctrl.securityRisk]);
-      if (ctrl.defaultBehaviorLimitations) detailRows.push([l.defaultBehavior, ctrl.defaultBehaviorLimitations]);
-      if (ctrl.automation) detailRows.push([l.automation, ctrl.automation]);
-      detailRows.push([l.confidence, `${Math.round(ctrl.confidenceScore * 100)}%`]);
-      detailRows.push([l.reviewStatus, ctrl.reviewStatus]);
-      if (ctrl.frameworkMappings.length > 0) {
-        detailRows.push([l.frameworkMappings, ctrl.frameworkMappings.join(', ')]);
-      }
-
-      if (detailRows.length > 0) {
-        autoTable(doc, {
-          startY: y,
-          head: [],
-          body: detailRows,
-          theme: 'plain',
-          styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-          columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 45, textColor: GRAY as any },
-            1: { cellWidth: contentW - 45 },
-          },
-          margin: { left: margin, right: margin },
-        });
-        y = (doc as any).lastAutoTable.finalY + 3;
-      }
-
-      // Threat scenarios
-      if (ctrl.threatScenarios.length > 0) {
-        checkPageBreak(20);
-        doc.setFontSize(8);
+      group.controls.forEach((ctrl) => {
+        checkPageBreak(60);
+        doc.setFillColor(245, 243, 255);
+        doc.roundedRect(margin, y, contentW, 8, 1, 1, 'F');
+        doc.setFontSize(9);
         doc.setTextColor(...PRIMARY);
-        doc.text(l.threatModeling, margin + 2, y + 3);
-        y += 6;
+        doc.text(ctrl.controlId, margin + 3, y + 5.5);
+        doc.setTextColor(...DARK);
+        doc.setFont(undefined!, 'bold');
+        doc.text(ctrl.title, margin + 30, y + 5.5);
+        doc.setFont(undefined!, 'normal');
+        const critColors: Record<string, [number, number, number]> = {
+          critical: [220, 38, 38], high: [234, 88, 12], medium: [202, 138, 4], low: [22, 163, 74],
+        };
+        const cc = critColors[ctrl.criticality] || GRAY;
+        doc.setTextColor(...cc);
+        doc.text(ctrl.criticality.toUpperCase(), pageW - margin - 3, y + 5.5, { align: 'right' });
+        y += 12;
 
-        autoTable(doc, {
-          startY: y,
-          head: [[l.threatName, l.strideCategory, l.likelihood, l.impact]],
-          body: ctrl.threatScenarios.map(ts => [
-            ts.threatName,
-            ts.strideCategory.replace(/_/g, ' '),
-            ts.likelihood.replace(/_/g, ' '),
-            ts.impact,
-          ]),
-          theme: 'striped',
-          styles: { fontSize: 7, cellPadding: 2 },
-          headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
-          margin: { left: margin, right: margin },
-        });
-        y = (doc as any).lastAutoTable.finalY + 3;
-      }
+        const detailRows: string[][] = [];
+        if (ctrl.description) detailRows.push([l.description, ctrl.description]);
+        if (ctrl.applicability) detailRows.push([l.applicability, ctrl.applicability]);
+        if (ctrl.securityRisk) detailRows.push([l.securityRisk, ctrl.securityRisk]);
+        if (ctrl.defaultBehaviorLimitations) detailRows.push([l.defaultBehavior, ctrl.defaultBehaviorLimitations]);
+        if (ctrl.automation) detailRows.push([l.automation, ctrl.automation]);
+        detailRows.push([l.confidence, `${Math.round(ctrl.confidenceScore * 100)}%`]);
+        detailRows.push([l.reviewStatus, ctrl.reviewStatus]);
+        if (ctrl.frameworkMappings.length > 0) {
+          detailRows.push([l.frameworkMappings, ctrl.frameworkMappings.join(', ')]);
+        }
+        if (detailRows.length > 0) {
+          autoTable(doc, {
+            startY: y, head: [], body: detailRows, theme: 'plain',
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45, textColor: GRAY as any }, 1: { cellWidth: contentW - 45 } },
+            margin: { left: margin, right: margin },
+          });
+          y = (doc as any).lastAutoTable.finalY + 3;
+        }
 
-      // Source traceability
-      if (ctrl.sourceTraceability.length > 0) {
-        checkPageBreak(15);
-        doc.setFontSize(8);
-        doc.setTextColor(...PRIMARY);
-        doc.text(l.sourceTraceability, margin + 2, y + 3);
-        y += 6;
+        if (ctrl.threatScenarios.length > 0) {
+          checkPageBreak(20);
+          doc.setFontSize(8);
+          doc.setTextColor(...PRIMARY);
+          doc.text(l.threatModeling, margin + 2, y + 3);
+          y += 6;
+          autoTable(doc, {
+            startY: y,
+            head: [[l.threatName, l.strideCategory, l.likelihood, l.impact]],
+            body: ctrl.threatScenarios.map(ts => [ts.threatName, ts.strideCategory.replace(/_/g, ' '), ts.likelihood.replace(/_/g, ' '), ts.impact]),
+            theme: 'striped', styles: { fontSize: 7, cellPadding: 2 },
+            headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+            margin: { left: margin, right: margin },
+          });
+          y = (doc as any).lastAutoTable.finalY + 3;
+        }
 
-        autoTable(doc, {
-          startY: y,
-          head: [[l.sourceName, l.excerpt, l.sourceConfidence]],
-          body: ctrl.sourceTraceability.map(s => [
-            s.sourceName,
-            s.excerpt.length > 100 ? s.excerpt.substring(0, 100) + '...' : s.excerpt,
-            `${Math.round(s.confidence * 100)}%`,
-          ]),
-          theme: 'striped',
-          styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
-          headStyles: { fillColor: GRAY as any, textColor: [255, 255, 255] },
-          columnStyles: { 1: { cellWidth: contentW - 70 } },
-          margin: { left: margin, right: margin },
-        });
-        y = (doc as any).lastAutoTable.finalY + 3;
-      }
+        if (ctrl.sourceTraceability.length > 0) {
+          checkPageBreak(15);
+          doc.setFontSize(8);
+          doc.setTextColor(...PRIMARY);
+          doc.text(l.sourceTraceability, margin + 2, y + 3);
+          y += 6;
+          autoTable(doc, {
+            startY: y,
+            head: [[l.sourceName, l.excerpt, l.sourceConfidence]],
+            body: ctrl.sourceTraceability.map(s => [s.sourceName, s.excerpt.length > 100 ? s.excerpt.substring(0, 100) + '...' : s.excerpt, `${Math.round(s.confidence * 100)}%`]),
+            theme: 'striped', styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+            headStyles: { fillColor: GRAY as any, textColor: [255, 255, 255] },
+            columnStyles: { 1: { cellWidth: contentW - 70 } },
+            margin: { left: margin, right: margin },
+          });
+          y = (doc as any).lastAutoTable.finalY + 3;
+        }
 
-      y += 5;
-      addFooter(doc.getNumberOfPages());
+        y += 5;
+        addFooter(doc.getNumberOfPages());
+      });
     });
-  });
+  }
 
   // ─── 4. ANNEX A — FRAMEWORK COVERAGE ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`4. ${l.annexA}`, margin, y);
-  y += 12;
-
-  const fwCoverage = getFrameworkCoverage(opts.controls);
-  autoTable(doc, {
-    startY: y,
-    head: [[l.framework, l.controlCount, l.coveragePercent]],
-    body: fwCoverage.map(fw => [fw.framework, `${fw.count}`, `${fw.percent}%`]),
-    theme: 'striped',
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
-    margin: { left: margin, right: margin },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
-  addFooter(doc.getNumberOfPages());
+  if (sec.annexA) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.annexA}`, margin, y);
+    y += 12;
+    const fwCoverage = getFrameworkCoverage(opts.controls);
+    autoTable(doc, {
+      startY: y,
+      head: [[l.framework, l.controlCount, l.coveragePercent]],
+      body: fwCoverage.map(fw => [fw.framework, `${fw.count}`, `${fw.percent}%`]),
+      theme: 'striped', styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+    addFooter(doc.getNumberOfPages());
+  }
 
   // ─── 5. ANNEX B — SOURCE TRACEABILITY INDEX ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`5. ${l.annexB}`, margin, y);
-  y += 12;
+  if (sec.annexB) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.annexB}`, margin, y);
+    y += 12;
+    const srcIndex = getSourceIndex(opts.controls);
+    autoTable(doc, {
+      startY: y,
+      head: [[l.sourceName, l.controlCount, l.sourceConfidence]],
+      body: srcIndex.map(s => [s.name, `${s.controlIds.length}`, `${s.avgConf}%`]),
+      theme: 'striped', styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+      margin: { left: margin, right: margin },
+    });
+    addFooter(doc.getNumberOfPages());
+  }
 
-  const srcIndex = getSourceIndex(opts.controls);
-  autoTable(doc, {
-    startY: y,
-    head: [[l.sourceName, l.controlCount, l.sourceConfidence]],
-    body: srcIndex.map(s => [s.name, `${s.controlIds.length}`, `${s.avgConf}%`]),
-    theme: 'striped',
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
-    margin: { left: margin, right: margin },
-  });
-  addFooter(doc.getNumberOfPages());
+  // Handle case where no cover was first page (remove blank first page)
+  if (!sec.cover && doc.getNumberOfPages() > 1) {
+    // First page is blank, already handled by addNewPage logic
+  }
 
   // Save
   const filename = `baseline-${opts.projectName.replace(/\s+/g, '-').toLowerCase()}-v${opts.version}.pdf`;
