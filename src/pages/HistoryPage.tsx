@@ -264,6 +264,48 @@ const History: React.FC = () => {
         </div>
       </div>
 
+      {/* Audit Log Section */}
+      {selectedProjectId && auditLogs.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            <h2 className="text-lg font-display font-semibold text-foreground">{t.history.audit.title}</h2>
+          </div>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-[100px_80px_1fr_180px] gap-0 text-[10px] uppercase tracking-wider text-muted-foreground bg-muted/30 px-4 py-2.5 border-b border-border">
+              <span>{t.history.audit.version}</span>
+              <span>Action</span>
+              <span>Details</span>
+              <span>{t.history.date}</span>
+            </div>
+            {auditLogs.map((log: any) => {
+              const isPublish = log.action === 'publish';
+              const details = log.details || {};
+              return (
+                <div key={log.id} className="grid grid-cols-[100px_80px_1fr_180px] gap-0 px-4 py-3 border-b border-border/50 last:border-b-0 hover:bg-muted/10 transition-colors">
+                  <span className="text-sm font-mono font-medium text-foreground">
+                    v{log.version_number}
+                  </span>
+                  <span className={`text-xs font-medium flex items-center gap-1 ${isPublish ? 'text-success' : 'text-warning'}`}>
+                    {isPublish ? <Rocket className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
+                    {isPublish ? t.history.audit.publish : t.history.audit.restore}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {details.changes_summary || (isPublish
+                      ? `${details.control_count || '?'} ${t.history.audit.controls}, ${details.source_count || '?'} ${t.history.audit.sources}`
+                      : `${t.history.audit.from} v${log.from_version} · ${details.added || 0} added, ${details.removed || 0} removed, ${details.modified || 0} modified`
+                    )}
+                  </span>
+                  <span className="text-xs text-muted-foreground text-right">
+                    {new Date(log.created_at).toLocaleString()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <ConfirmationModal
         open={restoreModal.open}
         onOpenChange={(open) => setRestoreModal(prev => ({ ...prev, open }))}
