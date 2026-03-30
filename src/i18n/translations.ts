@@ -830,6 +830,10 @@ const translations = {
       annexSources: 'Annex B — Source Traceability',
       downloadPdf: 'Download PDF',
       downloadDocx: 'Download DOCX',
+      customizeSections: 'Customize sections',
+      selectAll: 'Select all',
+      deselectAll: 'Deselect all',
+      noSections: 'No sections selected',
     },
   },
   pt: {
