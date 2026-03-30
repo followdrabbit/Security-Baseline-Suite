@@ -308,33 +308,36 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
   }
 
   // ─── TABLE OF CONTENTS ───
-  doc.addPage();
-  y = margin;
-  doc.setTextColor(...DARK);
-  doc.setFontSize(20);
-  doc.text(l.toc, margin, y);
-  y += 12;
+  if (sec.toc) {
+    addNewPage();
+    doc.setTextColor(...DARK);
+    doc.setFontSize(20);
+    doc.text(l.toc, margin, y);
+    y += 12;
 
-  const grouped = groupByCategory(opts.controls);
-  const tocItems: string[] = [
-    `1. ${l.executiveSummary}`,
-    `2. ${l.projectOverview}`,
-    `3. ${l.securityControls}`,
-  ];
-  grouped.forEach((g, i) => {
-    tocItems.push(`   3.${i + 1}. ${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})`);
-  });
-  tocItems.push(`4. ${l.annexA}`);
-  tocItems.push(`5. ${l.annexB}`);
+    let sectionNum = 0;
+    const tocItems: string[] = [];
+    if (sec.executiveSummary) { sectionNum++; tocItems.push(`${sectionNum}. ${l.executiveSummary}`); }
+    if (sec.projectOverview) { sectionNum++; tocItems.push(`${sectionNum}. ${l.projectOverview}`); }
+    if (sec.securityControls) {
+      sectionNum++;
+      tocItems.push(`${sectionNum}. ${l.securityControls}`);
+      grouped.forEach((g, i) => {
+        tocItems.push(`   ${sectionNum}.${i + 1}. ${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})`);
+      });
+    }
+    if (sec.annexA) { sectionNum++; tocItems.push(`${sectionNum}. ${l.annexA}`); }
+    if (sec.annexB) { sectionNum++; tocItems.push(`${sectionNum}. ${l.annexB}`); }
 
-  doc.setFontSize(11);
-  for (const item of tocItems) {
-    const clr = item.startsWith('   ') ? GRAY : DARK;
-    doc.setTextColor(clr[0], clr[1], clr[2]);
-    doc.text(item, item.startsWith('   ') ? margin + 8 : margin, y);
-    y += 7;
+    doc.setFontSize(11);
+    for (const item of tocItems) {
+      const clr = item.startsWith('   ') ? GRAY : DARK;
+      doc.setTextColor(clr[0], clr[1], clr[2]);
+      doc.text(item, item.startsWith('   ') ? margin + 8 : margin, y);
+      y += 7;
+    }
+    addFooter(doc.getNumberOfPages());
   }
-  addFooter(doc.getNumberOfPages());
 
   // ─── 1. EXECUTIVE SUMMARY ───
   doc.addPage();
