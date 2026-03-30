@@ -430,34 +430,84 @@ const AuditDashboard: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Criticality Breakdown Pie */}
+        {/* Criticality Breakdown Pie — Interactive */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.25 }}
           className="bg-card border border-border rounded-xl p-5 shadow-premium">
-          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning" /> Criticality Breakdown
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" /> Criticality Breakdown
+            </h3>
+            {activeCriticality && (
+              <button onClick={() => setActiveCriticality(null)} className="text-[10px] text-primary hover:underline">Clear filter</button>
+            )}
+          </div>
           {criticalityData.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-8">No controls yet</p>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={criticalityData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>
-                  {criticalityData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} stroke="transparent" />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-          <div className="flex justify-center gap-4 mt-2">
-            {criticalityData.map(d => (
-              <div key={d.name} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: d.color }} />
-                {d.name} ({d.value})
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={criticalityData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    onClick={(entry) => setActiveCriticality(prev => prev === entry.name ? null : entry.name)}
+                    style={{ cursor: 'pointer' }}
+                    label={({ name, percent }) => `${Math.round(percent * 100)}%`}
+                    labelLine={false}
+                  >
+                    {criticalityData.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={entry.color}
+                        stroke={activeCriticality === entry.name ? 'hsl(var(--foreground))' : 'transparent'}
+                        strokeWidth={activeCriticality === entry.name ? 2.5 : 0}
+                        opacity={activeCriticality && activeCriticality !== entry.name ? 0.3 : 1}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                    formatter={(value: number) => {
+                      const total = criticalityData.reduce((s, d) => s + d.value, 0);
+                      return [`${value} controls (${Math.round((value / total) * 100)}%)`, ''];
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex justify-center gap-3 mt-2 flex-wrap">
+                {criticalityData.map(d => (
+                  <button
+                    key={d.name}
+                    onClick={() => setActiveCriticality(prev => prev === d.name ? null : d.name)}
+                    className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-full border transition-all ${
+                      activeCriticality === d.name
+                        ? 'border-foreground/40 bg-muted font-semibold text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: d.color }} />
+                    {d.name} ({d.value})
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+              {activeCriticality && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3 pt-3 border-t border-border">
+                  <p className="text-[11px] text-foreground font-medium mb-1">
+                    {activeCriticality} controls: {criticalityData.find(d => d.name === activeCriticality)?.value || 0} of {filteredControls.length}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {Math.round(((criticalityData.find(d => d.name === activeCriticality)?.value || 0) / filteredControls.length) * 100)}% of total controls
+                  </p>
+                </motion.div>
+              )}
+            </>
+          )}
         </motion.div>
 
         {/* Versions per Project Bar */}
