@@ -8,7 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
 import {
   GitCompare, ArrowRight, Plus, Minus, ArrowLeftRight, ChevronDown, ChevronRight,
-  Filter, Search,
+  Filter, Search, Download, FileText,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
