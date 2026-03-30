@@ -48,6 +48,26 @@ const DeltaBadge: React.FC<{ delta: number | null; suffix?: string; invert?: boo
   );
 };
 
+const Sparkline: React.FC<{ data: { v: number }[]; color?: string; height?: number }> = ({ data, color = 'hsl(var(--primary))', height = 24 }) => {
+  const width = 64;
+  const values = data.map(d => d.v);
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(' ');
+  const areaPoints = `0,${height} ${points} ${width},${height}`;
+  return (
+    <svg width={width} height={height} className="shrink-0 opacity-70">
+      <polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+      <polygon fill={color} fillOpacity="0.08" points={areaPoints} />
+    </svg>
+  );
+};
+
 const AuditDashboard: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
