@@ -713,8 +713,8 @@ const RulesTemplates: React.FC = () => {
         {search && filteredSections.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">No results for "{search}"</p>
-            <button onClick={() => setSearch('')} className="mt-3 text-xs text-primary hover:underline">Clear search</button>
+            <p className="text-sm">{t.rules.noResults} "{search}"</p>
+            <button onClick={() => setSearch('')} className="mt-3 text-xs text-primary hover:underline">{t.rules.clearSearch}</button>
           </div>
         )}
       </div>
