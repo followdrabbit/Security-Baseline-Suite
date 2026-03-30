@@ -152,6 +152,7 @@ const translations = {
       reviewEffort: 'Review effort',
       reviewEffortTip: 'Estimated manual effort to review and validate AI-generated controls. Lower means less work for your team.',
       estimatedControls: 'estimated controls',
+      compareChartTitle: 'Level Comparison',
       saveTemplate: 'Save Template',
       loadTemplate: 'Load Template',
       threatModeling: 'Threat Modeling',
