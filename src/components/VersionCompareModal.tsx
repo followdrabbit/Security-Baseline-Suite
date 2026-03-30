@@ -8,7 +8,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/contexts/I18nContext';
 import {
   GitCompare, ArrowRight, Plus, Minus, ArrowLeftRight, ChevronDown, ChevronRight,
-  Filter, Search,
+  Filter, Search, Download, FileText,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -120,6 +120,91 @@ function computeVersionDiff(oldControls: ControlSnap[], newControls: ControlSnap
   return diffs;
 }
 
+function exportDiffCSV(diffs: ControlDiff[], fromLabel: string, toLabel: string) {
+  const headers = ['Change Type', 'Control ID', 'Title', 'Criticality', 'Field', `Before (${fromLabel})`, `After (${toLabel})`];
+  const rows: string[][] = [];
+
+  for (const d of diffs) {
+    if (d.changeType === 'modified' && d.fieldChanges?.length) {
+      for (const fc of d.fieldChanges) {
+        rows.push([d.changeType, d.controlId, `"${d.title.replace(/"/g, '""')}"`, d.criticality || '', fc.field, `"${fc.before.replace(/"/g, '""')}"`, `"${fc.after.replace(/"/g, '""')}"`]);
+      }
+    } else {
+      rows.push([d.changeType, d.controlId, `"${d.title.replace(/"/g, '""')}"`, d.criticality || '', '', '', '']);
+    }
+  }
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `version-diff-${fromLabel}-to-${toLabel}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function exportDiffPDF(diffs: ControlDiff[], fromLabel: string, toLabel: string, counts: Record<ChangeType, number>) {
+  const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const changeColors: Record<ChangeType, { bg: string; text: string; label: string }> = {
+    added: { bg: '#dcfce7', text: '#166534', label: 'Added' },
+    removed: { bg: '#fee2e2', text: '#991b1b', label: 'Removed' },
+    modified: { bg: '#fef9c3', text: '#854d0e', label: 'Modified' },
+  };
+
+  let html = `<html><head><style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; color: #1a1a2e; padding: 40px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #666; margin-bottom: 24px; }
+    .summary { display: flex; gap: 16px; margin-bottom: 24px; }
+    .summary-badge { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .control { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 10px; page-break-inside: avoid; }
+    .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .control-id { font-size: 11px; font-family: monospace; color: #6d28d9; }
+    .control-title { font-size: 13px; font-weight: 600; }
+    .badge { display: inline-block; font-size: 10px; padding: 2px 10px; border-radius: 12px; font-weight: 600; }
+    .field-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+    .field-table th { background: #f8f9fa; text-align: left; padding: 6px 8px; border: 1px solid #e2e8f0; font-size: 10px; text-transform: uppercase; color: #888; }
+    .field-table td { padding: 6px 8px; border: 1px solid #e2e8f0; }
+    .before { color: #991b1b; text-decoration: line-through; }
+    .after { color: #166534; }
+    @media print { body { padding: 20px; } .control { break-inside: avoid; } }
+  </style></head><body>
+    <h1>Version Diff Report: ${fromLabel} → ${toLabel}</h1>
+    <p class="subtitle">Generated on ${now} · ${diffs.length} changes</p>
+    <div class="summary">
+      ${(['added', 'removed', 'modified'] as const).map(type => `<span class="summary-badge" style="background:${changeColors[type].bg};color:${changeColors[type].text}">${counts[type]} ${changeColors[type].label}</span>`).join('')}
+    </div>`;
+
+  for (const d of diffs) {
+    const cc = changeColors[d.changeType];
+    html += `<div class="control">
+      <div class="control-header">
+        <div><span class="control-id">${d.controlId}</span> <span class="control-title">${d.title}</span></div>
+        <span class="badge" style="background:${cc.bg};color:${cc.text}">${cc.label}</span>
+      </div>`;
+    if (d.changeType === 'modified' && d.fieldChanges?.length) {
+      html += `<table class="field-table"><tr><th>Field</th><th>Before (${fromLabel})</th><th>After (${toLabel})</th></tr>`;
+      for (const fc of d.fieldChanges) {
+        html += `<tr><td>${fc.field}</td><td class="before">${fc.before || '—'}</td><td class="after">${fc.after || '—'}</td></tr>`;
+      }
+      html += `</table>`;
+    }
+    html += `</div>`;
+  }
+
+  html += '</body></html>';
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => printWindow.print();
+  }
+}
+
 const changeConfig: Record<ChangeType, { icon: React.ElementType; color: string; bg: string; border: string }> = {
   added: { icon: Plus, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
   removed: { icon: Minus, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20' },
@@ -205,6 +290,21 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const getVersionLabel = (v: VersionEntry | undefined) => {
+    if (!v) return '';
+    return v.id === '__live__' ? 'Live' : `v${v.version}`;
+  };
+
+  const handleExportCSV = () => {
+    if (!filteredDiffs.length) return;
+    exportDiffCSV(filteredDiffs, getVersionLabel(leftVersion), getVersionLabel(rightVersion));
+  };
+
+  const handleExportPDF = () => {
+    if (!filteredDiffs.length) return;
+    exportDiffPDF(filteredDiffs, getVersionLabel(leftVersion), getVersionLabel(rightVersion), counts);
   };
 
   return (
@@ -294,6 +394,14 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
                   className="h-8 pl-8 w-[200px] text-xs"
                 />
               </div>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExportCSV} disabled={filteredDiffs.length === 0}>
+                <Download className="h-3.5 w-3.5" />
+                {t.versioning.exportCSV}
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExportPDF} disabled={filteredDiffs.length === 0}>
+                <FileText className="h-3.5 w-3.5" />
+                {t.versioning.exportPDF}
+              </Button>
             </div>
           )}
         </div>
