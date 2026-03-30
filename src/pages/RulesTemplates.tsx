@@ -826,8 +826,8 @@ const RulesTemplates: React.FC = () => {
                   <Save className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Save Version</h3>
-                  <p className="text-sm text-muted-foreground">Create a snapshot of current rules</p>
+                  <h3 className="text-lg font-semibold text-foreground">{t.rules.saveVersionTitle}</h3>
+                  <p className="text-sm text-muted-foreground">{t.rules.saveVersionSubtitle}</p>
                 </div>
               </div>
               <Input
