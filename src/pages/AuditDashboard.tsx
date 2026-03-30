@@ -518,6 +518,19 @@ const AuditDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Comparison banner */}
+      {compareEnabled && prevMetrics && previousPeriodLabel && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+          className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <GitCompareArrows className="h-3.5 w-3.5 text-primary" />
+          Comparing <span className="font-medium text-foreground">{periodLabel}</span> vs
+          <span className="font-medium text-foreground">{previousPeriodLabel}</span>
+          <button onClick={() => setCompareEnabled(false)} className="ml-auto text-muted-foreground hover:text-foreground text-xs underline">
+            Disable
+          </button>
+        </motion.div>
+      )}
+
       {/* KPI Cards */}
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -534,7 +547,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Published Versions</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.publishedVersions}</p>
+              <DeltaBadge delta={getDelta(metrics.publishedVersions, prevMetrics?.publishedVersions)} />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.draftVersions} drafts across {metrics.totalProjects} projects</p>
             <p className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity mt-1">View version history →</p>
           </motion.div>
@@ -548,7 +564,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Review Completion</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.reviewRate}%</p>
+              <DeltaBadge delta={getDelta(metrics.reviewRate, prevMetrics?.reviewRate)} suffix="pp" />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.approvedControls} of {metrics.totalControls} controls approved</p>
             <p className="text-[10px] text-success opacity-0 group-hover:opacity-100 transition-opacity mt-1">View approved controls →</p>
           </motion.div>
@@ -562,7 +581,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending Review</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.pendingControls}</p>
+              <DeltaBadge delta={getDelta(metrics.pendingControls, prevMetrics?.pendingControls)} invert />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.rejectedControls} rejected controls</p>
             <p className="text-[10px] text-warning opacity-0 group-hover:opacity-100 transition-opacity mt-1">View pending controls →</p>
           </motion.div>
@@ -576,7 +598,10 @@ const AuditDashboard: React.FC = () => {
               </div>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg. Confidence</span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-display font-bold text-foreground">{metrics.avgConfidence}%</p>
+              <DeltaBadge delta={getDelta(metrics.avgConfidence, prevMetrics?.avgConfidence)} suffix="pp" />
+            </div>
             <p className="text-[10px] text-muted-foreground mt-1">{metrics.totalAuditActions} audit actions logged</p>
             <p className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity mt-1">View traceability →</p>
           </motion.div>
