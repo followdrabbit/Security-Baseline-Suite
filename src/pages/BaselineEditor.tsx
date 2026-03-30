@@ -12,6 +12,7 @@ import VersionCompareModal from '@/components/VersionCompareModal';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import HelpButton from '@/components/HelpButton';
+import GenerateDocumentModal from '@/components/GenerateDocumentModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
