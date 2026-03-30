@@ -98,5 +98,22 @@ export function useTemplateVersions() {
     }
   }, [user]);
 
+  const renameVersion = useCallback(async (id: string, newLabel: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('rule_template_versions')
+        .update({ label: newLabel })
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setVersions(prev => prev.map(v => v.id === id ? { ...v, label: newLabel } : v));
+      toast.success('Version renamed');
+    } catch (err) {
+      console.error('Failed to rename version:', err);
+      toast.error('Failed to rename version');
+    }
+  }, [user]);
+
   return { versions, loading, saveVersion, deleteVersion, reload: load };
 }
