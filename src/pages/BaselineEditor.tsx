@@ -548,6 +548,12 @@ const BaselineEditor: React.FC = () => {
           )}
           {!isViewingSnapshot && (
             <>
+              {selectedProject !== 'all' && filtered.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setDocModalOpen(true)}>
+                  <BookOpen className="h-4 w-4 mr-1.5" />
+                  {(t as any).baselineDocument?.generateButton || 'Generate Document'}
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
               </Button>
