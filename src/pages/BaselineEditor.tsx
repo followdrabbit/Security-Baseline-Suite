@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight, GitCompare } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight, GitCompare, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -406,9 +406,37 @@ const BaselineEditor: React.FC = () => {
     },
   });
 
+  // Restore version mutation
+  const restoreMutation = useMutation({
+    mutationFn: async (versionId: string) => {
+      if (!user || selectedProject === 'all') throw new Error('Select a project');
+      const { data, error } = await supabase.functions.invoke('restore-baseline', {
+        body: { versionId, projectId: selectedProject },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['baseline-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['baseline-controls'] });
+      queryClient.invalidateQueries({ queryKey: ['baseline-versions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-projects'] });
+      setViewingVersionId(null);
+      toast({
+        title: `🔄 ${t.toasts.restored}`,
+        description: `${t.toasts.restoredDesc} v${data?.restoredVersion || '?'}`,
+      });
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to restore version.', variant: 'destructive' });
+    },
+  });
+
   const handleConfirm = () => {
     if (confirmModal.variant === 'publish') {
       publishMutation.mutate();
+    } else if (confirmModal.variant === 'restore') {
+      if (viewingVersionId) restoreMutation.mutate(viewingVersionId);
     } else if (confirmModal.variant === 'approveAll') {
       bulkApproveMutation.mutate();
       toast({ title: `✅ ${t.toasts.approvedAll}`, description: t.toasts.approvedAllDesc });
@@ -571,15 +599,33 @@ const BaselineEditor: React.FC = () => {
               {viewingVersion.control_count} {t.versioning.controlsCount}
             </span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-3 text-xs"
-            onClick={() => setViewingVersionId(null)}
-          >
-            <ArrowRight className="h-3.5 w-3.5 mr-1" />
-            {t.versioning.backToLive}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 text-xs gap-1.5 text-warning border-warning/30 hover:bg-warning/10"
+              onClick={() => {
+                setConfirmModal({
+                  open: true,
+                  variant: 'restore',
+                  controlLabel: `v${viewingVersion.version}`,
+                });
+              }}
+              disabled={restoreMutation.isPending}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              {t.versioning.restoreVersion}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setViewingVersionId(null)}
+            >
+              <ArrowRight className="h-3.5 w-3.5 mr-1" />
+              {t.versioning.backToLive}
+            </Button>
+          </div>
         </motion.div>
       )}
 
