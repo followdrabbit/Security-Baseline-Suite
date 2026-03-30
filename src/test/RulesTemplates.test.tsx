@@ -41,50 +41,39 @@ describe('RulesTemplates', () => {
     expect(screen.getByText(/Rules & Templates/i)).toBeInTheDocument();
   });
 
-  it('renders AI strictness options', () => {
-    renderRules();
-    expect(screen.getByText(/Conservative/i)).toBeInTheDocument();
-    expect(screen.getByText(/Balanced/i)).toBeInTheDocument();
-    expect(screen.getByText(/Aggressive/i)).toBeInTheDocument();
-  });
-
   it('renders save and load template buttons', () => {
     renderRules();
     expect(screen.getByText(/Save Template/i)).toBeInTheDocument();
     expect(screen.getByText(/Load Template/i)).toBeInTheDocument();
   });
 
-  describe('Threat Modeling rule block', () => {
-    it('renders the Threat Modeling rule block', () => {
-      renderRules();
-      expect(screen.getByText(/Threat Modeling/i)).toBeInTheDocument();
-    });
+  it('renders sidebar navigation items', () => {
+    renderRules();
+    expect(screen.getAllByText('Baseline Template').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Writing Standards/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Deduplication/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Criticality/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Framework Mappings/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Threat Modeling/i).length).toBeGreaterThanOrEqual(1);
+  });
 
-    it('expands Threat Modeling block on click to show STRIDE content', () => {
-      renderRules();
-      const threatBlock = screen.getByText(/Threat Modeling/i).closest('button');
-      expect(threatBlock).toBeTruthy();
-      act(() => threatBlock!.click());
+  it('renders AI Strictness section with options by default', () => {
+    renderRules();
+    expect(screen.getByText(/Conservative/i)).toBeInTheDocument();
+    expect(screen.getByText(/Balanced/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aggressive/i)).toBeInTheDocument();
+  });
 
-      expect(screen.getByText(/STRIDE/i)).toBeInTheDocument();
-    });
+  it('renders search input', () => {
+    renderRules();
+    expect(screen.getByPlaceholderText(/Search rules/i)).toBeInTheDocument();
+  });
 
-    it('shows Edit button when Threat Modeling block is expanded', () => {
-      renderRules();
-      const threatBlock = screen.getByText(/Threat Modeling/i).closest('button');
-      act(() => threatBlock!.click());
-
-      expect(screen.getByText(/Edit/i)).toBeInTheDocument();
-    });
-
-    it('renders all expected rule blocks', () => {
-      renderRules();
-      expect(screen.getByText('Baseline Template')).toBeInTheDocument();
-      expect(screen.getByText(/Writing Standards/i)).toBeInTheDocument();
-      expect(screen.getByText(/Deduplication/i)).toBeInTheDocument();
-      expect(screen.getByText(/Criticality/i)).toBeInTheDocument();
-      expect(screen.getByText(/Framework Mappings/i)).toBeInTheDocument();
-      expect(screen.getByText(/Threat Modeling/i)).toBeInTheDocument();
-    });
+  it('shows Edit button for active section content', () => {
+    renderRules();
+    // Navigate to template section
+    const templateBtn = screen.getAllByText('Baseline Template')[0];
+    act(() => templateBtn.click());
+    expect(screen.getByText(/Edit/i)).toBeInTheDocument();
   });
 });
