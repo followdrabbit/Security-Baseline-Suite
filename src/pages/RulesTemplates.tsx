@@ -240,6 +240,7 @@ const RulesTemplates: React.FC = () => {
   const [saveLabel, setSaveLabel] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [restorePreview, setRestorePreview] = useState<TemplateVersion | null>(null);
+  const [compareSelection, setCompareSelection] = useState<TemplateVersion[]>([]);
 
   const handleExportJSON = () => {
     const onlyCustom: Record<string, string> = {};
