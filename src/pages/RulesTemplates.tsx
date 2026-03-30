@@ -230,6 +230,7 @@ const RulesTemplates: React.FC = () => {
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
   const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importPreview, setImportPreview] = useState<{ data: Record<string, string>; count: number; overwriteCount: number } | null>(null);
 
   const handleExportJSON = () => {
     const onlyCustom: Record<string, string> = {};
@@ -255,30 +256,47 @@ const RulesTemplates: React.FC = () => {
     toast.success('Template exported');
   };
 
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = async (ev) => {
+    reader.onload = (ev) => {
       try {
         const json = JSON.parse(ev.target?.result as string);
         const imported: Record<string, string> = json.allValues || json.customValues || json;
         if (typeof imported !== 'object' || Array.isArray(imported)) throw new Error('Invalid format');
-        let count = 0;
+        const validEntries: Record<string, string> = {};
+        let overwriteCount = 0;
         for (const [key, val] of Object.entries(imported)) {
           if (key in DEFAULT_VALUES && typeof val === 'string') {
-            await updateValue(key, val);
-            count++;
+            validEntries[key] = val;
+            if (values[key] !== DEFAULT_VALUES[key]) overwriteCount++;
           }
         }
-        toast.success(`Imported ${count} rule(s)`);
+        if (Object.keys(validEntries).length === 0) {
+          toast.error('No valid rules found in the file');
+          return;
+        }
+        setImportPreview({ data: validEntries, count: Object.keys(validEntries).length, overwriteCount });
       } catch {
         toast.error('Invalid JSON template file');
       }
     };
     reader.readAsText(file);
-    // reset so the same file can be re-imported
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+    try {
+      for (const [key, val] of Object.entries(importPreview.data)) {
+        await updateValue(key, val);
+      }
+      toast.success(`Imported ${importPreview.count} rule(s)`);
+    } catch {
+      toast.error('Failed to import');
+    }
+    setImportPreview(null);
   };
 
   const handleUpdateValue = async (id: string, val: string) => {
@@ -365,7 +383,7 @@ const RulesTemplates: React.FC = () => {
                   <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{modifiedCount}</Badge>
                 </Button>
               )}
-              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportJSON} />
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileSelected} />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-1.5" />Import
               </Button>
@@ -514,6 +532,61 @@ const RulesTemplates: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Import Confirmation Modal */}
+      <AnimatePresence>
+        {importPreview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setImportPreview(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-md w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Confirm Import</h3>
+                  <p className="text-sm text-muted-foreground">This will overwrite current values</p>
+                </div>
+              </div>
+
+              <div className="bg-muted/30 border border-border/50 rounded-lg p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Rules to import</span>
+                  <span className="font-medium text-foreground">{importPreview.count}</span>
+                </div>
+                {importPreview.overwriteCount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-warning">Custom values to overwrite</span>
+                    <span className="font-medium text-warning">{importPreview.overwriteCount}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setImportPreview(null)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={handleConfirmImport} disabled={saving}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Import {importPreview.count} rule(s)
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
