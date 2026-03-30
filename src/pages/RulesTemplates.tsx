@@ -527,7 +527,7 @@ const RulesTemplates: React.FC = () => {
                 {versionsLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : versions.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-4 text-center">No saved versions yet. Click "Save Version" to create a snapshot.</p>
+                  <p className="text-xs text-muted-foreground py-4 text-center">{t.rules.noVersions}</p>
                 ) : (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {versions.map(v => {
