@@ -957,7 +957,7 @@ const RulesTemplates: React.FC = () => {
                     setDuplicateLabel('');
                   }}
                 >
-                  <CopyPlus className="h-3.5 w-3.5 mr-1.5" />Duplicate
+                  <CopyPlus className="h-3.5 w-3.5 mr-1.5" />{t.rules.duplicate}
                 </Button>
               </div>
             </motion.div>
