@@ -830,6 +830,10 @@ const translations = {
       annexSources: 'Annex B — Source Traceability',
       downloadPdf: 'Download PDF',
       downloadDocx: 'Download DOCX',
+      customizeSections: 'Customize sections',
+      selectAll: 'Select all',
+      deselectAll: 'Deselect all',
+      noSections: 'No sections selected',
     },
   },
   pt: {
@@ -1663,6 +1667,10 @@ const translations = {
       annexSources: 'Anexo B — Rastreabilidade de Fontes',
       downloadPdf: 'Baixar PDF',
       downloadDocx: 'Baixar DOCX',
+      customizeSections: 'Personalizar seções',
+      selectAll: 'Selecionar todas',
+      deselectAll: 'Desmarcar todas',
+      noSections: 'Nenhuma seção selecionada',
     },
   },
   es: {
@@ -2496,6 +2504,10 @@ const translations = {
       annexSources: 'Anexo B — Trazabilidad de Fuentes',
       downloadPdf: 'Descargar PDF',
       downloadDocx: 'Descargar DOCX',
+      customizeSections: 'Personalizar secciones',
+      selectAll: 'Seleccionar todas',
+      deselectAll: 'Deseleccionar todas',
+      noSections: 'Ninguna sección seleccionada',
     },
   },
 } as const;

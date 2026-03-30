@@ -3,6 +3,26 @@ import autoTable from 'jspdf-autotable';
 import type { ControlItem } from '@/types';
 import { AUREUM_LOGO_BASE64 } from '@/assets/aureumLogoBase64';
 
+export interface DocumentSections {
+  cover: boolean;
+  toc: boolean;
+  executiveSummary: boolean;
+  projectOverview: boolean;
+  securityControls: boolean;
+  annexA: boolean;
+  annexB: boolean;
+}
+
+export const DEFAULT_SECTIONS: DocumentSections = {
+  cover: true,
+  toc: true,
+  executiveSummary: true,
+  projectOverview: true,
+  securityControls: true,
+  annexA: true,
+  annexB: true,
+};
+
 interface DocumentOptions {
   projectName: string;
   technology: string;
@@ -11,6 +31,7 @@ interface DocumentOptions {
   locale: 'en' | 'pt' | 'es';
   controls: ControlItem[];
   sources?: any[];
+  sections?: DocumentSections;
 }
 
 const CATEGORY_LABELS: Record<string, Record<string, string>> = {
@@ -216,6 +237,7 @@ function getSourceIndex(controls: ControlItem[]) {
 
 export function generateBaselinePDF(opts: DocumentOptions): void {
   const l = labels[opts.locale] || labels.en;
+  const sec = opts.sections || DEFAULT_SECTIONS;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -246,293 +268,284 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
     }
   };
 
-  // ─── COVER PAGE ───
-  doc.setFillColor(...DARK);
-  doc.rect(0, 0, pageW, pageH, 'F');
-
-  // Logo
-  try {
-    doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageW / 2 - 20, 50, 40, 40);
-  } catch { /* logo optional */ }
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text(l.title, pageW / 2, 115, { align: 'center' });
-
-  doc.setFontSize(16);
-  doc.setTextColor(180, 180, 200);
-  doc.text(opts.projectName, pageW / 2, 135, { align: 'center' });
-
-  doc.setFontSize(12);
-  doc.text(`${opts.technology} — v${opts.version}`, pageW / 2, 150, { align: 'center' });
-
   const dateStr = opts.publishedAt
     ? new Date(opts.publishedAt).toLocaleDateString(opts.locale === 'pt' ? 'pt-BR' : opts.locale === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString();
-  doc.setFontSize(10);
-  doc.setTextColor(140, 140, 160);
-  doc.text(dateStr, pageW / 2, 170, { align: 'center' });
+  const grouped = groupByCategory(opts.controls);
+  let isFirstPage = true;
 
-  doc.setFontSize(8);
-  doc.text(l.confidential, pageW / 2, pageH - 20, { align: 'center' });
+  const addNewPage = () => {
+    if (!isFirstPage) {
+      addFooter(doc.getNumberOfPages());
+      doc.addPage();
+    } else {
+      isFirstPage = false;
+    }
+    y = margin;
+  };
+
+  // ─── COVER PAGE ───
+  if (sec.cover) {
+    doc.setFillColor(...DARK);
+    doc.rect(0, 0, pageW, pageH, 'F');
+    try {
+      doc.addImage(AUREUM_LOGO_BASE64, 'PNG', pageW / 2 - 20, 50, 40, 40);
+    } catch { /* logo optional */ }
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.text(l.title, pageW / 2, 115, { align: 'center' });
+    doc.setFontSize(16);
+    doc.setTextColor(180, 180, 200);
+    doc.text(opts.projectName, pageW / 2, 135, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(`${opts.technology} — v${opts.version}`, pageW / 2, 150, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setTextColor(140, 140, 160);
+    doc.text(dateStr, pageW / 2, 170, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(l.confidential, pageW / 2, pageH - 20, { align: 'center' });
+    isFirstPage = false;
+  }
 
   // ─── TABLE OF CONTENTS ───
-  doc.addPage();
-  y = margin;
-  doc.setTextColor(...DARK);
-  doc.setFontSize(20);
-  doc.text(l.toc, margin, y);
-  y += 12;
+  if (sec.toc) {
+    addNewPage();
+    doc.setTextColor(...DARK);
+    doc.setFontSize(20);
+    doc.text(l.toc, margin, y);
+    y += 12;
 
-  const grouped = groupByCategory(opts.controls);
-  const tocItems: string[] = [
-    `1. ${l.executiveSummary}`,
-    `2. ${l.projectOverview}`,
-    `3. ${l.securityControls}`,
-  ];
-  grouped.forEach((g, i) => {
-    tocItems.push(`   3.${i + 1}. ${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})`);
-  });
-  tocItems.push(`4. ${l.annexA}`);
-  tocItems.push(`5. ${l.annexB}`);
+    let sectionNum = 0;
+    const tocItems: string[] = [];
+    if (sec.executiveSummary) { sectionNum++; tocItems.push(`${sectionNum}. ${l.executiveSummary}`); }
+    if (sec.projectOverview) { sectionNum++; tocItems.push(`${sectionNum}. ${l.projectOverview}`); }
+    if (sec.securityControls) {
+      sectionNum++;
+      tocItems.push(`${sectionNum}. ${l.securityControls}`);
+      grouped.forEach((g, i) => {
+        tocItems.push(`   ${sectionNum}.${i + 1}. ${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})`);
+      });
+    }
+    if (sec.annexA) { sectionNum++; tocItems.push(`${sectionNum}. ${l.annexA}`); }
+    if (sec.annexB) { sectionNum++; tocItems.push(`${sectionNum}. ${l.annexB}`); }
 
-  doc.setFontSize(11);
-  for (const item of tocItems) {
-    const clr = item.startsWith('   ') ? GRAY : DARK;
-    doc.setTextColor(clr[0], clr[1], clr[2]);
-    doc.text(item, item.startsWith('   ') ? margin + 8 : margin, y);
-    y += 7;
+    doc.setFontSize(11);
+    for (const item of tocItems) {
+      const clr = item.startsWith('   ') ? GRAY : DARK;
+      doc.setTextColor(clr[0], clr[1], clr[2]);
+      doc.text(item, item.startsWith('   ') ? margin + 8 : margin, y);
+      y += 7;
+    }
+    addFooter(doc.getNumberOfPages());
   }
-  addFooter(doc.getNumberOfPages());
 
   // ─── 1. EXECUTIVE SUMMARY ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`1. ${l.executiveSummary}`, margin, y);
-  y += 10;
-  doc.setFontSize(10);
-  doc.setTextColor(...DARK);
-  const summaryLines = doc.splitTextToSize(l.executiveSummaryBody(opts), contentW);
-  doc.text(summaryLines, margin, y);
-  y += summaryLines.length * 5 + 10;
-
-  // Stats box
-  const stats = [
-    { label: l.totalControls, value: `${opts.controls.length}` },
-    { label: l.criticality, value: `${opts.controls.filter(c => c.criticality === 'critical').length} critical` },
-    { label: l.confidence, value: `${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%` },
-  ];
-  doc.setFillColor(...LIGHT_BG);
-  doc.roundedRect(margin, y, contentW, 20, 2, 2, 'F');
-  const statW = contentW / stats.length;
-  stats.forEach((stat, i) => {
-    const sx = margin + statW * i + statW / 2;
-    doc.setFontSize(14);
+  let sn = 0; // dynamic section numbering
+  if (sec.executiveSummary) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
     doc.setTextColor(...PRIMARY);
-    doc.text(stat.value, sx, y + 9, { align: 'center' });
-    doc.setFontSize(7);
-    doc.setTextColor(...GRAY);
-    doc.text(stat.label, sx, y + 15, { align: 'center' });
-  });
-  y += 28;
-  addFooter(doc.getNumberOfPages());
+    doc.text(`${sn}. ${l.executiveSummary}`, margin, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK);
+    const summaryLines = doc.splitTextToSize(l.executiveSummaryBody(opts), contentW);
+    doc.text(summaryLines, margin, y);
+    y += summaryLines.length * 5 + 10;
+    const stats = [
+      { label: l.totalControls, value: `${opts.controls.length}` },
+      { label: l.criticality, value: `${opts.controls.filter(c => c.criticality === 'critical').length} critical` },
+      { label: l.confidence, value: `${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%` },
+    ];
+    doc.setFillColor(...LIGHT_BG);
+    doc.roundedRect(margin, y, contentW, 20, 2, 2, 'F');
+    const statW = contentW / stats.length;
+    stats.forEach((stat, i) => {
+      const sx = margin + statW * i + statW / 2;
+      doc.setFontSize(14);
+      doc.setTextColor(...PRIMARY);
+      doc.text(stat.value, sx, y + 9, { align: 'center' });
+      doc.setFontSize(7);
+      doc.setTextColor(...GRAY);
+      doc.text(stat.label, sx, y + 15, { align: 'center' });
+    });
+    y += 28;
+    addFooter(doc.getNumberOfPages());
+  }
 
   // ─── 2. PROJECT OVERVIEW ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`2. ${l.projectOverview}`, margin, y);
-  y += 10;
-
-  autoTable(doc, {
-    startY: y,
-    head: [],
-    body: [
-      [l.projectName, opts.projectName],
-      [l.technology, opts.technology],
-      [l.version, `v${opts.version}`],
-      [l.totalControls, `${opts.controls.length}`],
-      [l.publishedDate, dateStr],
-    ],
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4 },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 50, fillColor: LIGHT_BG as any },
-      1: { cellWidth: contentW - 50 },
-    },
-    margin: { left: margin, right: margin },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
-  addFooter(doc.getNumberOfPages());
+  if (sec.projectOverview) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.projectOverview}`, margin, y);
+    y += 10;
+    autoTable(doc, {
+      startY: y,
+      head: [],
+      body: [
+        [l.projectName, opts.projectName],
+        [l.technology, opts.technology],
+        [l.version, `v${opts.version}`],
+        [l.totalControls, `${opts.controls.length}`],
+        [l.publishedDate, dateStr],
+      ],
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 4 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 50, fillColor: LIGHT_BG as any },
+        1: { cellWidth: contentW - 50 },
+      },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+    addFooter(doc.getNumberOfPages());
+  }
 
   // ─── 3. SECURITY CONTROLS ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`3. ${l.securityControls}`, margin, y);
-  y += 12;
+  if (sec.securityControls) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.securityControls}`, margin, y);
+    y += 12;
 
-  grouped.forEach((group, gi) => {
-    checkPageBreak(30);
-    doc.setFontSize(14);
-    doc.setTextColor(...DARK);
-    doc.text(`3.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}`, margin, y);
-    y += 8;
-
-    group.controls.forEach((ctrl) => {
-      checkPageBreak(60);
-
-      // Control header
-      doc.setFillColor(245, 243, 255);
-      doc.roundedRect(margin, y, contentW, 8, 1, 1, 'F');
-      doc.setFontSize(9);
-      doc.setTextColor(...PRIMARY);
-      doc.text(ctrl.controlId, margin + 3, y + 5.5);
+    grouped.forEach((group, gi) => {
+      checkPageBreak(30);
+      doc.setFontSize(14);
       doc.setTextColor(...DARK);
-      doc.setFont(undefined!, 'bold');
-      doc.text(ctrl.title, margin + 30, y + 5.5);
-      doc.setFont(undefined!, 'normal');
+      doc.text(`${sn}.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}`, margin, y);
+      y += 8;
 
-      // Criticality badge
-      const critColors: Record<string, [number, number, number]> = {
-        critical: [220, 38, 38],
-        high: [234, 88, 12],
-        medium: [202, 138, 4],
-        low: [22, 163, 74],
-      };
-      const cc = critColors[ctrl.criticality] || GRAY;
-      doc.setTextColor(...cc);
-      doc.text(ctrl.criticality.toUpperCase(), pageW - margin - 3, y + 5.5, { align: 'right' });
-      y += 12;
-
-      // Control details table
-      const detailRows: string[][] = [];
-      if (ctrl.description) detailRows.push([l.description, ctrl.description]);
-      if (ctrl.applicability) detailRows.push([l.applicability, ctrl.applicability]);
-      if (ctrl.securityRisk) detailRows.push([l.securityRisk, ctrl.securityRisk]);
-      if (ctrl.defaultBehaviorLimitations) detailRows.push([l.defaultBehavior, ctrl.defaultBehaviorLimitations]);
-      if (ctrl.automation) detailRows.push([l.automation, ctrl.automation]);
-      detailRows.push([l.confidence, `${Math.round(ctrl.confidenceScore * 100)}%`]);
-      detailRows.push([l.reviewStatus, ctrl.reviewStatus]);
-      if (ctrl.frameworkMappings.length > 0) {
-        detailRows.push([l.frameworkMappings, ctrl.frameworkMappings.join(', ')]);
-      }
-
-      if (detailRows.length > 0) {
-        autoTable(doc, {
-          startY: y,
-          head: [],
-          body: detailRows,
-          theme: 'plain',
-          styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-          columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 45, textColor: GRAY as any },
-            1: { cellWidth: contentW - 45 },
-          },
-          margin: { left: margin, right: margin },
-        });
-        y = (doc as any).lastAutoTable.finalY + 3;
-      }
-
-      // Threat scenarios
-      if (ctrl.threatScenarios.length > 0) {
-        checkPageBreak(20);
-        doc.setFontSize(8);
+      group.controls.forEach((ctrl) => {
+        checkPageBreak(60);
+        doc.setFillColor(245, 243, 255);
+        doc.roundedRect(margin, y, contentW, 8, 1, 1, 'F');
+        doc.setFontSize(9);
         doc.setTextColor(...PRIMARY);
-        doc.text(l.threatModeling, margin + 2, y + 3);
-        y += 6;
+        doc.text(ctrl.controlId, margin + 3, y + 5.5);
+        doc.setTextColor(...DARK);
+        doc.setFont(undefined!, 'bold');
+        doc.text(ctrl.title, margin + 30, y + 5.5);
+        doc.setFont(undefined!, 'normal');
+        const critColors: Record<string, [number, number, number]> = {
+          critical: [220, 38, 38], high: [234, 88, 12], medium: [202, 138, 4], low: [22, 163, 74],
+        };
+        const cc = critColors[ctrl.criticality] || GRAY;
+        doc.setTextColor(...cc);
+        doc.text(ctrl.criticality.toUpperCase(), pageW - margin - 3, y + 5.5, { align: 'right' });
+        y += 12;
 
-        autoTable(doc, {
-          startY: y,
-          head: [[l.threatName, l.strideCategory, l.likelihood, l.impact]],
-          body: ctrl.threatScenarios.map(ts => [
-            ts.threatName,
-            ts.strideCategory.replace(/_/g, ' '),
-            ts.likelihood.replace(/_/g, ' '),
-            ts.impact,
-          ]),
-          theme: 'striped',
-          styles: { fontSize: 7, cellPadding: 2 },
-          headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
-          margin: { left: margin, right: margin },
-        });
-        y = (doc as any).lastAutoTable.finalY + 3;
-      }
+        const detailRows: string[][] = [];
+        if (ctrl.description) detailRows.push([l.description, ctrl.description]);
+        if (ctrl.applicability) detailRows.push([l.applicability, ctrl.applicability]);
+        if (ctrl.securityRisk) detailRows.push([l.securityRisk, ctrl.securityRisk]);
+        if (ctrl.defaultBehaviorLimitations) detailRows.push([l.defaultBehavior, ctrl.defaultBehaviorLimitations]);
+        if (ctrl.automation) detailRows.push([l.automation, ctrl.automation]);
+        detailRows.push([l.confidence, `${Math.round(ctrl.confidenceScore * 100)}%`]);
+        detailRows.push([l.reviewStatus, ctrl.reviewStatus]);
+        if (ctrl.frameworkMappings.length > 0) {
+          detailRows.push([l.frameworkMappings, ctrl.frameworkMappings.join(', ')]);
+        }
+        if (detailRows.length > 0) {
+          autoTable(doc, {
+            startY: y, head: [], body: detailRows, theme: 'plain',
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45, textColor: GRAY as any }, 1: { cellWidth: contentW - 45 } },
+            margin: { left: margin, right: margin },
+          });
+          y = (doc as any).lastAutoTable.finalY + 3;
+        }
 
-      // Source traceability
-      if (ctrl.sourceTraceability.length > 0) {
-        checkPageBreak(15);
-        doc.setFontSize(8);
-        doc.setTextColor(...PRIMARY);
-        doc.text(l.sourceTraceability, margin + 2, y + 3);
-        y += 6;
+        if (ctrl.threatScenarios.length > 0) {
+          checkPageBreak(20);
+          doc.setFontSize(8);
+          doc.setTextColor(...PRIMARY);
+          doc.text(l.threatModeling, margin + 2, y + 3);
+          y += 6;
+          autoTable(doc, {
+            startY: y,
+            head: [[l.threatName, l.strideCategory, l.likelihood, l.impact]],
+            body: ctrl.threatScenarios.map(ts => [ts.threatName, ts.strideCategory.replace(/_/g, ' '), ts.likelihood.replace(/_/g, ' '), ts.impact]),
+            theme: 'striped', styles: { fontSize: 7, cellPadding: 2 },
+            headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+            margin: { left: margin, right: margin },
+          });
+          y = (doc as any).lastAutoTable.finalY + 3;
+        }
 
-        autoTable(doc, {
-          startY: y,
-          head: [[l.sourceName, l.excerpt, l.sourceConfidence]],
-          body: ctrl.sourceTraceability.map(s => [
-            s.sourceName,
-            s.excerpt.length > 100 ? s.excerpt.substring(0, 100) + '...' : s.excerpt,
-            `${Math.round(s.confidence * 100)}%`,
-          ]),
-          theme: 'striped',
-          styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
-          headStyles: { fillColor: GRAY as any, textColor: [255, 255, 255] },
-          columnStyles: { 1: { cellWidth: contentW - 70 } },
-          margin: { left: margin, right: margin },
-        });
-        y = (doc as any).lastAutoTable.finalY + 3;
-      }
+        if (ctrl.sourceTraceability.length > 0) {
+          checkPageBreak(15);
+          doc.setFontSize(8);
+          doc.setTextColor(...PRIMARY);
+          doc.text(l.sourceTraceability, margin + 2, y + 3);
+          y += 6;
+          autoTable(doc, {
+            startY: y,
+            head: [[l.sourceName, l.excerpt, l.sourceConfidence]],
+            body: ctrl.sourceTraceability.map(s => [s.sourceName, s.excerpt.length > 100 ? s.excerpt.substring(0, 100) + '...' : s.excerpt, `${Math.round(s.confidence * 100)}%`]),
+            theme: 'striped', styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+            headStyles: { fillColor: GRAY as any, textColor: [255, 255, 255] },
+            columnStyles: { 1: { cellWidth: contentW - 70 } },
+            margin: { left: margin, right: margin },
+          });
+          y = (doc as any).lastAutoTable.finalY + 3;
+        }
 
-      y += 5;
-      addFooter(doc.getNumberOfPages());
+        y += 5;
+        addFooter(doc.getNumberOfPages());
+      });
     });
-  });
+  }
 
   // ─── 4. ANNEX A — FRAMEWORK COVERAGE ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`4. ${l.annexA}`, margin, y);
-  y += 12;
-
-  const fwCoverage = getFrameworkCoverage(opts.controls);
-  autoTable(doc, {
-    startY: y,
-    head: [[l.framework, l.controlCount, l.coveragePercent]],
-    body: fwCoverage.map(fw => [fw.framework, `${fw.count}`, `${fw.percent}%`]),
-    theme: 'striped',
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
-    margin: { left: margin, right: margin },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
-  addFooter(doc.getNumberOfPages());
+  if (sec.annexA) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.annexA}`, margin, y);
+    y += 12;
+    const fwCoverage = getFrameworkCoverage(opts.controls);
+    autoTable(doc, {
+      startY: y,
+      head: [[l.framework, l.controlCount, l.coveragePercent]],
+      body: fwCoverage.map(fw => [fw.framework, `${fw.count}`, `${fw.percent}%`]),
+      theme: 'striped', styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+    addFooter(doc.getNumberOfPages());
+  }
 
   // ─── 5. ANNEX B — SOURCE TRACEABILITY INDEX ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`5. ${l.annexB}`, margin, y);
-  y += 12;
+  if (sec.annexB) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.annexB}`, margin, y);
+    y += 12;
+    const srcIndex = getSourceIndex(opts.controls);
+    autoTable(doc, {
+      startY: y,
+      head: [[l.sourceName, l.controlCount, l.sourceConfidence]],
+      body: srcIndex.map(s => [s.name, `${s.controlIds.length}`, `${s.avgConf}%`]),
+      theme: 'striped', styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
+      margin: { left: margin, right: margin },
+    });
+    addFooter(doc.getNumberOfPages());
+  }
 
-  const srcIndex = getSourceIndex(opts.controls);
-  autoTable(doc, {
-    startY: y,
-    head: [[l.sourceName, l.controlCount, l.sourceConfidence]],
-    body: srcIndex.map(s => [s.name, `${s.controlIds.length}`, `${s.avgConf}%`]),
-    theme: 'striped',
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: PRIMARY as any, textColor: [255, 255, 255] },
-    margin: { left: margin, right: margin },
-  });
-  addFooter(doc.getNumberOfPages());
+  // Handle case where no cover was first page (remove blank first page)
+  if (!sec.cover && doc.getNumberOfPages() > 1) {
+    // First page is blank, already handled by addNewPage logic
+  }
 
   // Save
   const filename = `baseline-${opts.projectName.replace(/\s+/g, '-').toLowerCase()}-v${opts.version}.pdf`;
@@ -541,6 +554,7 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
 
 export function generateBaselineDOCX(opts: DocumentOptions): void {
   const l = labels[opts.locale] || labels.en;
+  const sec = opts.sections || DEFAULT_SECTIONS;
   const grouped = groupByCategory(opts.controls);
   const fwCoverage = getFrameworkCoverage(opts.controls);
   const srcIndex = getSourceIndex(opts.controls);
@@ -548,7 +562,6 @@ export function generateBaselineDOCX(opts: DocumentOptions): void {
     ? new Date(opts.publishedAt).toLocaleDateString(opts.locale === 'pt' ? 'pt-BR' : opts.locale === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString();
 
-  // Generate HTML-based DOCX
   let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
   <head><meta charset="utf-8"><style>
     body { font-family: Calibri, Arial, sans-serif; color: #1a1a2e; margin: 40px; line-height: 1.6; }
@@ -580,115 +593,118 @@ export function generateBaselineDOCX(opts: DocumentOptions): void {
     .footer { font-size: 8px; color: #94a3b8; text-align: center; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
   </style></head><body>`;
 
-  // Cover
-  html += `<div class="cover">
-    <h1>${l.title}</h1>
-    <div class="subtitle">${opts.projectName}</div>
-    <div class="subtitle" style="font-size:14px">${opts.technology} — v${opts.version}</div>
-    <div class="date">${dateStr}</div>
-    <div class="date" style="margin-top:40px">${l.confidential}</div>
-  </div>`;
+  let sn = 0;
 
-  // TOC
-  html += `<div class="toc"><h1>${l.toc}</h1><ol>
-    <li>${l.executiveSummary}</li>
-    <li>${l.projectOverview}</li>
-    <li>${l.securityControls}<ol>`;
-  grouped.forEach(g => {
-    html += `<li>${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})</li>`;
-  });
-  html += `</ol></li>
-    <li>${l.annexA}</li>
-    <li>${l.annexB}</li>
-  </ol></div>`;
+  if (sec.cover) {
+    html += `<div class="cover">
+      <h1>${l.title}</h1>
+      <div class="subtitle">${opts.projectName}</div>
+      <div class="subtitle" style="font-size:14px">${opts.technology} — v${opts.version}</div>
+      <div class="date">${dateStr}</div>
+      <div class="date" style="margin-top:40px">${l.confidential}</div>
+    </div>`;
+  }
 
-  // 1. Executive Summary
-  html += `<div class="page-break"><h1>1. ${l.executiveSummary}</h1>
-    <p>${l.executiveSummaryBody(opts)}</p>
-    <div class="stat-box">
-      <div class="stat-item"><div class="stat-value">${opts.controls.length}</div><div class="stat-label">${l.totalControls}</div></div>
-      <div class="stat-item"><div class="stat-value">${opts.controls.filter(c => c.criticality === 'critical').length}</div><div class="stat-label">Critical</div></div>
-      <div class="stat-item"><div class="stat-value">${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%</div><div class="stat-label">${l.confidence}</div></div>
-    </div>
-  </div>`;
+  if (sec.toc) {
+    html += `<div class="toc"><h1>${l.toc}</h1><ol>`;
+    if (sec.executiveSummary) html += `<li>${l.executiveSummary}</li>`;
+    if (sec.projectOverview) html += `<li>${l.projectOverview}</li>`;
+    if (sec.securityControls) {
+      html += `<li>${l.securityControls}<ol>`;
+      grouped.forEach(g => { html += `<li>${getCategoryLabel(g.category, opts.locale)} (${g.controls.length})</li>`; });
+      html += `</ol></li>`;
+    }
+    if (sec.annexA) html += `<li>${l.annexA}</li>`;
+    if (sec.annexB) html += `<li>${l.annexB}</li>`;
+    html += `</ol></div>`;
+  }
 
-  // 2. Project Overview
-  html += `<h1>2. ${l.projectOverview}</h1>
-    <table>
-      <tr><td style="font-weight:bold;background:#f8fafc;width:180px">${l.projectName}</td><td>${opts.projectName}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.technology}</td><td>${opts.technology}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.version}</td><td>v${opts.version}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.totalControls}</td><td>${opts.controls.length}</td></tr>
-      <tr><td style="font-weight:bold;background:#f8fafc">${l.publishedDate}</td><td>${dateStr}</td></tr>
-    </table>`;
+  if (sec.executiveSummary) {
+    sn++;
+    html += `<div class="page-break"><h1>${sn}. ${l.executiveSummary}</h1>
+      <p>${l.executiveSummaryBody(opts)}</p>
+      <div class="stat-box">
+        <div class="stat-item"><div class="stat-value">${opts.controls.length}</div><div class="stat-label">${l.totalControls}</div></div>
+        <div class="stat-item"><div class="stat-value">${opts.controls.filter(c => c.criticality === 'critical').length}</div><div class="stat-label">Critical</div></div>
+        <div class="stat-item"><div class="stat-value">${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%</div><div class="stat-label">${l.confidence}</div></div>
+      </div>
+    </div>`;
+  }
 
-  // 3. Security Controls
-  html += `<div class="page-break"><h1>3. ${l.securityControls}</h1>`;
-  grouped.forEach((group, gi) => {
-    html += `<h2>3.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}</h2>`;
+  if (sec.projectOverview) {
+    sn++;
+    html += `<h1>${sn}. ${l.projectOverview}</h1>
+      <table>
+        <tr><td style="font-weight:bold;background:#f8fafc;width:180px">${l.projectName}</td><td>${opts.projectName}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.technology}</td><td>${opts.technology}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.version}</td><td>v${opts.version}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.totalControls}</td><td>${opts.controls.length}</td></tr>
+        <tr><td style="font-weight:bold;background:#f8fafc">${l.publishedDate}</td><td>${dateStr}</td></tr>
+      </table>`;
+  }
 
-    group.controls.forEach(ctrl => {
-      html += `<div class="control-header">
-        <span class="control-id">${ctrl.controlId}</span> &nbsp;
-        <span class="control-title">${ctrl.title}</span>
-        <span class="crit-badge crit-${ctrl.criticality}">${ctrl.criticality.toUpperCase()}</span>
-      </div>`;
-
-      html += `<table>`;
-      if (ctrl.description) html += `<tr><td style="font-weight:bold;width:160px">${l.description}</td><td>${ctrl.description}</td></tr>`;
-      if (ctrl.applicability) html += `<tr><td style="font-weight:bold">${l.applicability}</td><td>${ctrl.applicability}</td></tr>`;
-      if (ctrl.securityRisk) html += `<tr><td style="font-weight:bold">${l.securityRisk}</td><td>${ctrl.securityRisk}</td></tr>`;
-      if (ctrl.defaultBehaviorLimitations) html += `<tr><td style="font-weight:bold">${l.defaultBehavior}</td><td>${ctrl.defaultBehaviorLimitations}</td></tr>`;
-      if (ctrl.automation) html += `<tr><td style="font-weight:bold">${l.automation}</td><td>${ctrl.automation}</td></tr>`;
-      html += `<tr><td style="font-weight:bold">${l.confidence}</td><td>${Math.round(ctrl.confidenceScore * 100)}%</td></tr>`;
-      html += `<tr><td style="font-weight:bold">${l.reviewStatus}</td><td>${ctrl.reviewStatus}</td></tr>`;
-      if (ctrl.frameworkMappings.length > 0) {
-        html += `<tr><td style="font-weight:bold">${l.frameworkMappings}</td><td>${ctrl.frameworkMappings.join(', ')}</td></tr>`;
-      }
-      html += `</table>`;
-
-      // Threats
-      if (ctrl.threatScenarios.length > 0) {
-        html += `<div class="section-label">${l.threatModeling}</div>
-          <table><tr><th>${l.threatName}</th><th>${l.strideCategory}</th><th>${l.likelihood}</th><th>${l.impact}</th></tr>`;
-        ctrl.threatScenarios.forEach(ts => {
-          html += `<tr><td>${ts.threatName}</td><td>${ts.strideCategory.replace(/_/g, ' ')}</td><td>${ts.likelihood.replace(/_/g, ' ')}</td><td>${ts.impact}</td></tr>`;
-        });
+  if (sec.securityControls) {
+    sn++;
+    html += `<div class="page-break"><h1>${sn}. ${l.securityControls}</h1>`;
+    grouped.forEach((group, gi) => {
+      html += `<h2>${sn}.${gi + 1}. ${getCategoryLabel(group.category, opts.locale)}</h2>`;
+      group.controls.forEach(ctrl => {
+        html += `<div class="control-header">
+          <span class="control-id">${ctrl.controlId}</span> &nbsp;
+          <span class="control-title">${ctrl.title}</span>
+          <span class="crit-badge crit-${ctrl.criticality}">${ctrl.criticality.toUpperCase()}</span>
+        </div>`;
+        html += `<table>`;
+        if (ctrl.description) html += `<tr><td style="font-weight:bold;width:160px">${l.description}</td><td>${ctrl.description}</td></tr>`;
+        if (ctrl.applicability) html += `<tr><td style="font-weight:bold">${l.applicability}</td><td>${ctrl.applicability}</td></tr>`;
+        if (ctrl.securityRisk) html += `<tr><td style="font-weight:bold">${l.securityRisk}</td><td>${ctrl.securityRisk}</td></tr>`;
+        if (ctrl.defaultBehaviorLimitations) html += `<tr><td style="font-weight:bold">${l.defaultBehavior}</td><td>${ctrl.defaultBehaviorLimitations}</td></tr>`;
+        if (ctrl.automation) html += `<tr><td style="font-weight:bold">${l.automation}</td><td>${ctrl.automation}</td></tr>`;
+        html += `<tr><td style="font-weight:bold">${l.confidence}</td><td>${Math.round(ctrl.confidenceScore * 100)}%</td></tr>`;
+        html += `<tr><td style="font-weight:bold">${l.reviewStatus}</td><td>${ctrl.reviewStatus}</td></tr>`;
+        if (ctrl.frameworkMappings.length > 0) {
+          html += `<tr><td style="font-weight:bold">${l.frameworkMappings}</td><td>${ctrl.frameworkMappings.join(', ')}</td></tr>`;
+        }
         html += `</table>`;
-      }
-
-      // Sources
-      if (ctrl.sourceTraceability.length > 0) {
-        html += `<div class="section-label">${l.sourceTraceability}</div>
-          <table><tr><th>${l.sourceName}</th><th>${l.excerpt}</th><th>${l.sourceConfidence}</th></tr>`;
-        ctrl.sourceTraceability.forEach(s => {
-          html += `<tr><td>${s.sourceName}</td><td style="font-style:italic">${s.excerpt.length > 120 ? s.excerpt.substring(0, 120) + '...' : s.excerpt}</td><td>${Math.round(s.confidence * 100)}%</td></tr>`;
-        });
-        html += `</table>`;
-      }
+        if (ctrl.threatScenarios.length > 0) {
+          html += `<div class="section-label">${l.threatModeling}</div>
+            <table><tr><th>${l.threatName}</th><th>${l.strideCategory}</th><th>${l.likelihood}</th><th>${l.impact}</th></tr>`;
+          ctrl.threatScenarios.forEach(ts => {
+            html += `<tr><td>${ts.threatName}</td><td>${ts.strideCategory.replace(/_/g, ' ')}</td><td>${ts.likelihood.replace(/_/g, ' ')}</td><td>${ts.impact}</td></tr>`;
+          });
+          html += `</table>`;
+        }
+        if (ctrl.sourceTraceability.length > 0) {
+          html += `<div class="section-label">${l.sourceTraceability}</div>
+            <table><tr><th>${l.sourceName}</th><th>${l.excerpt}</th><th>${l.sourceConfidence}</th></tr>`;
+          ctrl.sourceTraceability.forEach(s => {
+            html += `<tr><td>${s.sourceName}</td><td style="font-style:italic">${s.excerpt.length > 120 ? s.excerpt.substring(0, 120) + '...' : s.excerpt}</td><td>${Math.round(s.confidence * 100)}%</td></tr>`;
+          });
+          html += `</table>`;
+        }
+      });
     });
-  });
-  html += `</div>`;
+    html += `</div>`;
+  }
 
-  // 4. Annex A
-  html += `<div class="page-break"><h1>4. ${l.annexA}</h1>
-    <table><tr><th>${l.framework}</th><th>${l.controlCount}</th><th>${l.coveragePercent}</th></tr>`;
-  fwCoverage.forEach(fw => {
-    html += `<tr><td>${fw.framework}</td><td>${fw.count}</td><td>${fw.percent}%</td></tr>`;
-  });
-  html += `</table></div>`;
+  if (sec.annexA) {
+    sn++;
+    html += `<div class="page-break"><h1>${sn}. ${l.annexA}</h1>
+      <table><tr><th>${l.framework}</th><th>${l.controlCount}</th><th>${l.coveragePercent}</th></tr>`;
+    fwCoverage.forEach(fw => { html += `<tr><td>${fw.framework}</td><td>${fw.count}</td><td>${fw.percent}%</td></tr>`; });
+    html += `</table></div>`;
+  }
 
-  // 5. Annex B
-  html += `<h1>5. ${l.annexB}</h1>
-    <table><tr><th>${l.sourceName}</th><th>${l.controlCount}</th><th>${l.sourceConfidence}</th></tr>`;
-  srcIndex.forEach(s => {
-    html += `<tr><td>${s.name}</td><td>${s.controlIds.length}</td><td>${s.avgConf}%</td></tr>`;
-  });
-  html += `</table>`;
+  if (sec.annexB) {
+    sn++;
+    html += `<h1>${sn}. ${l.annexB}</h1>
+      <table><tr><th>${l.sourceName}</th><th>${l.controlCount}</th><th>${l.sourceConfidence}</th></tr>`;
+    srcIndex.forEach(s => { html += `<tr><td>${s.name}</td><td>${s.controlIds.length}</td><td>${s.avgConf}%</td></tr>`; });
+    html += `</table>`;
+  }
 
   html += `<div class="footer">${l.generatedBy} — ${dateStr}</div></body></html>`;
 
-  // Download as .doc (Word-compatible HTML)
   const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
