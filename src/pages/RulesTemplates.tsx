@@ -18,7 +18,7 @@ import VersionComparePanel from '@/components/VersionComparePanel';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight, CopyPlus,
 } from 'lucide-react';
 
 interface RuleSection {
@@ -240,6 +240,8 @@ const RulesTemplates: React.FC = () => {
   const [saveLabel, setSaveLabel] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [restorePreview, setRestorePreview] = useState<TemplateVersion | null>(null);
+  const [duplicateTarget, setDuplicateTarget] = useState<TemplateVersion | null>(null);
+  const [duplicateLabel, setDuplicateLabel] = useState('');
   const [compareSelection, setCompareSelection] = useState<TemplateVersion[]>([]);
 
   const handleExportJSON = () => {
@@ -568,6 +570,9 @@ const RulesTemplates: React.FC = () => {
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
                               <Undo2 className="h-3 w-3 mr-1" />Restore
                             </Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setDuplicateTarget(v); setDuplicateLabel(`${v.label} (copy)`); }}>
+                              <CopyPlus className="h-3 w-3" />
+                            </Button>
                             <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteVersion(v.id)}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -893,6 +898,61 @@ const RulesTemplates: React.FC = () => {
                 </Button>
                 <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => handleRestoreVersion(restorePreview)} disabled={saving}>
                   <Undo2 className="h-3.5 w-3.5 mr-1.5" />Restore
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Duplicate Version Dialog */}
+      <AnimatePresence>
+        {duplicateTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setDuplicateTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative bg-card border border-border rounded-xl shadow-premium p-6 max-w-sm w-full mx-4 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <CopyPlus className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Duplicate Version</h3>
+                  <p className="text-sm text-muted-foreground">Create a copy of "{duplicateTarget.label}"</p>
+                </div>
+              </div>
+              <Input
+                placeholder="New version name"
+                value={duplicateLabel}
+                onChange={e => setDuplicateLabel(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setDuplicateTarget(null); setDuplicateLabel(''); }}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="gold-gradient text-primary-foreground hover:opacity-90"
+                  disabled={!duplicateLabel.trim()}
+                  onClick={async () => {
+                    await saveVersion(duplicateLabel.trim(), { ...duplicateTarget.snapshot });
+                    setDuplicateTarget(null);
+                    setDuplicateLabel('');
+                  }}
+                >
+                  <CopyPlus className="h-3.5 w-3.5 mr-1.5" />Duplicate
                 </Button>
               </div>
             </motion.div>
