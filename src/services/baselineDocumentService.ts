@@ -340,67 +340,69 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
   }
 
   // ─── 1. EXECUTIVE SUMMARY ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`1. ${l.executiveSummary}`, margin, y);
-  y += 10;
-  doc.setFontSize(10);
-  doc.setTextColor(...DARK);
-  const summaryLines = doc.splitTextToSize(l.executiveSummaryBody(opts), contentW);
-  doc.text(summaryLines, margin, y);
-  y += summaryLines.length * 5 + 10;
-
-  // Stats box
-  const stats = [
-    { label: l.totalControls, value: `${opts.controls.length}` },
-    { label: l.criticality, value: `${opts.controls.filter(c => c.criticality === 'critical').length} critical` },
-    { label: l.confidence, value: `${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%` },
-  ];
-  doc.setFillColor(...LIGHT_BG);
-  doc.roundedRect(margin, y, contentW, 20, 2, 2, 'F');
-  const statW = contentW / stats.length;
-  stats.forEach((stat, i) => {
-    const sx = margin + statW * i + statW / 2;
-    doc.setFontSize(14);
+  let sn = 0; // dynamic section numbering
+  if (sec.executiveSummary) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
     doc.setTextColor(...PRIMARY);
-    doc.text(stat.value, sx, y + 9, { align: 'center' });
-    doc.setFontSize(7);
-    doc.setTextColor(...GRAY);
-    doc.text(stat.label, sx, y + 15, { align: 'center' });
-  });
-  y += 28;
-  addFooter(doc.getNumberOfPages());
+    doc.text(`${sn}. ${l.executiveSummary}`, margin, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(...DARK);
+    const summaryLines = doc.splitTextToSize(l.executiveSummaryBody(opts), contentW);
+    doc.text(summaryLines, margin, y);
+    y += summaryLines.length * 5 + 10;
+    const stats = [
+      { label: l.totalControls, value: `${opts.controls.length}` },
+      { label: l.criticality, value: `${opts.controls.filter(c => c.criticality === 'critical').length} critical` },
+      { label: l.confidence, value: `${Math.round(opts.controls.reduce((s, c) => s + c.confidenceScore, 0) / (opts.controls.length || 1) * 100)}%` },
+    ];
+    doc.setFillColor(...LIGHT_BG);
+    doc.roundedRect(margin, y, contentW, 20, 2, 2, 'F');
+    const statW = contentW / stats.length;
+    stats.forEach((stat, i) => {
+      const sx = margin + statW * i + statW / 2;
+      doc.setFontSize(14);
+      doc.setTextColor(...PRIMARY);
+      doc.text(stat.value, sx, y + 9, { align: 'center' });
+      doc.setFontSize(7);
+      doc.setTextColor(...GRAY);
+      doc.text(stat.label, sx, y + 15, { align: 'center' });
+    });
+    y += 28;
+    addFooter(doc.getNumberOfPages());
+  }
 
   // ─── 2. PROJECT OVERVIEW ───
-  doc.addPage();
-  y = margin;
-  doc.setFontSize(18);
-  doc.setTextColor(...PRIMARY);
-  doc.text(`2. ${l.projectOverview}`, margin, y);
-  y += 10;
-
-  autoTable(doc, {
-    startY: y,
-    head: [],
-    body: [
-      [l.projectName, opts.projectName],
-      [l.technology, opts.technology],
-      [l.version, `v${opts.version}`],
-      [l.totalControls, `${opts.controls.length}`],
-      [l.publishedDate, dateStr],
-    ],
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4 },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 50, fillColor: LIGHT_BG as any },
-      1: { cellWidth: contentW - 50 },
-    },
-    margin: { left: margin, right: margin },
-  });
-  y = (doc as any).lastAutoTable.finalY + 10;
-  addFooter(doc.getNumberOfPages());
+  if (sec.projectOverview) {
+    addNewPage();
+    sn++;
+    doc.setFontSize(18);
+    doc.setTextColor(...PRIMARY);
+    doc.text(`${sn}. ${l.projectOverview}`, margin, y);
+    y += 10;
+    autoTable(doc, {
+      startY: y,
+      head: [],
+      body: [
+        [l.projectName, opts.projectName],
+        [l.technology, opts.technology],
+        [l.version, `v${opts.version}`],
+        [l.totalControls, `${opts.controls.length}`],
+        [l.publishedDate, dateStr],
+      ],
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 4 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 50, fillColor: LIGHT_BG as any },
+        1: { cellWidth: contentW - 50 },
+      },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+    addFooter(doc.getNumberOfPages());
+  }
 
   // ─── 3. SECURITY CONTROLS ───
   doc.addPage();
