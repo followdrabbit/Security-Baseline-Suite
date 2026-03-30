@@ -1667,6 +1667,10 @@ const translations = {
       annexSources: 'Anexo B — Rastreabilidade de Fontes',
       downloadPdf: 'Baixar PDF',
       downloadDocx: 'Baixar DOCX',
+      customizeSections: 'Personalizar seções',
+      selectAll: 'Selecionar todas',
+      deselectAll: 'Desmarcar todas',
+      noSections: 'Nenhuma seção selecionada',
     },
   },
   es: {
