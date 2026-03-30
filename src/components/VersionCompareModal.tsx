@@ -292,6 +292,21 @@ const VersionCompareModal: React.FC<Props> = ({ open, onOpenChange, versions, li
     setExpandedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const getVersionLabel = (v: VersionEntry | undefined) => {
+    if (!v) return '';
+    return v.id === '__live__' ? 'Live' : `v${v.version}`;
+  };
+
+  const handleExportCSV = () => {
+    if (!filteredDiffs.length) return;
+    exportDiffCSV(filteredDiffs, getVersionLabel(leftVersion), getVersionLabel(rightVersion));
+  };
+
+  const handleExportPDF = () => {
+    if (!filteredDiffs.length) return;
+    exportDiffPDF(filteredDiffs, getVersionLabel(leftVersion), getVersionLabel(rightVersion), counts);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/50 shadow-2xl">
