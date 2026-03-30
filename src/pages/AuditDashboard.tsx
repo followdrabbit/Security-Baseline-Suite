@@ -408,6 +408,39 @@ const AuditDashboard: React.FC = () => {
         </motion.div>
       </div>
 
+      {/* Activity Timeline */}
+      <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.32 }}
+        className="bg-card border border-border rounded-xl p-5 shadow-premium">
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" /> Activity Timeline
+        </h3>
+        {timelineData.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-8">No activity recorded yet. Publish or restore versions to populate the timeline.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={timelineData}>
+              <defs>
+                <linearGradient id="fillPublish" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="fillRestore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Area type="monotone" dataKey="publish" name="Publications" stroke="hsl(var(--primary))" fill="url(#fillPublish)" strokeWidth={2} dot={{ r: 3 }} />
+              <Area type="monotone" dataKey="restore" name="Restorations" stroke="hsl(var(--warning))" fill="url(#fillRestore)" strokeWidth={2} dot={{ r: 3 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </motion.div>
+
       {/* Recent Audit Activity */}
       <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.35 }}
         className="bg-card border border-border rounded-xl p-5 shadow-premium">
