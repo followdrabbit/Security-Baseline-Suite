@@ -775,7 +775,7 @@ const RulesTemplates: React.FC = () => {
                         <section.icon className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span className="text-xs font-semibold text-foreground">{label}</span>
                         {currentVal !== DEFAULT_VALUES[ruleId] && (
-                          <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/30 ml-auto">overwrite</Badge>
+                          <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/30 ml-auto">{t.rules.overwrite}</Badge>
                         )}
                       </div>
                       <div className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
