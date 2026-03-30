@@ -228,35 +228,22 @@ const RulesTemplates: React.FC = () => {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState(DEFAULT_SECTIONS[0].id);
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const saved = loadSavedValues();
-    const init: Record<string, string> = {};
-    DEFAULT_SECTIONS.forEach(s => { init[s.id] = saved[s.id] ?? s.defaultContent; });
-    return init;
-  });
+  const { values, loading, saving, updateValue, restoreOne, restoreAll } = useRuleValues({ defaults: DEFAULT_VALUES });
 
-  const updateValue = useCallback((id: string, val: string) => {
-    setValues(prev => {
-      const next = { ...prev, [id]: val };
-      persistValues(next);
-      return next;
-    });
-  }, []);
+  const handleUpdateValue = async (id: string, val: string) => {
+    await updateValue(id, val);
+    toast.success(t.rules.saved);
+  };
 
-  const restoreOne = useCallback((id: string) => {
-    const section = DEFAULT_SECTIONS.find(s => s.id === id);
-    if (!section) return;
-    updateValue(id, section.defaultContent);
+  const handleRestoreOne = async (id: string) => {
+    await restoreOne(id);
     toast.success(t.rules.restoreDefaults);
-  }, [updateValue, t]);
+  };
 
-  const restoreAll = useCallback(() => {
-    const init: Record<string, string> = {};
-    DEFAULT_SECTIONS.forEach(s => { init[s.id] = s.defaultContent; });
-    setValues(init);
-    persistValues(init);
+  const handleRestoreAll = async () => {
+    await restoreAll();
     toast.success(t.rules.restoreAll);
-  }, [t]);
+  };
 
   const searchLower = search.toLowerCase();
   const filteredSections = useMemo(() =>
