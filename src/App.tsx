@@ -16,6 +16,7 @@ import AIWorkspace from "@/pages/AIWorkspace";
 import BaselineEditor from "@/pages/BaselineEditor";
 import Traceability from "@/pages/Traceability";
 import HistoryPage from "@/pages/HistoryPage";
+import AuditDashboard from "@/pages/AuditDashboard";
 import ExportImport from "@/pages/ExportImport";
 import Settings from "@/pages/Settings";
 import AIIntegrations from "@/pages/AIIntegrations";
