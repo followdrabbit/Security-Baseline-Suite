@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -9,9 +9,10 @@ import HelpButton from '@/components/HelpButton';
 import { KPICardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import {
   Shield, CheckCircle2, Clock, Rocket, RotateCcw, GitBranch,
-  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3,
+  History, ArrowUpDown, AlertTriangle, TrendingUp, FileText, BarChart3, Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
