@@ -14,10 +14,11 @@ import { useRuleValues } from '@/hooks/useRuleValues';
 import { useTemplateVersions, TemplateVersion, MAX_TEMPLATE_VERSIONS } from '@/hooks/useTemplateVersions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import VersionComparePanel from '@/components/VersionComparePanel';
 import {
   Settings2, FileText, PenLine, Layers, Copy, AlertTriangle, BarChart3, GitBranch,
   BookOpen, Globe, Brain, Save, FolderOpen, Crosshair, Search, RotateCcw,
-  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock,
+  ChevronLeft, ChevronRight, List, Check, Undo2, Download, Upload, History, Trash2, Clock, ArrowLeftRight,
 } from 'lucide-react';
 
 interface RuleSection {
@@ -239,6 +240,7 @@ const RulesTemplates: React.FC = () => {
   const [saveLabel, setSaveLabel] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [restorePreview, setRestorePreview] = useState<TemplateVersion | null>(null);
+  const [compareSelection, setCompareSelection] = useState<TemplateVersion[]>([]);
 
   const handleExportJSON = () => {
     const onlyCustom: Record<string, string> = {};
@@ -497,7 +499,27 @@ const RulesTemplates: React.FC = () => {
                   <History className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Version History</h3>
                   <span className="text-xs text-muted-foreground">({versions.length}/{MAX_TEMPLATE_VERSIONS})</span>
+                  {compareSelection.length > 0 && (
+                    <div className="ml-auto flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">
+                        {compareSelection.length}/2 selected
+                      </span>
+                      {compareSelection.length === 2 && (
+                        <Badge className="text-[10px] bg-primary/10 text-primary border-primary/30 animate-pulse">
+                          Ready to compare
+                        </Badge>
+                      )}
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground" onClick={() => setCompareSelection([])}>
+                        Clear
+                      </Button>
+                    </div>
+                  )}
                 </div>
+                {versions.length >= 2 && compareSelection.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <ArrowLeftRight className="h-3 w-3" /> Click two versions to compare them side-by-side
+                  </p>
+                )}
                 {versionsLoading ? (
                   <Skeleton className="h-16 w-full" />
                 ) : versions.length === 0 ? (
@@ -506,10 +528,34 @@ const RulesTemplates: React.FC = () => {
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {versions.map(v => {
                       const changedKeys = Object.keys(v.snapshot).filter(k => k in DEFAULT_VALUES && v.snapshot[k] !== DEFAULT_VALUES[k]);
+                      const isSelected = compareSelection.some(c => c.id === v.id);
+                      const handleCompareToggle = () => {
+                        if (isSelected) {
+                          setCompareSelection(prev => prev.filter(c => c.id !== v.id));
+                        } else if (compareSelection.length < 2) {
+                          setCompareSelection(prev => [...prev, v]);
+                        }
+                      };
                       return (
-                        <div key={v.id} className="flex items-center gap-3 bg-muted/30 border border-border/50 rounded-lg p-3 group">
-                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Clock className="h-4 w-4 text-primary" />
+                        <div
+                          key={v.id}
+                          className={cn(
+                            "flex items-center gap-3 border rounded-lg p-3 group cursor-pointer transition-all",
+                            isSelected
+                              ? "bg-primary/5 border-primary/30 ring-1 ring-primary/20"
+                              : "bg-muted/30 border-border/50 hover:border-border"
+                          )}
+                          onClick={handleCompareToggle}
+                        >
+                          <div className={cn(
+                            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                            isSelected ? "bg-primary/20" : "bg-primary/10"
+                          )}>
+                            {isSelected ? (
+                              <ArrowLeftRight className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-primary" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{v.label}</p>
@@ -518,7 +564,7 @@ const RulesTemplates: React.FC = () => {
                               {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} custom rule(s)</span>}
                             </p>
                           </div>
-                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
                               <Undo2 className="h-3 w-3 mr-1" />Restore
                             </Button>
@@ -533,6 +579,20 @@ const RulesTemplates: React.FC = () => {
                 )}
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Version Compare Panel */}
+        <AnimatePresence>
+          {compareSelection.length === 2 && (
+            <VersionComparePanel
+              versionA={compareSelection[0]}
+              versionB={compareSelection[1]}
+              sections={DEFAULT_SECTIONS}
+              labels={t.rules as Record<string, string>}
+              defaults={DEFAULT_VALUES}
+              onClose={() => setCompareSelection([])}
+            />
           )}
         </AnimatePresence>
 
