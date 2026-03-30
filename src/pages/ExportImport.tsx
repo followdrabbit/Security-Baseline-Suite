@@ -6,10 +6,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExportCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import HelpButton from '@/components/HelpButton';
+import GenerateDocumentModal from '@/components/GenerateDocumentModal';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Upload, FileJson, FileText, FileType, Archive, Settings2, Layers, Sparkles, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Upload, FileJson, FileText, FileType, Archive, Settings2, Layers, Sparkles, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ControlItem, SourceTraceability, ThreatScenario } from '@/types';
 import { exportToCSV, exportToPDF, exportToJSON } from '@/components/traceability/exportUtils';
@@ -37,6 +38,8 @@ const ExportImport: React.FC = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectTech, setNewProjectTech] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const [docControls, setDocControls] = useState<any[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 800);
@@ -281,6 +284,34 @@ const ExportImport: React.FC = () => {
     }
   };
 
+  const handleGenerateDocument = async () => {
+    if (!user || !selectedProjectId) return;
+    const { data } = await supabase
+      .from('controls')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('project_id', selectedProjectId)
+      .order('control_id', { ascending: true });
+    if (data && data.length > 0) {
+      setDocControls(data.map((c: any) => ({
+        id: c.id, projectId: c.project_id, controlId: c.control_id, title: c.title,
+        description: c.description || '', applicability: c.applicability || '',
+        securityRisk: c.security_risk || '', criticality: c.criticality || 'medium',
+        defaultBehaviorLimitations: c.default_behavior_limitations || '',
+        automation: c.automation || '', references: c.references || [],
+        frameworkMappings: c.framework_mappings || [],
+        threatScenarios: (c.threat_scenarios as any[]) || [],
+        sourceTraceability: (c.source_traceability as any[]) || [],
+        confidenceScore: Number(c.confidence_score) || 0,
+        reviewStatus: c.review_status || 'pending', reviewerNotes: c.reviewer_notes || '',
+        version: c.version || 1, category: c.category || '',
+      })));
+      setDocModalOpen(true);
+    } else {
+      toast.error('No controls found for this project');
+    }
+  };
+
   const exportItems = [
     {
       key: 'baseline',
@@ -288,6 +319,13 @@ const ExportImport: React.FC = () => {
       titleKey: 'exportBaseline',
       description: 'Export the current baseline with all controls, metadata, and framework mappings',
       hasFormats: true,
+    },
+    {
+      key: 'document',
+      icon: BookOpen,
+      titleKey: 'generateButton',
+      description: 'Generate a standardized PDF/DOCX baseline document with cover, executive summary, and annexes',
+      isDocument: true,
     },
     { key: 'project', icon: Archive, titleKey: 'exportProject', description: 'Complete project backup including sources, rules, versions, and configurations' },
     { key: 'config', icon: Settings2, titleKey: 'exportConfig', description: 'Export your workspace configuration, AI settings, and preferences' },
@@ -328,54 +366,60 @@ const ExportImport: React.FC = () => {
                       <item.icon className="h-4 w-4 text-accent-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">{(t.exportImport as Record<string, string>)[item.titleKey]}</h3>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {(item as any).isDocument
+                          ? ((t as any).baselineDocument?.generateButton || 'Generate Document')
+                          : (t.exportImport as Record<string, string>)[item.titleKey]}
+                      </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                     </div>
                   </div>
 
-                  {item.hasFormats && (
-                    <>
-                      <div className="mb-3">
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">Project</label>
-                        <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Select a project" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {projects.map(p => (
-                              <SelectItem key={p.id} value={p.id}>
-                                <div className="flex items-center gap-1.5">
-                                  <span>{p.name}</span>
-                                  <span className="text-muted-foreground text-[10px]">({p.control_count || 0} controls)</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  {((item as any).isDocument || item.hasFormats) && (
+                    <div className="mb-3">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">Project</label>
+                      <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              <div className="flex items-center gap-1.5">
+                                <span>{p.name}</span>
+                                <span className="text-muted-foreground text-[10px]">({p.control_count || 0} controls)</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-                      <div className="mb-3">
-                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">{t.exportImport.format}</label>
-                        <Select value={exportFormat} onValueChange={setExportFormat}>
-                          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="json"><div className="flex items-center gap-1.5"><FileJson className="h-3 w-3" />{t.exportImport.json}</div></SelectItem>
-                            <SelectItem value="csv"><div className="flex items-center gap-1.5"><FileSpreadsheet className="h-3 w-3" />CSV</div></SelectItem>
-                            <SelectItem value="pdf"><div className="flex items-center gap-1.5"><FileType className="h-3 w-3" />{t.exportImport.pdf}</div></SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
+                  {item.hasFormats && (
+                    <div className="mb-3">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1.5 block">{t.exportImport.format}</label>
+                      <Select value={exportFormat} onValueChange={setExportFormat}>
+                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="json"><div className="flex items-center gap-1.5"><FileJson className="h-3 w-3" />{t.exportImport.json}</div></SelectItem>
+                          <SelectItem value="csv"><div className="flex items-center gap-1.5"><FileSpreadsheet className="h-3 w-3" />CSV</div></SelectItem>
+                          <SelectItem value="pdf"><div className="flex items-center gap-1.5"><FileType className="h-3 w-3" />{t.exportImport.pdf}</div></SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
 
                   <Button
                     size="sm"
                     className="w-full gold-gradient text-primary-foreground hover:opacity-90"
-                    onClick={item.hasFormats ? handleExportBaseline : undefined}
-                    disabled={item.hasFormats ? (!selectedProjectId || exporting) : false}
+                    onClick={(item as any).isDocument ? handleGenerateDocument : item.hasFormats ? handleExportBaseline : undefined}
+                    disabled={((item as any).isDocument || item.hasFormats) ? (!selectedProjectId || exporting) : false}
                   >
                     {exporting && item.hasFormats ? (
                       <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Exporting...</>
+                    ) : (item as any).isDocument ? (
+                      <><BookOpen className="h-3.5 w-3.5 mr-1.5" />{(t as any).baselineDocument?.generateButton || 'Generate Document'}</>
                     ) : (
                       <><Download className="h-3.5 w-3.5 mr-1.5" />{t.exportImport.download}</>
                     )}
@@ -594,6 +638,16 @@ const ExportImport: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+      {selectedProjectId && docControls.length > 0 && (
+        <GenerateDocumentModal
+          open={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          projectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
+          technology={projects.find(p => p.id === selectedProjectId)?.technology || ''}
+          version={1}
+          controls={docControls}
+        />
+      )}
     </div>
   );
 };

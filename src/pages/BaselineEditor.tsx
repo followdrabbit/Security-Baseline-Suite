@@ -12,11 +12,12 @@ import VersionCompareModal from '@/components/VersionCompareModal';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import { ControlCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import HelpButton from '@/components/HelpButton';
+import GenerateDocumentModal from '@/components/GenerateDocumentModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight, GitCompare, RotateCcw } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight, GitCompare, RotateCcw, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -107,6 +108,7 @@ const BaselineEditor: React.FC = () => {
   }>({ open: false, variant: 'approve' });
   const [viewingVersionId, setViewingVersionId] = useState<string | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [docModalOpen, setDocModalOpen] = useState(false);
 
   // Fetch projects with controls
   const { data: projects = [] } = useQuery({
@@ -546,6 +548,12 @@ const BaselineEditor: React.FC = () => {
           )}
           {!isViewingSnapshot && (
             <>
+              {selectedProject !== 'all' && filtered.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setDocModalOpen(true)}>
+                  <BookOpen className="h-4 w-4 mr-1.5" />
+                  {(t as any).baselineDocument?.generateButton || 'Generate Document'}
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => requestConfirm('approveAll')}>
                 <CheckCircle2 className="h-4 w-4 mr-1.5" />{t.editor.approveAll}
               </Button>
@@ -838,6 +846,17 @@ const BaselineEditor: React.FC = () => {
           onOpenChange={setCompareOpen}
           versions={publishedVersions as any}
           liveControls={controls}
+        />
+      )}
+
+      {selectedProject !== 'all' && selectedProjectObj && (
+        <GenerateDocumentModal
+          open={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          projectName={(selectedProjectObj as any).name}
+          technology={(selectedProjectObj as any).technology}
+          version={currentVersion || 1}
+          controls={filtered}
         />
       )}
     </div>
