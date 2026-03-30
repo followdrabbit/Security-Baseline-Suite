@@ -13,7 +13,7 @@ import { TimelineEntrySkeleton } from '@/components/skeletons/SkeletonPremium';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3 } from 'lucide-react';
+import { History as HistoryIcon, GitCompare, RotateCcw, Clock, Loader2, Columns3, Shield, Rocket } from 'lucide-react';
 
 interface BaselineVersion {
   id: string;
