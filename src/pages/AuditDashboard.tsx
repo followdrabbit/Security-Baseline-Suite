@@ -480,6 +480,17 @@ const AuditDashboard: React.FC = () => {
               </div>
             </PopoverContent>
           </Popover>
+          <Button
+            variant={compareEnabled ? "default" : "outline"}
+            size="sm"
+            className="h-9 text-xs gap-1.5"
+            onClick={() => setCompareEnabled(prev => !prev)}
+            disabled={selectedPeriod === 'all'}
+            title={selectedPeriod === 'all' ? 'Select a time period first to compare' : 'Compare with previous period'}
+          >
+            <GitCompareArrows className="h-3.5 w-3.5" />
+            Compare
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={loading || exporting}>
