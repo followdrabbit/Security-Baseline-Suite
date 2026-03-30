@@ -482,6 +482,60 @@ const RulesTemplates: React.FC = () => {
           </div>
         </div>
 
+        {/* Version History Panel */}
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <History className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Version History</h3>
+                  <span className="text-xs text-muted-foreground">({versions.length} saved)</span>
+                </div>
+                {versionsLoading ? (
+                  <Skeleton className="h-16 w-full" />
+                ) : versions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center">No saved versions yet. Click "Save Version" to create a snapshot.</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {versions.map(v => {
+                      const changedKeys = Object.keys(v.snapshot).filter(k => k in DEFAULT_VALUES && v.snapshot[k] !== DEFAULT_VALUES[k]);
+                      return (
+                        <div key={v.id} className="flex items-center gap-3 bg-muted/30 border border-border/50 rounded-lg p-3 group">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Clock className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{v.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {format(new Date(v.created_at), 'MMM d, yyyy HH:mm')}
+                              {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} custom rule(s)</span>}
+                            </p>
+                          </div>
+                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setRestorePreview(v)}>
+                              <Undo2 className="h-3 w-3 mr-1" />Restore
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => deleteVersion(v.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Mobile section selector (visible on <xl) */}
         <div className="xl:hidden mb-4 flex gap-2 overflow-x-auto pb-2">
           {tocItems.map(item => (
