@@ -565,7 +565,7 @@ const RulesTemplates: React.FC = () => {
                             <p className="text-sm font-medium text-foreground truncate">{v.label}</p>
                             <p className="text-[11px] text-muted-foreground">
                               {format(new Date(v.created_at), 'MMM d, yyyy HH:mm')}
-                              {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} custom rule(s)</span>}
+                              {changedKeys.length > 0 && <span className="ml-2">· {changedKeys.length} {t.rules.customRules}</span>}
                             </p>
                           </div>
                           <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
