@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, AreaChart, Area, Legend,
 } from 'recharts';
 import { exportAuditPdf } from '@/components/audit/exportAuditPdf';
 
@@ -157,6 +157,32 @@ const AuditDashboard: React.FC = () => {
     }
     return Array.from(map.values());
   }, [filteredProjects, filteredVersions]);
+
+  // Activity timeline data (grouped by month)
+  const timelineData = useMemo(() => {
+    const map = new Map<string, { month: string; publish: number; restore: number }>();
+    for (const log of filteredAuditLogs) {
+      const d = new Date(log.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      if (!map.has(key)) map.set(key, { month: label, publish: 0, restore: 0 });
+      const entry = map.get(key)!;
+      if (log.action === 'publish') entry.publish++;
+      else entry.restore++;
+    }
+    // Also scan published_at from versions for richer data
+    for (const v of filteredVersions) {
+      if (v.status === 'published' && v.published_at) {
+        const d = new Date(v.published_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        if (!map.has(key)) map.set(key, { month: label, publish: 0, restore: 0 });
+      }
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => v);
+  }, [filteredAuditLogs, filteredVersions]);
 
   // Criticality breakdown
   const criticalityData = useMemo(() => {
@@ -381,6 +407,39 @@ const AuditDashboard: React.FC = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Activity Timeline */}
+      <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.32 }}
+        className="bg-card border border-border rounded-xl p-5 shadow-premium">
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" /> Activity Timeline
+        </h3>
+        {timelineData.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-8">No activity recorded yet. Publish or restore versions to populate the timeline.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={timelineData}>
+              <defs>
+                <linearGradient id="fillPublish" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="fillRestore" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--warning))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--warning))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Area type="monotone" dataKey="publish" name="Publications" stroke="hsl(var(--primary))" fill="url(#fillPublish)" strokeWidth={2} dot={{ r: 3 }} />
+              <Area type="monotone" dataKey="restore" name="Restorations" stroke="hsl(var(--warning))" fill="url(#fillRestore)" strokeWidth={2} dot={{ r: 3 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </motion.div>
 
       {/* Recent Audit Activity */}
       <motion.div variants={fadeIn} initial="hidden" animate="visible" transition={{ delay: 0.35 }}
