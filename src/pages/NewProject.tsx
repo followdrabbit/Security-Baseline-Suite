@@ -125,15 +125,8 @@ const NewProject: React.FC = () => {
           )}
 
           {current === 1 && (
-            <div className="space-y-6">
-              <p className="text-sm text-muted-foreground">{t.sources.subtitle}</p>
-              {/* URL input */}
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input placeholder={t.sources.urlPlaceholder} className="flex-1" />
-                  <Button variant="outline">{t.sources.addUrl}</Button>
-                </div>
-              </div>
+            <SourceSelectionStep projectId={projectId} t={t} />
+          )}
               {/* Upload area */}
               <div className="border-2 border-dashed border-border rounded-lg p-10 text-center hover:border-primary/40 transition-colors cursor-pointer">
                 <div className="flex flex-col items-center gap-2">
