@@ -127,18 +127,8 @@ const NewProject: React.FC = () => {
           {current === 1 && (
             <SourceSelectionStep projectId={projectId} t={t} />
           )}
-              {/* Upload area */}
-              <div className="border-2 border-dashed border-border rounded-lg p-10 text-center hover:border-primary/40 transition-colors cursor-pointer">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">{t.sources.dragDrop}</p>
-                  <p className="text-xs text-muted-foreground">{t.sources.dragDropSub}</p>
-                </div>
-              </div>
-            </div>
-          )}
+
+
 
           {current === 2 && (
             <div className="space-y-5">
