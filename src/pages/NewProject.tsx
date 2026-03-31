@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
@@ -9,25 +9,66 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu, Loader2, Globe, X, Upload } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu, Loader2, Globe, X, Upload, FileText, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Locale } from '@/types';
+import { aiConfigService } from '@/services/aiService';
 
 const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
 
+const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
+const ACCEPTED_EXTENSIONS = ACCEPTED_TYPES.split(',');
+
+// Maps user-facing model names to Lovable AI gateway model IDs
+const LOVABLE_MODEL_MAP: Record<string, string> = {
+  'gemini-3-flash (padrão)': 'google/gemini-3-flash-preview',
+  'gemini-2.5-pro': 'google/gemini-2.5-pro',
+  'gemini-2.5-flash': 'google/gemini-2.5-flash',
+  'gpt-5': 'openai/gpt-5',
+  'gpt-5-mini': 'openai/gpt-5-mini',
+};
+
+function resolveModelId(providerConfig: any): string {
+  if (!providerConfig) return 'google/gemini-2.5-flash';
+  const selectedModel = providerConfig.selected_model || '';
+  if (providerConfig.provider_id === 'lovable_ai') {
+    return LOVABLE_MODEL_MAP[selectedModel] || 'google/gemini-2.5-flash';
+  }
+  return 'google/gemini-2.5-flash';
+}
+
+function resolveMaxTokens(providerConfig: any): number {
+  const extra = providerConfig?.extra_config;
+  if (extra && typeof extra === 'object' && (extra as any).max_tokens) {
+    return Number((extra as any).max_tokens) || 65000;
+  }
+  return 65000;
+}
+
+type SourceItem = {
+  id: string;
+  name: string;
+  status: 'pending' | 'processing' | 'done' | 'error';
+  type: 'url' | 'file';
+};
+
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ projectId, t }) => {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
-  const [addedUrls, setAddedUrls] = useState<{ url: string; status: 'pending' | 'processing' | 'done' | 'error'; name?: string }[]>([]);
+  const [addedSources, setAddedSources] = useState<SourceItem[]>([]);
   const [loadingUrl, setLoadingUrl] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleAddUrl = async () => {
     const url = urlInput.trim();
     if (!url) { toast.error(t.sources.urlPlaceholder); return; }
     if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
 
+    const itemId = `url-${Date.now()}`;
     setLoadingUrl(true);
-    setAddedUrls(prev => [...prev, { url, status: 'processing' }]);
+    setAddedSources(prev => [...prev, { id: itemId, name: url, status: 'processing', type: 'url' }]);
     setUrlInput('');
 
     try {
@@ -39,17 +80,110 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ p
 
       if (resp.error) throw new Error(resp.error.message);
 
-      setAddedUrls(prev => prev.map(u => u.url === url ? { ...u, status: 'done', name: resp.data?.source?.name || url } : u));
+      setAddedSources(prev => prev.map(s => s.id === itemId
+        ? { ...s, status: 'done', name: resp.data?.source?.name || url }
+        : s
+      ));
       toast.success(t.sources.urlAdded || 'URL adicionada com sucesso');
     } catch (err: any) {
-      setAddedUrls(prev => prev.map(u => u.url === url ? { ...u, status: 'error' } : u));
+      setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error' } : s));
       toast.error(`Erro: ${err.message}`);
     } finally {
       setLoadingUrl(false);
     }
   };
 
-  const removeUrl = (url: string) => setAddedUrls(prev => prev.filter(u => u.url !== url));
+  const uploadFile = async (file: File) => {
+    if (!projectId) {
+      toast.error('Crie o projeto primeiro (passo 1)');
+      return;
+    }
+
+    const defaultConfig = await aiConfigService.getDefault();
+    const model = resolveModelId(defaultConfig);
+    const maxTokens = resolveMaxTokens(defaultConfig);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('projectId', projectId);
+    formData.append('model', model);
+    formData.append('maxTokens', String(maxTokens));
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Upload failed');
+    }
+
+    return response.json();
+  };
+
+  const handleFiles = async (files: FileList | File[]) => {
+    if (!projectId) {
+      toast.error('Crie o projeto primeiro (passo 1)');
+      return;
+    }
+
+    setUploading(true);
+    const fileArray = Array.from(files);
+
+    // Add all files to the list as processing
+    const newItems: SourceItem[] = fileArray.map((f, i) => ({
+      id: `file-${Date.now()}-${i}`,
+      name: f.name,
+      status: 'processing' as const,
+      type: 'file' as const,
+    }));
+    setAddedSources(prev => [...prev, ...newItems]);
+
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const itemId = newItems[i].id;
+      try {
+        const result = await uploadFile(file);
+        setAddedSources(prev => prev.map(s => s.id === itemId
+          ? { ...s, status: 'done', name: result?.source?.name || file.name }
+          : s
+        ));
+      } catch (err: any) {
+        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error' } : s));
+        toast.error(`Falha: ${file.name} — ${err.message}`);
+      }
+    }
+
+    setUploading(false);
+    const doneCount = newItems.length;
+    if (doneCount > 0) toast.success(`${doneCount} arquivo(s) enviado(s)`);
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  }, [projectId]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => setIsDragging(false), []);
+
+  const removeSource = (id: string) => setAddedSources(prev => prev.filter(s => s.id !== id));
 
   return (
     <div className="space-y-6">
@@ -70,32 +204,67 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ p
             {t.sources.addUrl}
           </Button>
         </div>
-        {addedUrls.length > 0 && (
-          <div className="space-y-2">
-            {addedUrls.map((item, i) => (
-              <div key={i} className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
-                {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
-                {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
-                {item.status === 'error' && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                <span className="truncate flex-1">{item.name || item.url}</span>
-                <button onClick={() => removeUrl(item.url)} className="text-muted-foreground hover:text-destructive">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
+
       {/* Upload area */}
-      <div className="border-2 border-dashed border-border rounded-lg p-10 text-center hover:border-primary/40 transition-colors cursor-pointer">
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => fileInputRef.current?.click()}
+        className={`border-2 border-dashed rounded-lg p-10 text-center transition-colors cursor-pointer ${
+          isDragging
+            ? 'border-primary bg-primary/5'
+            : 'border-border hover:border-primary/40'
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES}
+          multiple
+          className="hidden"
+          onChange={e => e.target.files && handleFiles(e.target.files)}
+        />
         <div className="flex flex-col items-center gap-2">
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <Upload className="h-5 w-5 text-primary" />
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+            uploading ? 'bg-primary/10' : 'bg-muted'
+          }`}>
+            {uploading
+              ? <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              : <Upload className="h-5 w-5 text-primary" />
+            }
           </div>
-          <p className="text-sm font-medium text-foreground">{t.sources.dragDrop}</p>
+          <p className="text-sm font-medium text-foreground">
+            {uploading ? (t.sources.uploading || 'Enviando...') : t.sources.dragDrop}
+          </p>
           <p className="text-xs text-muted-foreground">{t.sources.dragDropSub}</p>
         </div>
       </div>
+
+      {/* Added sources list */}
+      {addedSources.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t.sources.added || 'Fontes adicionadas'} ({addedSources.length})
+          </p>
+          {addedSources.map((item) => (
+            <div key={item.id} className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
+              {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
+              {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
+              {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+              {item.type === 'file'
+                ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              }
+              <span className="truncate flex-1">{item.name}</span>
+              <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
