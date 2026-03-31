@@ -32,6 +32,7 @@ interface DocumentOptions {
   controls: ControlItem[];
   sources?: any[];
   sections?: DocumentSections;
+  watermark?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, Record<string, string>> = {
@@ -293,7 +294,7 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
   };
 
   const addPageHeader = (title: string) => {
-    addWatermark();
+    if (opts.watermark !== false) addWatermark();
     // Subtle gold accent bar at top
     doc.setFillColor(...GOLD);
     doc.rect(0, 0, pageW, 2, 'F');

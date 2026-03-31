@@ -4,7 +4,8 @@ import { useI18n } from '@/contexts/I18nContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileText, FileType, Download, Loader2, CheckCircle2, Settings2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { FileText, FileType, Download, Loader2, CheckCircle2, Settings2, Droplets } from 'lucide-react';
 import { generateBaselinePDF, generateBaselineDOCX, DEFAULT_SECTIONS } from '@/services/baselineDocumentService';
 import type { DocumentSections } from '@/services/baselineDocumentService';
 import type { ControlItem } from '@/types';
@@ -40,6 +41,7 @@ const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
   const [done, setDone] = useState<Set<string>>(new Set());
   const [sections, setSections] = useState<DocumentSections>({ ...DEFAULT_SECTIONS });
   const [showCustomize, setShowCustomize] = useState(false);
+  const [watermark, setWatermark] = useState(true);
 
   const doc = (t as any).baselineDocument || {};
 
@@ -72,6 +74,7 @@ const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
         controls,
         sources,
         sections,
+        watermark,
       };
       if (format === 'pdf') {
         generateBaselinePDF(opts);
@@ -178,6 +181,20 @@ const GenerateDocumentModal: React.FC<GenerateDocumentModalProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Watermark toggle */}
+          <div className="flex items-center justify-between px-1">
+            <label htmlFor="watermark-toggle" className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <Droplets className="h-3.5 w-3.5" />
+              <span>{doc.watermark || 'Watermark on pages'}</span>
+            </label>
+            <Switch
+              id="watermark-toggle"
+              checked={watermark}
+              onCheckedChange={setWatermark}
+              className="scale-75"
+            />
+          </div>
 
           {/* Document structure preview (when not customizing) */}
           {!showCustomize && (
