@@ -50,6 +50,7 @@ type SourceItem = {
   name: string;
   status: 'pending' | 'processing' | 'done' | 'error';
   type: 'url' | 'file';
+  progress?: number; // 0-100 upload progress
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
@@ -98,41 +99,56 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     }
   };
 
-  const uploadFile = async (file: File) => {
-    if (!projectId) {
-      toast.error('Crie o projeto primeiro (passo 1)');
-      return;
-    }
-
-    const defaultConfig = await aiConfigService.getDefault();
-    const model = resolveModelId(defaultConfig);
-    const maxTokens = resolveMaxTokens(defaultConfig);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('projectId', projectId);
-    formData.append('model', model);
-    formData.append('maxTokens', String(maxTokens));
-
-    const { data: { session } } = await supabase.auth.getSession();
-
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: formData,
+  const uploadFile = (file: File, itemId: string): Promise<any> => {
+    return new Promise(async (resolve, reject) => {
+      if (!projectId) {
+        reject(new Error('Crie o projeto primeiro (passo 1)'));
+        return;
       }
-    );
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Upload failed');
-    }
+      const defaultConfig = await aiConfigService.getDefault();
+      const model = resolveModelId(defaultConfig);
+      const maxTokens = resolveMaxTokens(defaultConfig);
 
-    return response.json();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', projectId);
+      formData.append('model', model);
+      formData.append('maxTokens', String(maxTokens));
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`);
+      xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, progress: pct } : s));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            resolve({});
+          }
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.error || 'Upload failed'));
+          } catch {
+            reject(new Error('Upload failed'));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
   };
 
   const handleFiles = async (files: FileList | File[]) => {
@@ -157,7 +173,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       const file = fileArray[i];
       const itemId = newItems[i].id;
       try {
-        const result = await uploadFile(file);
+        const result = await uploadFile(file, itemId);
         setAddedSources(prev => prev.map(s => s.id === itemId
           ? { ...s, status: 'done', name: result?.source?.name || file.name }
           : s
@@ -254,18 +270,34 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
             {t.sources.added || 'Fontes adicionadas'} ({addedSources.length})
           </p>
           {addedSources.map((item) => (
-            <div key={item.id} className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
-              {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
-              {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
-              {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-              {item.type === 'file'
-                ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              }
-              <span className="truncate flex-1">{item.name}</span>
-              <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
-                <X className="h-3.5 w-3.5" />
-              </button>
+            <div key={item.id} className="space-y-1">
+              <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
+                {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
+                {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
+                {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                {item.type === 'file'
+                  ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                }
+                <span className="truncate flex-1">{item.name}</span>
+                {item.status === 'processing' && item.progress !== undefined && item.progress < 100 && (
+                  <span className="text-[10px] font-medium text-primary shrink-0">{item.progress}%</span>
+                )}
+                {item.status === 'processing' && item.progress === 100 && (
+                  <span className="text-[10px] font-medium text-muted-foreground shrink-0">Processando…</span>
+                )}
+                <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {item.status === 'processing' && item.type === 'file' && item.progress !== undefined && (
+                <div className="h-1 w-full bg-secondary rounded-full overflow-hidden mx-0">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${item.progress}%` }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
