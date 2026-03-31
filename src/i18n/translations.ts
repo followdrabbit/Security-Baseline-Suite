@@ -834,6 +834,7 @@ const translations = {
       selectAll: 'Select all',
       deselectAll: 'Deselect all',
       noSections: 'No sections selected',
+      watermark: 'Watermark on pages',
     },
   },
   pt: {
@@ -1671,6 +1672,7 @@ const translations = {
       selectAll: 'Selecionar todas',
       deselectAll: 'Desmarcar todas',
       noSections: 'Nenhuma seção selecionada',
+      watermark: 'Marca d\'água nas páginas',
     },
   },
   es: {
@@ -2508,6 +2510,7 @@ const translations = {
       selectAll: 'Seleccionar todas',
       deselectAll: 'Deseleccionar todas',
       noSections: 'Ninguna sección seleccionada',
+      watermark: 'Marca de agua en páginas',
     },
   },
 } as const;
