@@ -52,7 +52,7 @@ type SourceItem = {
   type: 'url' | 'file';
 };
 
-const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ projectId, t }) => {
+const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
