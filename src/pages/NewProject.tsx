@@ -9,11 +9,96 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu, Loader2 } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu, Loader2, Globe, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Locale } from '@/types';
 
 const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
+
+const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ projectId, t }) => {
+  const { user } = useAuth();
+  const [urlInput, setUrlInput] = useState('');
+  const [addedUrls, setAddedUrls] = useState<{ url: string; status: 'pending' | 'processing' | 'done' | 'error'; name?: string }[]>([]);
+  const [loadingUrl, setLoadingUrl] = useState(false);
+
+  const handleAddUrl = async () => {
+    const url = urlInput.trim();
+    if (!url) { toast.error(t.sources.urlPlaceholder); return; }
+    if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
+
+    setLoadingUrl(true);
+    setAddedUrls(prev => [...prev, { url, status: 'processing' }]);
+    setUrlInput('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await supabase.functions.invoke('parse-url', {
+        body: { url, projectId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+
+      if (resp.error) throw new Error(resp.error.message);
+
+      setAddedUrls(prev => prev.map(u => u.url === url ? { ...u, status: 'done', name: resp.data?.source?.name || url } : u));
+      toast.success(t.sources.urlAdded || 'URL adicionada com sucesso');
+    } catch (err: any) {
+      setAddedUrls(prev => prev.map(u => u.url === url ? { ...u, status: 'error' } : u));
+      toast.error(`Erro: ${err.message}`);
+    } finally {
+      setLoadingUrl(false);
+    }
+  };
+
+  const removeUrl = (url: string) => setAddedUrls(prev => prev.filter(u => u.url !== url));
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">{t.sources.subtitle}</p>
+      {/* URL input */}
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <Input
+            placeholder={t.sources.urlPlaceholder}
+            className="flex-1"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddUrl()}
+            disabled={loadingUrl}
+          />
+          <Button variant="outline" onClick={handleAddUrl} disabled={loadingUrl || !urlInput.trim()}>
+            {loadingUrl ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
+            {t.sources.addUrl}
+          </Button>
+        </div>
+        {addedUrls.length > 0 && (
+          <div className="space-y-2">
+            {addedUrls.map((item, i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
+                {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
+                {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
+                {item.status === 'error' && <X className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                <span className="truncate flex-1">{item.name || item.url}</span>
+                <button onClick={() => removeUrl(item.url)} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Upload area */}
+      <div className="border-2 border-dashed border-border rounded-lg p-10 text-center hover:border-primary/40 transition-colors cursor-pointer">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <Upload className="h-5 w-5 text-primary" />
+          </div>
+          <p className="text-sm font-medium text-foreground">{t.sources.dragDrop}</p>
+          <p className="text-xs text-muted-foreground">{t.sources.dragDropSub}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const NewProject: React.FC = () => {
   const { t } = useI18n();
