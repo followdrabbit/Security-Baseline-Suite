@@ -50,6 +50,7 @@ type SourceItem = {
   name: string;
   status: 'pending' | 'processing' | 'done' | 'error';
   type: 'url' | 'file';
+  progress?: number; // 0-100 upload progress
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
