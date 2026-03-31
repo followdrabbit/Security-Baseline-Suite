@@ -468,6 +468,10 @@ const NewProject: React.FC = () => {
                 }
                 setSaving(false);
               }
+              if (current === 1 && sourceCount === 0) {
+                toast.error('Adicione pelo menos uma fonte antes de avançar');
+                return;
+              }
               setCurrent(current + 1);
             }}
             className="gold-gradient text-primary-foreground hover:opacity-90"
