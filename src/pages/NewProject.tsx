@@ -89,7 +89,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       if (resp.error) throw new Error(resp.error.message);
 
       setAddedSources(prev => prev.map(s => s.id === itemId
-        ? { ...s, status: 'done', name: resp.data?.source?.name || url }
+        ? { ...s, status: 'done', name: resp.data?.source?.name || url, preview: resp.data?.source?.preview || '' }
         : s
       ));
       toast.success(t.sources.urlAdded || 'URL adicionada com sucesso');
