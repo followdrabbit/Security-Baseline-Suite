@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronRight, ChevronLeft, Sparkles, Cpu, Loader2, Globe, X, Upload, FileText, AlertCircle } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sparkles, Cpu, Loader2, Globe, X, Upload, FileText, AlertCircle, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Locale } from '@/types';
 import { aiConfigService } from '@/services/aiService';
@@ -50,7 +50,9 @@ type SourceItem = {
   name: string;
   status: 'pending' | 'processing' | 'done' | 'error';
   type: 'url' | 'file';
-  progress?: number; // 0-100 upload progress
+  progress?: number;
+  preview?: string;
+  showPreview?: boolean;
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
@@ -87,7 +89,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       if (resp.error) throw new Error(resp.error.message);
 
       setAddedSources(prev => prev.map(s => s.id === itemId
-        ? { ...s, status: 'done', name: resp.data?.source?.name || url }
+        ? { ...s, status: 'done', name: resp.data?.source?.name || url, preview: resp.data?.source?.preview || '' }
         : s
       ));
       toast.success(t.sources.urlAdded || 'URL adicionada com sucesso');
@@ -175,7 +177,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       try {
         const result = await uploadFile(file, itemId);
         setAddedSources(prev => prev.map(s => s.id === itemId
-          ? { ...s, status: 'done', name: result?.source?.name || file.name }
+          ? { ...s, status: 'done', name: result?.source?.name || file.name, preview: result?.source?.preview || '' }
           : s
         ));
       } catch (err: any) {
@@ -286,6 +288,18 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                 {item.status === 'processing' && item.progress === 100 && (
                   <span className="text-[10px] font-medium text-muted-foreground shrink-0">Processando…</span>
                 )}
+                {item.status === 'done' && item.preview && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, showPreview: !s.showPreview } : s));
+                    }}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Preview"
+                  >
+                    {item.showPreview ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                )}
                 <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -296,6 +310,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
                     style={{ width: `${item.progress}%` }}
                   />
+                </div>
+              )}
+              {item.showPreview && item.preview && (
+                <div className="mx-1 px-3 py-2 bg-muted/20 border border-border/50 rounded text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
+                  {item.preview}
                 </div>
               )}
             </div>
