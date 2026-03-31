@@ -380,7 +380,7 @@ const NewProject: React.FC = () => {
           )}
 
           {current === 1 && (
-            <SourceSelectionStep projectId={projectId} t={t} />
+            <SourceSelectionStep projectId={projectId} t={t} onSourceCountChange={setSourceCount} />
           )}
 
 
