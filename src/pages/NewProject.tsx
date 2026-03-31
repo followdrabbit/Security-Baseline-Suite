@@ -177,7 +177,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       try {
         const result = await uploadFile(file, itemId);
         setAddedSources(prev => prev.map(s => s.id === itemId
-          ? { ...s, status: 'done', name: result?.source?.name || file.name }
+          ? { ...s, status: 'done', name: result?.source?.name || file.name, preview: result?.source?.preview || '' }
           : s
         ));
       } catch (err: any) {
