@@ -276,6 +276,7 @@ const NewProject: React.FC = () => {
   const [current, setCurrent] = useState(0);
   const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [sourceCount, setSourceCount] = useState(0);
   const [form, setForm] = useState({
     name: '', technology: '', vendor: '', version: '', category: '', outputLanguage: 'en' as Locale, notes: '', tags: '',
   });
