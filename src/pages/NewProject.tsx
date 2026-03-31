@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
@@ -52,7 +52,7 @@ type SourceItem = {
   type: 'url' | 'file';
 };
 
-const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ projectId, t }) => {
+const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
@@ -60,6 +60,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any }> = ({ p
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    const doneCount = addedSources.filter(s => s.status === 'done').length;
+    onSourceCountChange?.(doneCount);
+  }, [addedSources, onSourceCountChange]);
 
   const handleAddUrl = async () => {
     const url = urlInput.trim();
@@ -276,6 +281,7 @@ const NewProject: React.FC = () => {
   const [current, setCurrent] = useState(0);
   const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [sourceCount, setSourceCount] = useState(0);
   const [form, setForm] = useState({
     name: '', technology: '', vendor: '', version: '', category: '', outputLanguage: 'en' as Locale, notes: '', tags: '',
   });
@@ -379,7 +385,7 @@ const NewProject: React.FC = () => {
           )}
 
           {current === 1 && (
-            <SourceSelectionStep projectId={projectId} t={t} />
+            <SourceSelectionStep projectId={projectId} t={t} onSourceCountChange={setSourceCount} />
           )}
 
 
@@ -466,6 +472,10 @@ const NewProject: React.FC = () => {
                   return;
                 }
                 setSaving(false);
+              }
+              if (current === 1 && sourceCount === 0) {
+                toast.error('Adicione pelo menos uma fonte antes de avançar');
+                return;
               }
               setCurrent(current + 1);
             }}
