@@ -288,6 +288,18 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                 {item.status === 'processing' && item.progress === 100 && (
                   <span className="text-[10px] font-medium text-muted-foreground shrink-0">Processando…</span>
                 )}
+                {item.status === 'done' && item.preview && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, showPreview: !s.showPreview } : s));
+                    }}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Preview"
+                  >
+                    {item.showPreview ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                )}
                 <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -298,6 +310,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
                     style={{ width: `${item.progress}%` }}
                   />
+                </div>
+              )}
+              {item.showPreview && item.preview && (
+                <div className="mx-1 px-3 py-2 bg-muted/20 border border-border/50 rounded text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
+                  {item.preview}
                 </div>
               )}
             </div>
