@@ -270,18 +270,34 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
             {t.sources.added || 'Fontes adicionadas'} ({addedSources.length})
           </p>
           {addedSources.map((item) => (
-            <div key={item.id} className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
-              {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
-              {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
-              {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-              {item.type === 'file'
-                ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              }
-              <span className="truncate flex-1">{item.name}</span>
-              <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
-                <X className="h-3.5 w-3.5" />
-              </button>
+            <div key={item.id} className="space-y-1">
+              <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
+                {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
+                {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
+                {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                {item.type === 'file'
+                  ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                }
+                <span className="truncate flex-1">{item.name}</span>
+                {item.status === 'processing' && item.progress !== undefined && item.progress < 100 && (
+                  <span className="text-[10px] font-medium text-primary shrink-0">{item.progress}%</span>
+                )}
+                {item.status === 'processing' && item.progress === 100 && (
+                  <span className="text-[10px] font-medium text-muted-foreground shrink-0">Processando…</span>
+                )}
+                <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {item.status === 'processing' && item.type === 'file' && item.progress !== undefined && (
+                <div className="h-1 w-full bg-secondary rounded-full overflow-hidden mx-0">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${item.progress}%` }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
