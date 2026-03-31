@@ -61,6 +61,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    const doneCount = addedSources.filter(s => s.status === 'done').length;
+    onSourceCountChange?.(doneCount);
+  }, [addedSources, onSourceCountChange]);
+
   const handleAddUrl = async () => {
     const url = urlInput.trim();
     if (!url) { toast.error(t.sources.urlPlaceholder); return; }
