@@ -315,6 +315,11 @@ const NewProject: React.FC = () => {
                 {i < current ? <Check className="h-3 w-3" /> : i + 1}
               </div>
               <span className="hidden sm:inline">{label}</span>
+              {i === 1 && sourceCount > 0 && (
+                <span className="ml-1 h-4 min-w-[16px] px-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center">
+                  {sourceCount}
+                </span>
+              )}
             </button>
             {i < stepLabels.length - 1 && <ChevronRight className="h-3 w-3 text-border shrink-0" />}
           </React.Fragment>
