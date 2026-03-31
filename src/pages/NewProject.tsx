@@ -99,41 +99,56 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     }
   };
 
-  const uploadFile = async (file: File) => {
-    if (!projectId) {
-      toast.error('Crie o projeto primeiro (passo 1)');
-      return;
-    }
-
-    const defaultConfig = await aiConfigService.getDefault();
-    const model = resolveModelId(defaultConfig);
-    const maxTokens = resolveMaxTokens(defaultConfig);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('projectId', projectId);
-    formData.append('model', model);
-    formData.append('maxTokens', String(maxTokens));
-
-    const { data: { session } } = await supabase.auth.getSession();
-
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: formData,
+  const uploadFile = (file: File, itemId: string): Promise<any> => {
+    return new Promise(async (resolve, reject) => {
+      if (!projectId) {
+        reject(new Error('Crie o projeto primeiro (passo 1)'));
+        return;
       }
-    );
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Upload failed');
-    }
+      const defaultConfig = await aiConfigService.getDefault();
+      const model = resolveModelId(defaultConfig);
+      const maxTokens = resolveMaxTokens(defaultConfig);
 
-    return response.json();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', projectId);
+      formData.append('model', model);
+      formData.append('maxTokens', String(maxTokens));
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`);
+      xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, progress: pct } : s));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            resolve({});
+          }
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.error || 'Upload failed'));
+          } catch {
+            reject(new Error('Upload failed'));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
   };
 
   const handleFiles = async (files: FileList | File[]) => {
