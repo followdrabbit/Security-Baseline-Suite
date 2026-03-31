@@ -271,7 +271,29 @@ export function generateBaselinePDF(opts: DocumentOptions): void {
     doc.text(l.generatedBy, pageW / 2, pageH - 8, { align: 'center' });
   };
 
+  const addWatermark = () => {
+    const wmSize = 82;
+    const wmX = (pageW - wmSize) / 2;
+    const wmY = (pageH - wmSize) / 2;
+
+    try {
+      const GState = (doc as any).GState;
+      if (GState) {
+        (doc as any).setGState(new GState({ opacity: 0.04 }));
+      }
+
+      doc.addImage(AUREUM_LOGO_BASE64, 'PNG', wmX, wmY, wmSize, wmSize);
+
+      if (GState) {
+        (doc as any).setGState(new GState({ opacity: 1 }));
+      }
+    } catch {
+      // Watermark is decorative; ignore rendering failures.
+    }
+  };
+
   const addPageHeader = (title: string) => {
+    addWatermark();
     // Subtle gold accent bar at top
     doc.setFillColor(...GOLD);
     doc.rect(0, 0, pageW, 2, 'F');
