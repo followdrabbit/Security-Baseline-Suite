@@ -384,6 +384,15 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     {item.showPreview ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 )}
+                {item.status === 'error' && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); reprocessSource(item); }}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Reprocessar"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                )}
                 <button 
                   onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} 
                   className="text-muted-foreground hover:text-destructive"
