@@ -166,18 +166,35 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     setUploading(true);
     const fileArray = Array.from(files);
 
-    // Add all files to the list as processing
-    const newItems: SourceItem[] = fileArray.map((f, i) => ({
-      id: `file-${Date.now()}-${i}`,
-      name: f.name,
-      status: 'processing' as const,
-      type: 'file' as const,
-    }));
+    // Validate file sizes and add to list
+    const newItems: SourceItem[] = fileArray.map((f, i) => {
+      const isOversized = f.size > MAX_FILE_SIZE;
+      return {
+        id: `file-${Date.now()}-${i}`,
+        name: f.name,
+        status: isOversized ? 'oversized' : 'processing' as const,
+        type: 'file' as const,
+        fileSize: f.size,
+        errorMessage: isOversized ? `Arquivo excede ${MAX_FILE_SIZE_MB}MB` : undefined,
+      };
+    });
+    
     setAddedSources(prev => [...prev, ...newItems]);
 
-    for (let i = 0; i < fileArray.length; i++) {
-      const file = fileArray[i];
-      const itemId = newItems[i].id;
+    // Show toast for oversized files
+    const oversizedFiles = newItems.filter(item => item.status === 'oversized');
+    if (oversizedFiles.length > 0) {
+      toast.error(`${oversizedFiles.length} arquivo(s) excedem o limite de ${MAX_FILE_SIZE_MB}MB`);
+    }
+
+    // Process only valid files
+    const validItems = newItems.filter(item => item.status !== 'oversized');
+    
+    for (let i = 0; i < validItems.length; i++) {
+      const itemId = validItems[i].id;
+      const fileIndex = fileArray.findIndex(f => f.name === validItems[i].name && f.size === validItems[i].fileSize);
+      const file = fileArray[fileIndex];
+      
       try {
         const result = await uploadFile(file, itemId);
         setAddedSources(prev => prev.map(s => s.id === itemId
@@ -185,13 +202,13 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
           : s
         ));
       } catch (err: any) {
-        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error' } : s));
+        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: err.message } : s));
         toast.error(`Falha: ${file.name} — ${err.message}`);
       }
     }
 
     setUploading(false);
-    const doneCount = newItems.length;
+    const doneCount = validItems.length;
     if (doneCount > 0) toast.success(`${doneCount} arquivo(s) enviado(s)`);
   };
 
