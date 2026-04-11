@@ -129,7 +129,7 @@ const Documentation: React.FC = () => {
           ]} />
 
           <DocCallout variant="info" title="Architecture">
-            Aureum uses a multi-stage AI pipeline that processes evidence sources through ingestion, extraction, normalization, grouping, deduplication, and baseline composition — all backed by immutable version snapshots for full auditability.
+            Aureum runs with a local architecture: React frontend + local API + SQLite database. The multi-stage AI pipeline processes evidence through ingestion, extraction, normalization, grouping, deduplication, and baseline composition, with immutable snapshots for auditability.
           </DocCallout>
 
           <SubSection title="Key Capabilities">
@@ -140,7 +140,7 @@ const Documentation: React.FC = () => {
                 { icon: History, label: 'Version Control', desc: 'Immutable snapshots with diff comparison' },
                 { icon: Users, label: 'Team Collaboration', desc: 'Shared projects with role-based access' },
                 { icon: Globe, label: 'Multi-Language', desc: 'Interface and output in EN, PT-BR, ES' },
-                { icon: Shield, label: 'Enterprise Security', desc: 'RLS, encrypted keys, audit trails' },
+                { icon: Shield, label: 'Security Controls', desc: 'Local auth, scoped access, audit trails' },
               ].map(item => (
                 <div key={item.label} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
                   <item.icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -166,7 +166,7 @@ const Documentation: React.FC = () => {
           </DocCallout>
 
           <DocStepList steps={[
-            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth → Register → Check email → Confirm' },
+            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth ? Register ? Sign in with your local account' },
             { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard → "Create New Baseline" → Fill fields → Save' },
             { title: d.step3Title, description: d.step3Desc, detail: 'Source Library → Add URL or Upload → Wait for extraction' },
             { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates → Select template → Customize fields' },
@@ -339,7 +339,7 @@ const Documentation: React.FC = () => {
           <DocCallout variant="tip">{d.workspaceTip}</DocCallout>
 
           <DocCallout variant="warning" title="Important">
-            Make sure you have at least one AI provider configured in AI Integrations before running the pipeline. The generation quality depends on the model and source quality.
+            In local mode, the pipeline can run with the built-in local flow. If you configure external AI providers in AI Integrations, generation quality and behavior will depend on model selection and source quality.
           </DocCallout>
         </div>
       ),
@@ -605,7 +605,7 @@ const Documentation: React.FC = () => {
     {
       id: 'security', icon: Lock, title: d.securityTitle,
       category: 'advanced',
-      keywords: 'security authentication RLS isolation snapshots encryption keys audit compliance enterprise',
+      keywords: 'security authentication local sqlite scoped access isolation snapshots audit compliance',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.securityDesc}</p>
@@ -621,7 +621,7 @@ const Documentation: React.FC = () => {
           </SubSection>
 
           <DocCallout variant="success" title="Compliance Ready">
-            Aureum's security architecture is designed for enterprise compliance. Immutable version snapshots, full audit trails, and row-level security ensure your baseline data meets regulatory requirements.
+            Aureum's local security model combines authenticated sessions, scoped data access, immutable snapshots, and audit logs to support governance and compliance workflows.
           </DocCallout>
         </div>
       ),
