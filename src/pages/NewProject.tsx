@@ -178,6 +178,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
         type: 'file' as const,
         fileSize: f.size,
         errorMessage: isOversized ? `Arquivo excede ${MAX_FILE_SIZE_MB}MB` : undefined,
+        originalFile: f,
       };
     });
     
