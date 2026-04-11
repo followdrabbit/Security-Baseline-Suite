@@ -297,15 +297,32 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
           </p>
           {addedSources.map((item) => (
             <div key={item.id} className="space-y-1">
-              <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
+                item.status === 'oversized' 
+                  ? 'bg-destructive/10 border-destructive/30' 
+                  : 'bg-muted/40 border-border'
+              }`}>
                 {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
                 {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
                 {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                {item.status === 'oversized' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                 {item.type === 'file'
-                  ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ? <FileText className={`h-3.5 w-3.5 shrink-0 ${item.status === 'oversized' ? 'text-destructive' : 'text-muted-foreground'}`} />
                   : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 }
-                <span className="truncate flex-1">{item.name}</span>
+                <div className="flex-1 min-w-0">
+                  <span className={`truncate block ${item.status === 'oversized' ? 'text-destructive' : ''}`}>
+                    {item.name}
+                  </span>
+                  {item.type === 'file' && item.fileSize !== undefined && (
+                    <span className="text-[10px] text-muted-foreground/70 block">
+                      {(item.fileSize / (1024 * 1024)).toFixed(2)} MB
+                      {item.status === 'oversized' && (
+                        <span className="text-destructive ml-1">— Limite: {MAX_FILE_SIZE_MB}MB</span>
+                      )}
+                    </span>
+                  )}
+                </div>
                 {item.status === 'processing' && item.progress !== undefined && item.progress < 100 && (
                   <span className="text-[10px] font-medium text-primary shrink-0">{item.progress}%</span>
                 )}
@@ -324,7 +341,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     {item.showPreview ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} 
+                  className="text-muted-foreground hover:text-destructive"
+                  title={item.errorMessage || 'Remover'}
+                >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -337,6 +358,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                 </div>
               )}
               {item.showPreview && item.preview && (
+                <div className="mx-1 px-3 py-2 bg-muted/20 border border-border/50 rounded text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
                 <div className="mx-1 px-3 py-2 bg-muted/20 border border-border/50 rounded text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
                   {item.preview}
                 </div>
