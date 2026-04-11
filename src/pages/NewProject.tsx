@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import type { Locale } from '@/types';
 import { aiConfigService } from '@/services/aiService';
 
-const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
+const steps = ['step1', 'step2', 'step3', 'step4'] as const;
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 const ACCEPTED_EXTENSIONS = ACCEPTED_TYPES.split(',');
