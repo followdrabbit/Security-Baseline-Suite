@@ -8,7 +8,7 @@ This repository now runs in local mode:
 
 - Database: SQLite file (`local-api/data/security-baseline.sqlite`)
 - API: Local Node.js server (`local-api/server.mjs`)
-- Auth: Local email/password session
+- Auth: Local username/password session (no email signup, no OAuth)
 - Functions: Local HTTP handlers under `/functions/v1/*`
 
 Supabase was removed from the application code and tests.
@@ -50,10 +50,22 @@ npm run dev
 
 Default local API URL: `http://127.0.0.1:8787`
 
-## Test credentials
+## Default admin credentials
 
-- Email: `test@aureum.com`
-- Password: `test1234`
+- Username: `admin`
+- Password: `admin1234`
+
+On first login, password change is mandatory.
+After logging in as admin, go to **Settings -> Usuarios locais** to create other users with temporary passwords.
+Each created user is required to change their password on first login.
+
+## Auth lifecycle in local mode
+
+1. Initial startup bootstraps only one account: `admin`.
+2. Public sign-up and OAuth are disabled.
+3. `admin` must change the default password at first login.
+4. `admin` creates other local users in Settings.
+5. Every created user must change password at first login.
 
 ## Tests and coverage
 
@@ -61,6 +73,16 @@ Default local API URL: `http://127.0.0.1:8787`
 npm test
 npm run test:coverage
 ```
+
+Coverage is validated for the updated auth/user-management flows in:
+- `src/test/AuthPage.test.tsx`
+- `src/test/Settings.test.tsx`
+
+Coverage snapshot (2026-04-11):
+- Global statements: `38.08%`
+- Global branches: `64.06%`
+- `src/pages/AuthPage.tsx`: `87.24%` statements
+- `src/pages/Settings.tsx`: `97.44%` statements
 
 ## Tech stack
 

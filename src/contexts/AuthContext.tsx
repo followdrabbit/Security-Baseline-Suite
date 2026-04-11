@@ -4,24 +4,43 @@ import { localDb } from '@/integrations/localdb/client';
 type AuthUser = {
   id: string;
   email?: string;
-  user_metadata?: Record<string, any>;
-  [key: string]: any;
+  username?: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 type AuthSession = {
   access_token: string;
   refresh_token?: string;
   user: AuthUser;
-  [key: string]: any;
+  [key: string]: unknown;
+};
+
+type AuthError = { message: string; code?: string } | null;
+type ManagedUser = {
+  id: string;
+  username: string;
+  role: string;
+  must_change_password: boolean;
+  created_at: string;
+  updated_at?: string;
+  password_changed_at?: string | null;
 };
 
 interface AuthContextType {
   user: AuthUser | null;
   session: AuthSession | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
+  signIn: (username: string, password: string) => Promise<{ error: AuthError }>;
+  completeFirstLoginPasswordChange: (params: {
+    username: string;
+    currentPassword: string;
+    newPassword: string;
+  }) => Promise<{ error: AuthError }>;
+  changePassword: (params: { currentPassword: string; newPassword: string }) => Promise<{ error: AuthError }>;
+  listUsers: () => Promise<{ data: ManagedUser[]; error: AuthError }>;
+  createUser: (params: { username: string; password: string }) => Promise<{ data: ManagedUser | null; error: AuthError }>;
   signOut: () => Promise<void>;
 }
 
@@ -54,23 +73,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await localDb.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
+  const signIn = async (username: string, password: string) => {
+    const { error } = await localDb.auth.signInWithPassword({ username, password });
     return { error };
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await localDb.auth.signInWithPassword({ email, password });
+  const completeFirstLoginPasswordChange = async (params: {
+    username: string;
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const { error } = await localDb.auth.changePasswordFirstLogin(params);
     return { error };
   };
 
-  const signInWithGoogle = async () => {
-    const { error } = await localDb.auth.signInWithOAuth();
-    return { error: error || null };
+  const changePassword = async (params: { currentPassword: string; newPassword: string }) => {
+    const { error } = await localDb.auth.changePassword(params);
+    return { error };
+  };
+
+  const listUsers = async () => {
+    const { data, error } = await localDb.auth.listUsers();
+    return { data, error };
+  };
+
+  const createUser = async (params: { username: string; password: string }) => {
+    const { data, error } = await localDb.auth.createUser(params);
+    return { data, error };
   };
 
   const signOut = async () => {
@@ -78,7 +107,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        signIn,
+        completeFirstLoginPasswordChange,
+        changePassword,
+        listUsers,
+        createUser,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

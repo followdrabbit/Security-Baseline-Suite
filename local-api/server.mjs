@@ -8,6 +8,10 @@ import { DatabaseSync } from "node:sqlite";
 const HOST = process.env.LOCAL_API_HOST || "127.0.0.1";
 const PORT = Number(process.env.LOCAL_API_PORT || 8787);
 const DB_PATH = process.env.LOCAL_DB_PATH || path.join(process.cwd(), "local-api", "data", "security-baseline.sqlite");
+const ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin1234";
+const AUTH_BOOTSTRAP_KEY = "auth_bootstrap_v2";
+const LOCAL_PROVIDER_ID = "lovable_ai";
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
@@ -20,7 +24,11 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  role TEXT NOT NULL DEFAULT 'user',
+  must_change_password INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  password_changed_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS local_sessions (
@@ -208,6 +216,12 @@ CREATE TABLE IF NOT EXISTS source_activity_logs (
   user_id TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_provider_configs_user_provider ON ai_provider_configs(user_id, provider_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_rule_values_user_rule ON user_rule_values(user_id, rule_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
@@ -322,6 +336,21 @@ const TABLE_DEFAULTS = {
   },
 };
 
+const USER_SCOPED_TABLES = [
+  "projects",
+  "sources",
+  "controls",
+  "baseline_versions",
+  "version_audit_logs",
+  "notifications",
+  "team_members",
+  "ai_provider_configs",
+  "user_preferences",
+  "user_rule_values",
+  "rule_template_versions",
+  "source_activity_logs",
+];
+
 const tableColumnsCache = new Map();
 
 function nowIso() {
@@ -342,6 +371,171 @@ function getTableColumns(table) {
     tableColumnsCache.set(table, columns);
   }
   return tableColumnsCache.get(table);
+}
+
+function normalizeUsername(rawValue) {
+  return String(rawValue || "").trim().toLowerCase();
+}
+
+function isValidUsername(username) {
+  return /^[a-z0-9._-]{3,64}$/.test(username);
+}
+
+function validateNewPassword(currentPassword, newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    return "Password must have at least 8 characters";
+  }
+  if (newPassword === currentPassword) {
+    return "New password must be different from the current password";
+  }
+  return null;
+}
+
+function getSystemSetting(key) {
+  const row = db
+    .prepare("SELECT value FROM system_settings WHERE key = ? LIMIT 1;")
+    .get(key);
+  return row?.value || null;
+}
+
+function setSystemSetting(key, value) {
+  const now = nowIso();
+  db.prepare(
+    `
+      INSERT INTO system_settings(key, value, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = excluded.updated_at;
+    `
+  ).run(key, String(value), now);
+}
+
+function ensureUserTableColumns() {
+  const columns = getTableColumns("users");
+  const migrations = [];
+
+  if (!columns.has("role")) {
+    migrations.push("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user';");
+  }
+  if (!columns.has("must_change_password")) {
+    migrations.push("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;");
+  }
+  if (!columns.has("updated_at")) {
+    migrations.push("ALTER TABLE users ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';");
+  }
+  if (!columns.has("password_changed_at")) {
+    migrations.push("ALTER TABLE users ADD COLUMN password_changed_at TEXT;");
+  }
+
+  if (migrations.length > 0) {
+    for (const sql of migrations) {
+      db.exec(sql);
+    }
+    tableColumnsCache.delete("users");
+  }
+
+  db.prepare(
+    `
+      UPDATE users
+      SET role = COALESCE(NULLIF(role, ''), 'user');
+    `
+  ).run();
+  db.prepare(
+    `
+      UPDATE users
+      SET must_change_password = COALESCE(must_change_password, 0);
+    `
+  ).run();
+  db.prepare(
+    `
+      UPDATE users
+      SET updated_at = CASE
+        WHEN updated_at IS NULL OR updated_at = '' THEN created_at
+        ELSE updated_at
+      END;
+    `
+  ).run();
+}
+
+function getUserByUsername(username) {
+  const normalized = normalizeUsername(username);
+  if (!normalized) return null;
+
+  return db
+    .prepare(
+      `
+        SELECT id, email, password_hash, role, must_change_password, created_at, updated_at, password_changed_at
+        FROM users
+        WHERE LOWER(email) = ?
+        LIMIT 1;
+      `
+    )
+    .get(normalized);
+}
+
+function isAdminUser(user) {
+  return String(user?.role || "").toLowerCase() === "admin";
+}
+
+function seedUserSupportRows(userId) {
+  const pref = db
+    .prepare("SELECT id FROM user_preferences WHERE user_id = ? LIMIT 1;")
+    .get(userId);
+
+  if (!pref) {
+    executeDbQuery(
+      {
+        table: "user_preferences",
+        action: "insert",
+        values: {
+          user_id: userId,
+          notify_control_status: true,
+          notify_source_processed: true,
+          notify_team_member_joined: true,
+        },
+      },
+      { id: userId }
+    );
+  }
+
+  const cfg = db
+    .prepare("SELECT id FROM ai_provider_configs WHERE user_id = ? AND provider_id = ? LIMIT 1;")
+    .get(userId, LOCAL_PROVIDER_ID);
+
+  if (!cfg) {
+    executeDbQuery(
+      {
+        table: "ai_provider_configs",
+        action: "insert",
+        values: {
+          user_id: userId,
+          provider_id: LOCAL_PROVIDER_ID,
+          enabled: true,
+          selected_model: "gpt-5-mini",
+          is_default: true,
+          connection_status: "idle",
+          extra_config: {
+            max_tokens: 65000,
+          },
+        },
+      },
+      { id: userId }
+    );
+  }
+}
+
+function purgeNonAdminData(adminUserId) {
+  runInTransaction(() => {
+    for (const table of USER_SCOPED_TABLES) {
+      db.prepare(`DELETE FROM ${quoteIdent(table)} WHERE user_id <> ?;`).run(adminUserId);
+    }
+
+    db.prepare("DELETE FROM teams WHERE owner_id <> ?;").run(adminUserId);
+    db.prepare("DELETE FROM local_sessions WHERE user_id <> ?;").run(adminUserId);
+    db.prepare("DELETE FROM users WHERE id <> ?;").run(adminUserId);
+    db.prepare("DELETE FROM team_members WHERE team_id NOT IN (SELECT id FROM teams);").run();
+  });
 }
 
 function isJsonColumn(table, column) {
@@ -901,14 +1095,16 @@ function getUserByToken(token) {
   if (!session) return null;
 
   const user = db
-    .prepare("SELECT id, email, created_at FROM users WHERE id = ? LIMIT 1;")
+    .prepare("SELECT id, email, role, must_change_password, created_at, updated_at, password_changed_at FROM users WHERE id = ? LIMIT 1;")
     .get(session.user_id);
 
   return user || null;
 }
 
 function getDefaultUser() {
-  return db.prepare("SELECT id, email, created_at FROM users ORDER BY created_at ASC LIMIT 1;").get() || null;
+  return db
+    .prepare("SELECT id, email, role, must_change_password, created_at, updated_at, password_changed_at FROM users ORDER BY created_at ASC LIMIT 1;")
+    .get() || null;
 }
 
 function getAuthToken(headers) {
@@ -922,7 +1118,7 @@ function getCurrentUser(req) {
   const token = getAuthToken(req.headers);
   const fromToken = getUserByToken(token);
   if (fromToken) return fromToken;
-  return getDefaultUser();
+  return null;
 }
 
 function createSessionForUser(user) {
@@ -941,9 +1137,13 @@ function createSessionForUser(user) {
     user: {
       id: user.id,
       email: user.email,
-      app_metadata: {},
+      username: user.email,
+      app_metadata: {
+        role: user.role || "user",
+      },
       user_metadata: {
         full_name: user.email,
+        must_change_password: Boolean(user.must_change_password),
       },
       aud: "authenticated",
       created_at: user.created_at,
@@ -952,69 +1152,71 @@ function createSessionForUser(user) {
 }
 
 function ensureSeedData() {
+  ensureUserTableColumns();
+
   const now = nowIso();
+  const adminUsername = normalizeUsername(ADMIN_USERNAME);
+  const bootstrapCompleted = getSystemSetting(AUTH_BOOTSTRAP_KEY) === "done";
 
-  const existing = db
-    .prepare("SELECT id FROM users WHERE email = ? LIMIT 1;")
-    .get("test@aureum.com");
+  let admin = getUserByUsername(adminUsername);
 
-  if (!existing) {
-    db.prepare("INSERT INTO users(id, email, password_hash, created_at) VALUES (?, ?, ?, ?);").run(
-      randomUUID(),
-      "test@aureum.com",
-      hashPassword("test1234"),
-      now
-    );
+  if (!admin) {
+    runInTransaction(() => {
+      db.prepare("DELETE FROM local_sessions;").run();
+      db.prepare("DELETE FROM users;").run();
+      db.prepare(
+        `
+          INSERT INTO users(
+            id,
+            email,
+            password_hash,
+            role,
+            must_change_password,
+            created_at,
+            updated_at,
+            password_changed_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        `
+      ).run(
+        randomUUID(),
+        adminUsername,
+        hashPassword(DEFAULT_ADMIN_PASSWORD),
+        "admin",
+        1,
+        now,
+        now,
+        null
+      );
+    });
+    admin = getUserByUsername(adminUsername);
   }
 
-  const user = db
-    .prepare("SELECT id FROM users WHERE email = ? LIMIT 1;")
-    .get("test@aureum.com");
-
-  const pref = db
-    .prepare("SELECT id FROM user_preferences WHERE user_id = ? LIMIT 1;")
-    .get(user.id);
-
-  if (!pref) {
-    executeDbQuery(
-      {
-        table: "user_preferences",
-        action: "insert",
-        values: {
-          user_id: user.id,
-          notify_control_status: true,
-          notify_source_processed: true,
-          notify_team_member_joined: true,
-        },
-      },
-      { id: user.id }
-    );
+  if (!admin) {
+    throw new Error("Failed to bootstrap local admin user");
   }
 
-  const cfg = db
-    .prepare("SELECT id FROM ai_provider_configs WHERE user_id = ? AND provider_id = ? LIMIT 1;")
-    .get(user.id, "lovable_ai");
+  db.prepare(
+    `
+      UPDATE users
+      SET role = 'admin',
+          email = ?,
+          updated_at = CASE
+            WHEN updated_at IS NULL OR updated_at = '' THEN ?
+            ELSE updated_at
+          END
+      WHERE id = ?;
+    `
+  ).run(adminUsername, now, admin.id);
 
-  if (!cfg) {
-    executeDbQuery(
-      {
-        table: "ai_provider_configs",
-        action: "insert",
-        values: {
-          user_id: user.id,
-          provider_id: "lovable_ai",
-          enabled: true,
-          selected_model: "gpt-5-mini",
-          is_default: true,
-          connection_status: "idle",
-          extra_config: {
-            max_tokens: 65000,
-          },
-        },
-      },
-      { id: user.id }
-    );
+  admin = getUserByUsername(adminUsername);
+
+  if (!bootstrapCompleted) {
+    purgeNonAdminData(admin.id);
+    setSystemSetting(AUTH_BOOTSTRAP_KEY, "done");
   }
+
+  seedUserSupportRows(admin.id);
 }
 
 ensureSeedData();
@@ -1748,54 +1950,32 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && pathname === "/api/auth/sign-up") {
-      const body = parseJsonOrThrow(await readRawBody(req));
-      const email = String(body?.email || "").trim().toLowerCase();
-      const password = String(body?.password || "");
-
-      if (!email || !password) {
-        sendJson(res, 400, { error: "email and password are required" });
-        return;
-      }
-
-      const exists = db.prepare("SELECT id FROM users WHERE email = ? LIMIT 1;").get(email);
-      if (exists) {
-        sendJson(res, 400, { error: "User already exists" });
-        return;
-      }
-
-      const user = {
-        id: randomUUID(),
-        email,
-        password_hash: hashPassword(password),
-        created_at: nowIso(),
-      };
-
-      db.prepare("INSERT INTO users(id, email, password_hash, created_at) VALUES (?, ?, ?, ?);").run(
-        user.id,
-        user.email,
-        user.password_hash,
-        user.created_at
-      );
-
-      const session = createSessionForUser(user);
-      sendJson(res, 200, {
-        session,
-        user: session.user,
-      });
+      sendJson(res, 405, { error: "Sign-up is disabled. Use the admin user to create local accounts." });
       return;
     }
 
     if (req.method === "POST" && pathname === "/api/auth/sign-in-password") {
       const body = parseJsonOrThrow(await readRawBody(req));
-      const email = String(body?.email || "").trim().toLowerCase();
+      const username = normalizeUsername(body?.username || body?.email);
       const password = String(body?.password || "");
 
-      const user = db
-        .prepare("SELECT id, email, password_hash, created_at FROM users WHERE email = ? LIMIT 1;")
-        .get(email);
+      if (!username || !password) {
+        sendJson(res, 400, { error: "username and password are required" });
+        return;
+      }
+
+      const user = getUserByUsername(username);
 
       if (!user || user.password_hash !== hashPassword(password)) {
-        sendJson(res, 401, { error: "Invalid credentials" });
+        sendJson(res, 401, { error: "Invalid credentials", code: "INVALID_CREDENTIALS" });
+        return;
+      }
+
+      if (Boolean(user.must_change_password)) {
+        sendJson(res, 403, {
+          error: "Password change required",
+          code: "PASSWORD_CHANGE_REQUIRED",
+        });
         return;
       }
 
@@ -1807,18 +1987,220 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "POST" && pathname === "/api/auth/sign-in-oauth") {
-      const user = getDefaultUser();
-      if (!user) {
-        sendJson(res, 500, { error: "No local user found" });
+    if (req.method === "POST" && pathname === "/api/auth/first-login/change-password") {
+      const body = parseJsonOrThrow(await readRawBody(req));
+      const username = normalizeUsername(body?.username || body?.email);
+      const currentPassword = String(body?.currentPassword || body?.password || "");
+      const newPassword = String(body?.newPassword || "");
+
+      if (!username || !currentPassword || !newPassword) {
+        sendJson(res, 400, { error: "username, currentPassword and newPassword are required" });
         return;
       }
 
-      const session = createSessionForUser(user);
+      const passwordError = validateNewPassword(currentPassword, newPassword);
+      if (passwordError) {
+        sendJson(res, 400, { error: passwordError });
+        return;
+      }
+
+      const user = getUserByUsername(username);
+      if (!user || user.password_hash !== hashPassword(currentPassword)) {
+        sendJson(res, 401, { error: "Invalid credentials", code: "INVALID_CREDENTIALS" });
+        return;
+      }
+
+      const now = nowIso();
+      db.prepare(
+        `
+          UPDATE users
+          SET password_hash = ?,
+              must_change_password = 0,
+              password_changed_at = ?,
+              updated_at = ?
+          WHERE id = ?;
+        `
+      ).run(hashPassword(newPassword), now, now, user.id);
+
+      const updated = db
+        .prepare("SELECT id, email, password_hash, role, must_change_password, created_at, updated_at, password_changed_at FROM users WHERE id = ? LIMIT 1;")
+        .get(user.id);
+
+      const session = createSessionForUser(updated);
       sendJson(res, 200, {
         session,
         user: session.user,
       });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/change-password") {
+      const actingUser = getCurrentUser(req);
+      if (!actingUser) {
+        sendJson(res, 401, { error: "No active user session" });
+        return;
+      }
+
+      const body = parseJsonOrThrow(await readRawBody(req));
+      const currentPassword = String(body?.currentPassword || "");
+      const newPassword = String(body?.newPassword || "");
+
+      if (!currentPassword || !newPassword) {
+        sendJson(res, 400, { error: "currentPassword and newPassword are required" });
+        return;
+      }
+
+      const passwordError = validateNewPassword(currentPassword, newPassword);
+      if (passwordError) {
+        sendJson(res, 400, { error: passwordError });
+        return;
+      }
+
+      const user = db
+        .prepare("SELECT id, password_hash FROM users WHERE id = ? LIMIT 1;")
+        .get(actingUser.id);
+
+      if (!user || user.password_hash !== hashPassword(currentPassword)) {
+        sendJson(res, 401, { error: "Invalid current password", code: "INVALID_CREDENTIALS" });
+        return;
+      }
+
+      const now = nowIso();
+      db.prepare(
+        `
+          UPDATE users
+          SET password_hash = ?,
+              must_change_password = 0,
+              password_changed_at = ?,
+              updated_at = ?
+          WHERE id = ?;
+        `
+      ).run(hashPassword(newPassword), now, now, actingUser.id);
+
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/auth/admin/users") {
+      const actingUser = getCurrentUser(req);
+      if (!actingUser) {
+        sendJson(res, 401, { error: "No active user session" });
+        return;
+      }
+      if (!isAdminUser(actingUser)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return;
+      }
+
+      const users = db
+        .prepare(
+          `
+            SELECT id, email, role, must_change_password, created_at, updated_at, password_changed_at
+            FROM users
+            ORDER BY created_at ASC;
+          `
+        )
+        .all()
+        .map((row) => ({
+          id: row.id,
+          username: row.email,
+          role: row.role || "user",
+          must_change_password: Boolean(row.must_change_password),
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          password_changed_at: row.password_changed_at,
+        }));
+
+      sendJson(res, 200, { users });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/admin/create-user") {
+      const actingUser = getCurrentUser(req);
+      if (!actingUser) {
+        sendJson(res, 401, { error: "No active user session" });
+        return;
+      }
+      if (!isAdminUser(actingUser)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return;
+      }
+
+      const body = parseJsonOrThrow(await readRawBody(req));
+      const username = normalizeUsername(body?.username);
+      const password = String(body?.password || "");
+
+      if (!isValidUsername(username)) {
+        sendJson(res, 400, {
+          error: "Username must contain 3-64 chars and only: a-z, 0-9, ., _, -",
+        });
+        return;
+      }
+
+      if (!password || password.length < 8) {
+        sendJson(res, 400, { error: "Password must have at least 8 characters" });
+        return;
+      }
+
+      const exists = getUserByUsername(username);
+      if (exists) {
+        sendJson(res, 400, { error: "User already exists", code: "USER_EXISTS" });
+        return;
+      }
+
+      const now = nowIso();
+      const newUser = {
+        id: randomUUID(),
+        email: username,
+        password_hash: hashPassword(password),
+        role: "user",
+        must_change_password: 1,
+        created_at: now,
+        updated_at: now,
+        password_changed_at: null,
+      };
+
+      db.prepare(
+        `
+          INSERT INTO users(
+            id,
+            email,
+            password_hash,
+            role,
+            must_change_password,
+            created_at,
+            updated_at,
+            password_changed_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        `
+      ).run(
+        newUser.id,
+        newUser.email,
+        newUser.password_hash,
+        newUser.role,
+        newUser.must_change_password,
+        newUser.created_at,
+        newUser.updated_at,
+        newUser.password_changed_at
+      );
+
+      seedUserSupportRows(newUser.id);
+
+      sendJson(res, 201, {
+        user: {
+          id: newUser.id,
+          username: newUser.email,
+          role: newUser.role,
+          must_change_password: true,
+          created_at: newUser.created_at,
+        },
+      });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/auth/sign-in-oauth") {
+      sendJson(res, 405, { error: "OAuth sign-in is disabled in local mode." });
       return;
     }
 
@@ -1852,9 +2234,13 @@ const server = http.createServer(async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-          app_metadata: {},
+          username: user.email,
+          app_metadata: {
+            role: user.role || "user",
+          },
           user_metadata: {
             full_name: user.email,
+            must_change_password: Boolean(user.must_change_password),
           },
           aud: "authenticated",
           created_at: user.created_at,
@@ -1872,6 +2258,10 @@ const server = http.createServer(async (req, res) => {
       const raw = await readRawBody(req);
       const payload = parseJsonOrThrow(raw);
       const user = getCurrentUser(req);
+      if (!user) {
+        sendJson(res, 401, { error: "No active user session" });
+        return;
+      }
       const result = executeDbQuery(payload, user);
       sendJson(res, 200, result);
       return;

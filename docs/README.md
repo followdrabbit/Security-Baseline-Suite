@@ -12,3 +12,7 @@ This folder stores project documentation and visual assets.
 - Local API server: `local-api/server.mjs`
 - SQLite file: `local-api/data/security-baseline.sqlite`
 - Frontend local DB client: `src/integrations/localdb/client.ts`
+- Local auth defaults:
+  - `admin / admin1234`
+  - password change required on first login
+  - user creation done by admin in `Settings -> Usuarios locais`

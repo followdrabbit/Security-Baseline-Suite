@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
+import React from "react";
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -31,15 +32,19 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
     user: {
       id: "test-user",
-      email: "test@aureum.com",
+      email: "admin",
+      username: "admin",
+      app_metadata: { role: "admin" },
       user_metadata: { full_name: "Test User" },
     },
     session: {},
     loading: false,
-    signUp: vi.fn(),
     signIn: vi.fn(),
-    signInWithGoogle: vi.fn(),
+    completeFirstLoginPasswordChange: vi.fn(),
+    changePassword: vi.fn(),
+    listUsers: vi.fn(async () => ({ data: [], error: null })),
+    createUser: vi.fn(async () => ({ data: null, error: null })),
     signOut: vi.fn(),
   }),
-  AuthProvider: ({ children }: { children: any }) => children,
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }));

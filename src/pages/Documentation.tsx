@@ -158,7 +158,7 @@ const Documentation: React.FC = () => {
     {
       id: 'getting-started', icon: Zap, title: d.gettingStartedTitle, badge: d.gettingStartedBadge,
       category: 'getting-started',
-      keywords: 'quick start register login create project sources rules pipeline review workflow tutorial',
+      keywords: 'quick start admin login create project sources rules pipeline review workflow tutorial',
       content: (
         <div className="space-y-6">
           <DocCallout variant="tip" title="Quick Start">
@@ -166,7 +166,7 @@ const Documentation: React.FC = () => {
           </DocCallout>
 
           <DocStepList steps={[
-            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth ? Register ? Sign in with your local account' },
+            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth, sign in as admin, change the default password, then create users in Settings.' },
             { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard → "Create New Baseline" → Fill fields → Save' },
             { title: d.step3Title, description: d.step3Desc, detail: 'Source Library → Add URL or Upload → Wait for extraction' },
             { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates → Select template → Customize fields' },

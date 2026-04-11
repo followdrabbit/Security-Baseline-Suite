@@ -33,8 +33,13 @@ type QueryPayload = {
 
 type QueryResponse<T = unknown> = {
   data: T;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
   count: number | null;
+};
+
+type LocalApiError = {
+  message: string;
+  code?: string;
 };
 
 type LocalSession = {
@@ -44,7 +49,8 @@ type LocalSession = {
   expires_in: number;
   user: {
     id: string;
-    email: string;
+    email?: string;
+    username?: string;
     app_metadata?: Record<string, unknown>;
     user_metadata?: Record<string, unknown>;
     aud?: string;
@@ -52,16 +58,50 @@ type LocalSession = {
   };
 };
 
+type LocalAdminUser = {
+  id: string;
+  username: string;
+  role: string;
+  must_change_password: boolean;
+  created_at: string;
+  updated_at?: string;
+  password_changed_at?: string | null;
+};
+
 const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || "http://127.0.0.1:8787";
 const SESSION_STORAGE_KEY = "sqlite_local_session";
 
-function normalizeError(payload: unknown, fallback: string) {
+function normalizeError(payload: unknown, fallback: string): LocalApiError {
+  const topLevelCode =
+    payload && typeof payload === "object" && typeof (payload as { code?: unknown }).code === "string"
+      ? String((payload as { code: string }).code)
+      : undefined;
+
   if (payload && typeof payload === "object" && "error" in payload) {
     const raw = (payload as { error?: unknown }).error;
-    if (typeof raw === "string") return { message: raw };
+    if (typeof raw === "string") return { message: raw, code: topLevelCode };
     if (raw && typeof raw === "object" && "message" in raw) {
-      return { message: String((raw as { message?: unknown }).message || fallback) };
+      const nestedCode = typeof (raw as { code?: unknown }).code === "string"
+        ? String((raw as { code: string }).code)
+        : topLevelCode;
+      return { message: String((raw as { message?: unknown }).message || fallback), code: nestedCode };
     }
+  }
+  return { message: fallback, code: topLevelCode };
+}
+
+function toLocalApiError(error: unknown, fallback = "Request failed"): LocalApiError {
+  if (error && typeof error === "object") {
+    const message = typeof (error as { message?: unknown }).message === "string"
+      ? String((error as { message: string }).message)
+      : fallback;
+    const code = typeof (error as { code?: unknown }).code === "string"
+      ? String((error as { code: string }).code)
+      : undefined;
+    return { message, code };
+  }
+  if (typeof error === "string" && error.trim()) {
+    return { message: error };
   }
   return { message: fallback };
 }
@@ -267,9 +307,7 @@ class LocalQueryBuilder<T = unknown> {
     } catch (error) {
       return {
         data: null as T,
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-        },
+        error: toLocalApiError(error, "Query failed"),
         count: null,
       };
     }
@@ -327,7 +365,7 @@ export const localDb = {
       } catch (error) {
         return {
           data: { session: null },
-          error: { message: error instanceof Error ? error.message : String(error) },
+          error: toLocalApiError(error, "Failed to load session"),
         };
       }
     },
@@ -355,18 +393,21 @@ export const localDb = {
       } catch (error) {
         return {
           data: { user: null, session: null },
-          error: { message: error instanceof Error ? error.message : String(error) },
+          error: toLocalApiError(error, "Sign-up is not available"),
         };
       }
     },
-    async signInWithPassword(params: { email: string; password: string }) {
+    async signInWithPassword(params: { username?: string; email?: string; password: string }) {
       try {
         const payload = await requestLocalApi<{ session: LocalSession; user: LocalSession["user"] }>(
           "/api/auth/sign-in-password",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(params),
+            body: JSON.stringify({
+              username: params.username ?? params.email ?? "",
+              password: params.password,
+            }),
           },
           false
         );
@@ -376,7 +417,7 @@ export const localDb = {
       } catch (error) {
         return {
           data: { user: null, session: null },
-          error: { message: error instanceof Error ? error.message : String(error) },
+          error: toLocalApiError(error, "Invalid credentials"),
         };
       }
     },
@@ -397,7 +438,80 @@ export const localDb = {
       } catch (error) {
         return {
           data: null,
-          error: { message: error instanceof Error ? error.message : String(error) },
+          error: toLocalApiError(error, "OAuth sign-in is not available"),
+        };
+      }
+    },
+    async changePasswordFirstLogin(params: { username: string; currentPassword: string; newPassword: string }) {
+      try {
+        const payload = await requestLocalApi<{ session: LocalSession; user: LocalSession["user"] }>(
+          "/api/auth/first-login/change-password",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+          },
+          false
+        );
+        saveSession(payload.session);
+        emitAuthEvent("SIGNED_IN", payload.session);
+        return { data: { user: payload.user, session: payload.session }, error: null };
+      } catch (error) {
+        return {
+          data: { user: null, session: null },
+          error: toLocalApiError(error, "Failed to update password"),
+        };
+      }
+    },
+    async changePassword(params: { currentPassword: string; newPassword: string }) {
+      try {
+        const payload = await requestLocalApi<{ ok: boolean }>(
+          "/api/auth/change-password",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+          }
+        );
+        return { data: payload, error: null };
+      } catch (error) {
+        return {
+          data: { ok: false },
+          error: toLocalApiError(error, "Failed to change password"),
+        };
+      }
+    },
+    async listUsers() {
+      try {
+        const payload = await requestLocalApi<{ users: LocalAdminUser[] }>(
+          "/api/auth/admin/users",
+          {
+            method: "GET",
+          }
+        );
+        return { data: payload.users, error: null };
+      } catch (error) {
+        return {
+          data: [] as LocalAdminUser[],
+          error: toLocalApiError(error, "Failed to list users"),
+        };
+      }
+    },
+    async createUser(params: { username: string; password: string }) {
+      try {
+        const payload = await requestLocalApi<{ user: LocalAdminUser }>(
+          "/api/auth/admin/create-user",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+          }
+        );
+        return { data: payload.user, error: null };
+      } catch (error) {
+        return {
+          data: null,
+          error: toLocalApiError(error, "Failed to create user"),
         };
       }
     },
@@ -419,7 +533,7 @@ export const localDb = {
       if (!tokens?.access_token || !tokens?.user) {
         return {
           data: { session: null },
-          error: { message: "Invalid local session payload" },
+          error: { message: "Invalid local session payload" } as LocalApiError,
         };
       }
       const session = tokens as LocalSession;
@@ -466,9 +580,7 @@ export const localDb = {
       } catch (error) {
         return {
           data: null,
-          error: {
-            message: error instanceof Error ? error.message : String(error),
-          },
+          error: toLocalApiError(error, `Function ${name} failed`),
         };
       }
     },
