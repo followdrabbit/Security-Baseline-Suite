@@ -208,7 +208,7 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
 <button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
 
 <h1>📋 Source Audit Report</h1>
-<p class="subtitle">Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')} — Aureum Baseline Studio</p>
+<p class="subtitle">Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')} — Aureum Security Baseline Suite</p>
 
 <h2>Source Information</h2>
 <div class="info-grid">
@@ -236,7 +236,7 @@ ${hasExtractedContent ? `<h2>Extracted Content</h2><div class="content-block">${
 
 ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono">${escHtml(source.raw_content.length > 50000 ? source.raw_content.substring(0, 50000) + '\n\n[... truncated at 50KB ...]' : source.raw_content)}</div>` : ''}
 
-<div class="footer">Aureum Baseline Studio — Source Audit Report — ${source.name}</div>
+<div class="footer">Aureum Security Baseline Suite — Source Audit Report — ${source.name}</div>
 </body></html>`;
 
     const blob = new Blob([html], { type: 'text/html' });

@@ -1,6 +1,6 @@
 const translations = {
   en: {
-    app: { name: 'Aureum Baseline Studio', tagline: 'Enterprise Security Baseline Generation' },
+    app: { name: 'Aureum', tagline: 'Security Baseline Suite' },
     nav: {
       dashboard: 'Dashboard', newProject: 'New Project', sources: 'Source Library',
       rules: 'Rules & Templates', workspace: 'AI Workspace', editor: 'Baseline Editor',
@@ -542,13 +542,13 @@ const translations = {
     },
     docs: {
       title: 'Documentation',
-      subtitle: 'Complete guide to using and configuring Aureum Baseline Studio',
+      subtitle: 'Complete guide to using and configuring Aureum',
       searchPlaceholder: 'Search documentation...',
       expandAll: 'Expand all',
       collapseAll: 'Collapse all',
       noResults: 'No results found for',
-      overviewTitle: 'Aureum Baseline Studio Overview',
-      overviewDesc: 'Aureum Baseline Studio is a local-first platform for AI-powered security baseline generation and governance. It runs with a local API and SQLite, automating control creation from documents, URLs, and frameworks with traceability and versioning.',
+      overviewTitle: 'Aureum Overview',
+      overviewDesc: 'Aureum is a local-first Security Baseline Suite for AI-powered generation and governance of security controls. It runs with a local API and SQLite, automating control creation from documents, URLs, and frameworks with traceability and versioning.',
       overviewPipeline: 'AI Pipeline',
       overviewPipelineDesc: 'Automated extraction and normalization of controls',
       overviewTraceability: 'Traceability',
@@ -837,7 +837,7 @@ const translations = {
     },
   },
   pt: {
-    app: { name: 'Aureum Baseline Studio', tagline: 'Geração Enterprise de Baselines de Segurança' },
+    app: { name: 'Aureum', tagline: 'Security Baseline Suite' },
     nav: {
       dashboard: 'Painel', newProject: 'Novo Projeto', sources: 'Biblioteca de Fontes',
       rules: 'Regras e Templates', workspace: 'Workspace IA', editor: 'Editor de Baseline',
@@ -1379,13 +1379,13 @@ const translations = {
     },
     docs: {
       title: 'Documentação',
-      subtitle: 'Guia completo de uso e configuração do Aureum Baseline Studio',
+      subtitle: 'Guia completo de uso e configuração do Aureum',
       searchPlaceholder: 'Buscar na documentação...',
       expandAll: 'Expandir tudo',
       collapseAll: 'Recolher tudo',
       noResults: 'Nenhum resultado encontrado para',
-      overviewTitle: 'Visão Geral do Aureum Baseline Studio',
-      overviewDesc: 'O Aureum Baseline Studio e uma plataforma local-first para geracao e governanca de baselines de seguranca com IA. Ele roda com API local e SQLite, automatizando a criacao de controles com rastreabilidade e versionamento.',
+      overviewTitle: 'Visão Geral do Aureum',
+      overviewDesc: 'O Aureum e uma Security Baseline Suite local-first para geracao e governanca de controles de seguranca com IA. Ele roda com API local e SQLite, automatizando a criacao de controles com rastreabilidade e versionamento.',
       overviewPipeline: 'Pipeline de IA',
       overviewPipelineDesc: 'Extração e normalização automatizada de controles',
       overviewTraceability: 'Rastreabilidade',
@@ -1674,7 +1674,7 @@ const translations = {
     },
   },
   es: {
-    app: { name: 'Aureum Baseline Studio', tagline: 'Generación Enterprise de Baselines de Seguridad' },
+    app: { name: 'Aureum', tagline: 'Security Baseline Suite' },
     nav: {
       dashboard: 'Panel', newProject: 'Nuevo Proyecto', sources: 'Biblioteca de Fuentes',
       rules: 'Reglas y Plantillas', workspace: 'Workspace IA', editor: 'Editor de Baseline',
@@ -2216,13 +2216,13 @@ const translations = {
     },
     docs: {
       title: 'Documentación',
-      subtitle: 'Guía completa de uso y configuración de Aureum Baseline Studio',
+      subtitle: 'Guía completa de uso y configuración de Aureum',
       searchPlaceholder: 'Buscar en la documentación...',
       expandAll: 'Expandir todo',
       collapseAll: 'Contraer todo',
       noResults: 'No se encontraron resultados para',
-      overviewTitle: 'Visión General de Aureum Baseline Studio',
-      overviewDesc: 'Aureum Baseline Studio es una plataforma local-first para generacion y gobernanza de baselines de seguridad con IA. Funciona con API local y SQLite, automatizando controles con trazabilidad y versionado.',
+      overviewTitle: 'Visión General de Aureum',
+      overviewDesc: 'Aureum es una Security Baseline Suite local-first para la generacion y gobernanza de controles de seguridad con IA. Funciona con API local y SQLite, automatizando controles con trazabilidad y versionado.',
       overviewPipeline: 'Pipeline de IA',
       overviewPipelineDesc: 'Extracción y normalización automatizada de controles',
       overviewTraceability: 'Trazabilidad',

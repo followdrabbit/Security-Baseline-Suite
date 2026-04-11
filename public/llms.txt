@@ -1,10 +1,10 @@
-# Aureum Baseline Studio
+# Aureum
 
-> AI-Powered Security Baseline Generation & Compliance Management Platform
+> Security Baseline Suite for AI-powered control generation and compliance management
 
 ## Overview
 
-Aureum Baseline Studio is an enterprise-grade platform that uses AI to analyze technical documentation, vendor guides, and security standards to generate comprehensive security controls. It maps controls to compliance frameworks like NIST 800-53, ISO 27001, and CIS Controls with full traceability.
+Aureum is a local-first Security Baseline Suite that uses AI to analyze technical documentation, vendor guides, and security standards to generate comprehensive security controls. It maps controls to compliance frameworks like NIST 800-53, ISO 27001, and CIS Controls with full traceability.
 
 ## Target Users
 

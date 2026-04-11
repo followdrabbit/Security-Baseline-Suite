@@ -99,7 +99,7 @@ const AuthPage: React.FC = () => {
             <Shield className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-3xl font-display font-semibold text-foreground">Aureum</h1>
-          <p className="text-sm text-muted-foreground">Baseline Studio - Security Control Generation</p>
+          <p className="text-sm text-muted-foreground">Security Baseline Suite</p>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 shadow-premium space-y-6">

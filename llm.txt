@@ -1,4 +1,5 @@
-﻿Project: Aureum Baseline Studio
+﻿Project: Aureum
+Product: Security Baseline Suite
 Date: 2026-04-11
 
 System context for LLM assistants:

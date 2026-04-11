@@ -1,6 +1,6 @@
-﻿# Aureum Baseline Studio
+﻿# Aureum
 
-Aureum Baseline Studio is a platform for generating and managing security baselines with AI support.
+Aureum is a Security Baseline Suite for generating and managing security baselines with AI support.
 
 ## Current backend model
 

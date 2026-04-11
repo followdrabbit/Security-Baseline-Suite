@@ -89,7 +89,7 @@ const AppSidebar: React.FC = () => {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-display text-base font-semibold tracking-tight text-foreground leading-none">Aureum</span>
-              <span className="text-[10px] text-muted-foreground tracking-widest uppercase">Baseline Studio</span>
+              <span className="text-[10px] text-muted-foreground tracking-widest uppercase">Security Baseline Suite</span>
             </div>
           )}
         </Link>
