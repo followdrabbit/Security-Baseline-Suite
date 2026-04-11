@@ -18,6 +18,8 @@ const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 const ACCEPTED_EXTENSIONS = ACCEPTED_TYPES.split(',');
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+const MAX_FILE_SIZE_MB = 20;
 
 // Maps user-facing model names to Lovable AI gateway model IDs
 const LOVABLE_MODEL_MAP: Record<string, string> = {
