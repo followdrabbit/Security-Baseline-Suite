@@ -283,6 +283,9 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
             {uploading ? (t.sources.uploading || 'Enviando...') : t.sources.dragDrop}
           </p>
           <p className="text-xs text-muted-foreground">{t.sources.dragDropSub}</p>
+          <p className="text-[10px] text-muted-foreground/70 px-3 py-1 bg-muted/50 rounded-full mt-1">
+            Máximo {MAX_FILE_SIZE_MB}MB por arquivo
+          </p>
         </div>
       </div>
 
