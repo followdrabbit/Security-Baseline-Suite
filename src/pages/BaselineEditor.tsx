@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Edit3, Eye, FileText, Shield, Layers, List, Network, Crosshair, AlertTriangle, Zap, Target, X, ArrowLeft, Rocket, History, Lock, ArrowRight, GitCompare, RotateCcw, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ControlItem, StrideCategory, ThreatLikelihood, ThreatScenario, SourceTraceability, Criticality, ReviewStatus } from '@/types';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/localdb/types';
 
 const CATEGORY_LABELS: Record<string, { en: string; pt: string; es: string }> = {
   identity: { en: 'Identity & Access', pt: 'Identidade e Acesso', es: 'Identidad y Acceso' },
@@ -114,7 +114,7 @@ const BaselineEditor: React.FC = () => {
   const { data: projects = [] } = useQuery({
     queryKey: ['baseline-projects', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('projects')
         .select('id, name, technology, status, control_count, current_version')
         .gt('control_count', 0)
@@ -130,7 +130,7 @@ const BaselineEditor: React.FC = () => {
     queryKey: ['baseline-sources', user?.id, selectedProject],
     queryFn: async () => {
       if (selectedProject === 'all') return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('sources')
         .select('*')
         .eq('project_id', selectedProject);
@@ -144,7 +144,7 @@ const BaselineEditor: React.FC = () => {
   const { data: controls = [], isLoading: loading } = useQuery({
     queryKey: ['baseline-controls', user?.id, selectedProject],
     queryFn: async () => {
-      let query = supabase
+      let query = localDb
         .from('controls')
         .select('*')
         .order('created_at', { ascending: true });
@@ -165,7 +165,7 @@ const BaselineEditor: React.FC = () => {
     queryKey: ['baseline-versions', user?.id, selectedProject],
     queryFn: async () => {
       if (selectedProject === 'all') return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('baseline_versions')
         .select('id, version, published_at, control_count, status, controls_snapshot, sources_snapshot, project_snapshot, changes_summary')
         .eq('project_id', selectedProject)
@@ -194,7 +194,7 @@ const BaselineEditor: React.FC = () => {
   // Update review status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('controls')
         .update({ review_status: status })
         .eq('id', id);
@@ -214,7 +214,7 @@ const BaselineEditor: React.FC = () => {
       if (reviewedIds.length === 0) return;
 
       for (const id of reviewedIds) {
-        const { error } = await supabase
+        const { error } = await localDb
           .from('controls')
           .update({ review_status: 'approved' })
           .eq('id', id);
@@ -229,7 +229,7 @@ const BaselineEditor: React.FC = () => {
   // Update reviewer notes mutation
   const updateNotesMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('controls')
         .update({ reviewer_notes: notes })
         .eq('id', id);
@@ -303,13 +303,13 @@ const BaselineEditor: React.FC = () => {
       const newVersion = (proj?.current_version || 0) + 1;
 
       // Get full controls for snapshot
-      const { data: controlsData } = await supabase
+      const { data: controlsData } = await localDb
         .from('controls')
         .select('*')
         .eq('project_id', selectedProject);
 
       // Get full sources for snapshot
-      const { data: sourcesData } = await supabase
+      const { data: sourcesData } = await localDb
         .from('sources')
         .select('*')
         .eq('project_id', selectedProject);
@@ -374,7 +374,7 @@ const BaselineEditor: React.FC = () => {
       }
 
       // Create the version snapshot
-      const { error: versionError } = await supabase
+      const { error: versionError } = await localDb
         .from('baseline_versions')
         .insert({
           project_id: selectedProject,
@@ -391,7 +391,7 @@ const BaselineEditor: React.FC = () => {
       if (versionError) throw versionError;
 
       // Audit log
-      await supabase.from('version_audit_logs' as any).insert({
+      await localDb.from('version_audit_logs' as any).insert({
         user_id: user.id,
         project_id: selectedProject,
         action: 'publish',
@@ -405,7 +405,7 @@ const BaselineEditor: React.FC = () => {
       });
 
       // Update project current_version
-      const { error: projError } = await supabase
+      const { error: projError } = await localDb
         .from('projects')
         .update({ current_version: newVersion, status: 'approved' })
         .eq('id', selectedProject);
@@ -429,7 +429,7 @@ const BaselineEditor: React.FC = () => {
   const restoreMutation = useMutation({
     mutationFn: async (versionId: string) => {
       if (!user || selectedProject === 'all') throw new Error('Select a project');
-      const { data, error } = await supabase.functions.invoke('restore-baseline', {
+      const { data, error } = await localDb.functions.invoke('restore-baseline', {
         body: { versionId, projectId: selectedProject },
       });
       if (error) throw error;
@@ -1080,3 +1080,5 @@ const Field: React.FC<{ label: React.ReactNode; value: string }> = ({ label, val
 );
 
 export default BaselineEditor;
+
+

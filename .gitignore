@@ -10,7 +10,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+build
+out
+.vite
+*.tsbuildinfo
+coverage
 *.local
+local-api/data/*.sqlite
+local-api/data/*.sqlite-*
 
 # Editor directories and files
 .vscode/*

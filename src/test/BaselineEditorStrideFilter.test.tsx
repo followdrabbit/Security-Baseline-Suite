@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import BaselineEditor from '@/pages/BaselineEditor';
 import { I18nProvider } from '@/contexts/I18nContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -24,72 +25,86 @@ vi.mock('framer-motion', async () => {
   };
 });
 
+vi.mock('@/integrations/localdb/client', async () => {
+  const { createBaselineEditorLocalDbMock } = await import('./mocks/baselineEditorLocalDbMock');
+  return {
+    localDb: createBaselineEditorLocalDbMock(),
+  };
+});
+
 const renderEditorWithUrl = (url: string) => {
-  // Set window.location.search for the component to read
-  Object.defineProperty(window, 'location', {
-    writable: true,
-    value: { ...window.location, search: new URL(url, 'http://localhost').search },
+  window.history.pushState({}, 'Test', url);
+
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
   });
 
   return render(
-    <MemoryRouter initialEntries={[url]}>
-      <I18nProvider>
-        <TooltipProvider>
-          <BaselineEditor />
-        </TooltipProvider>
-      </I18nProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        initialEntries={[url]}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
+        <I18nProvider>
+          <TooltipProvider>
+            <BaselineEditor />
+          </TooltipProvider>
+        </I18nProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 };
 
 describe('BaselineEditor STRIDE URL filter', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.useFakeTimers();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('applies tampering filter from URL and shows filtered controls', () => {
+  it('applies tampering filter from URL and shows filtered controls', async () => {
     renderEditorWithUrl('/editor?stride=tampering');
-    act(() => vi.advanceTimersByTime(1400));
 
-    // Should show only controls with tampering threats (S3-SEC-001, S3-SEC-004, GH-SEC-002)
-    expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
+    });
+
     expect(screen.getByText('S3-SEC-004')).toBeInTheDocument();
     expect(screen.getByText('GH-SEC-002')).toBeInTheDocument();
-    // S3-SEC-002 has only information_disclosure, should not appear
     expect(screen.queryByText('S3-SEC-002')).not.toBeInTheDocument();
   });
 
-  it('applies information_disclosure filter from URL', () => {
+  it('applies information_disclosure filter from URL', async () => {
     renderEditorWithUrl('/editor?stride=information_disclosure');
-    act(() => vi.advanceTimersByTime(1400));
 
-    // S3-SEC-001 has information_disclosure threat
-    expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
-    // S3-SEC-002 has information_disclosure threat
+    await waitFor(() => {
+      expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
+    });
+
     expect(screen.getByText('S3-SEC-002')).toBeInTheDocument();
   });
 
-  it('shows all controls when no stride param', () => {
+  it('shows all controls when no stride param', async () => {
     renderEditorWithUrl('/editor');
-    act(() => vi.advanceTimersByTime(1400));
 
-    expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
+    });
+
     expect(screen.getByText('S3-SEC-002')).toBeInTheDocument();
     expect(screen.getByText('S3-SEC-003')).toBeInTheDocument();
   });
 
-  it('applies denial_of_service filter from URL', () => {
+  it('applies denial_of_service filter from URL', async () => {
     renderEditorWithUrl('/editor?stride=denial_of_service');
-    act(() => vi.advanceTimersByTime(1400));
 
-    // S3-SEC-005 has denial_of_service threat (ransomware scenario)
-    expect(screen.getByText('S3-SEC-005')).toBeInTheDocument();
-    // S3-SEC-001 does NOT have denial_of_service
+    await waitFor(() => {
+      expect(screen.getByText('S3-SEC-005')).toBeInTheDocument();
+    });
+
     expect(screen.queryByText('S3-SEC-001')).not.toBeInTheDocument();
   });
 });
+
+

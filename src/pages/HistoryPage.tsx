@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -56,7 +56,7 @@ const History: React.FC = () => {
     queryKey: ['history-projects', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('projects')
         .select('id, name, technology')
         .eq('user_id', user.id)
@@ -71,7 +71,7 @@ const History: React.FC = () => {
     queryKey: ['baseline-versions', user?.id, selectedProjectId],
     queryFn: async () => {
       if (!user || !selectedProjectId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('baseline_versions')
         .select('*')
         .eq('user_id', user.id)
@@ -88,7 +88,7 @@ const History: React.FC = () => {
     queryKey: ['version-audit-logs', user?.id, selectedProjectId],
     queryFn: async () => {
       if (!user || !selectedProjectId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('version_audit_logs' as any)
         .select('*')
         .eq('user_id', user.id)
@@ -453,7 +453,7 @@ const History: React.FC = () => {
           if (!restoreModal.versionId || !selectedProjectId || restoring) return;
           setRestoring(true);
           try {
-            const { data, error } = await supabase.functions.invoke('restore-baseline', {
+            const { data, error } = await localDb.functions.invoke('restore-baseline', {
               body: { versionId: restoreModal.versionId, projectId: selectedProjectId },
             });
             if (error) throw error;
@@ -495,3 +495,5 @@ const History: React.FC = () => {
 };
 
 export default History;
+
+

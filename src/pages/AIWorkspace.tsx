@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery } from '@tanstack/react-query';
 import HelpButton from '@/components/HelpButton';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,8 @@ const statusIcon: Record<PipelineStageStatus, React.ReactNode> = {
   failed: <XCircle className="h-4 w-4 text-destructive" />,
 };
 
+const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
+
 const AIWorkspace: React.FC = () => {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -47,7 +49,7 @@ const AIWorkspace: React.FC = () => {
   const { data: projects = [] } = useQuery({
     queryKey: ['projects', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('projects')
         .select('id, name, technology, status, source_count, control_count')
         .order('updated_at', { ascending: false });
@@ -61,7 +63,7 @@ const AIWorkspace: React.FC = () => {
   const { data: sources = [] } = useQuery({
     queryKey: ['sources-processed', selectedProjectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('sources')
         .select('id, name, type, extracted_content, status, confidence')
         .eq('project_id', selectedProjectId)
@@ -88,7 +90,7 @@ const AIWorkspace: React.FC = () => {
     try {
       // Step 1: Fetch sources
       updateStep('fetch_sources', { status: 'running', message: 'Loading processed sources...' });
-      const { data: processedSources, error: srcError } = await supabase
+      const { data: processedSources, error: srcError } = await localDb
         .from('sources')
         .select('id, name, type, extracted_content')
         .eq('project_id', selectedProjectId)
@@ -114,9 +116,9 @@ const AIWorkspace: React.FC = () => {
       // Step 3: Call generate-controls
       updateStep('ai_generate', { status: 'running', message: 'AI is analyzing sources and generating security controls...' });
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await localDb.auth.getSession();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-controls`,
+        `${LOCAL_API_URL}/functions/v1/generate-controls`,
         {
           method: 'POST',
           headers: {
@@ -322,3 +324,5 @@ const AIWorkspace: React.FC = () => {
 };
 
 export default AIWorkspace;
+
+

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTeams, useTeamMembers } from '@/hooks/useTeams';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ const Teams: React.FC = () => {
     queryKey: ['projects', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase.from('projects').select('*').eq('user_id', user.id);
+      const { data } = await localDb.from('projects').select('*').eq('user_id', user.id);
       return data || [];
     },
     enabled: !!user,
@@ -248,3 +248,5 @@ const Teams: React.FC = () => {
 };
 
 export default Teams;
+
+

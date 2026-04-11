@@ -11,7 +11,8 @@ interface Message {
   content: string;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/doc-assistant`;
+const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
+const CHAT_URL = `${LOCAL_API_URL}/functions/v1/doc-assistant`;
 
 async function streamChat({
   messages,
@@ -29,7 +30,7 @@ async function streamChat({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: 'Bearer local-dev-token',
       },
       body: JSON.stringify({ messages }),
     });

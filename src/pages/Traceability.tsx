@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery } from '@tanstack/react-query';
 import InfoTooltip from '@/components/InfoTooltip';
 import HelpButton from '@/components/HelpButton';
@@ -24,7 +24,7 @@ const Traceability: React.FC = () => {
     queryKey: ['traceability-controls', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('controls')
         .select('*')
         .eq('user_id', user.id)
@@ -166,3 +166,5 @@ const Traceability: React.FC = () => {
 };
 
 export default Traceability;
+
+

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 
@@ -59,6 +59,8 @@ describe('ThemeContext', () => {
   });
 
   it('throws when useTheme is used outside provider', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<TestConsumer />)).toThrow('useTheme must be used within ThemeProvider');
+    consoleErrorSpy.mockRestore();
   });
 });

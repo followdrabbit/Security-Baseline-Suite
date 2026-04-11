@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import BaselineEditor from '@/pages/BaselineEditor';
 import { I18nProvider } from '@/contexts/I18nContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -25,88 +26,100 @@ vi.mock('framer-motion', async () => {
   };
 });
 
-const renderEditor = () =>
-  render(
-    <MemoryRouter>
-      <I18nProvider>
-        <TooltipProvider>
-          <BaselineEditor />
-        </TooltipProvider>
-      </I18nProvider>
-    </MemoryRouter>
+vi.mock('@/integrations/localdb/client', async () => {
+  const { createBaselineEditorLocalDbMock } = await import('./mocks/baselineEditorLocalDbMock');
+  return {
+    localDb: createBaselineEditorLocalDbMock(),
+  };
+});
+
+const renderEditor = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <I18nProvider>
+          <TooltipProvider>
+            <BaselineEditor />
+          </TooltipProvider>
+        </I18nProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
+};
+
+const waitForControlsLoaded = async () => {
+  await waitFor(() => {
+    expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
+  });
+};
 
 describe('BaselineEditor', () => {
   beforeEach(() => {
     localStorage.clear();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   it('renders page title', () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
     expect(screen.getByText(/Baseline Editor/i)).toBeInTheDocument();
   });
 
   it('renders search input', () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
     expect(screen.getByPlaceholderText(/search/i)).toBeInTheDocument();
   });
 
   it('renders approve all button', () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
     expect(screen.getByText(/Approve All/i)).toBeInTheDocument();
   });
 
-  it('renders controls grouped by category after loading', () => {
+  it('renders controls grouped by category after loading', async () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
+    await waitForControlsLoaded();
     expect(screen.getByText('Identity & Access')).toBeInTheDocument();
     expect(screen.getByText('Encryption & Data Protection')).toBeInTheDocument();
   });
 
-  it('renders control IDs in the list', () => {
+  it('renders control IDs in the list', async () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
+    await waitForControlsLoaded();
     expect(screen.getByText('S3-SEC-001')).toBeInTheDocument();
     expect(screen.getByText('S3-SEC-002')).toBeInTheDocument();
   });
 
-  it('shows items count', () => {
+  it('shows items count', async () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
+    await waitForControlsLoaded();
     expect(screen.getByText(/items/i)).toBeInTheDocument();
   });
 
   it('renders list and mindmap view toggle buttons', () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
     expect(screen.getByTitle('List View')).toBeInTheDocument();
     expect(screen.getByTitle('Mind Map')).toBeInTheDocument();
   });
 
   it('renders expand all and collapse all buttons in list mode', () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
     expect(screen.getByText(/Expand All/i)).toBeInTheDocument();
     expect(screen.getByText(/Collapse All/i)).toBeInTheDocument();
   });
 
-  it('clicking a control card expands it showing details', () => {
+  it('clicking a control card expands it showing details', async () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
+    await waitForControlsLoaded();
 
     const controlBtn = screen.getByText('S3-SEC-001').closest('button');
     expect(controlBtn).toBeTruthy();
-    act(() => controlBtn!.click());
+    await userEvent.click(controlBtn!);
 
-    // Expanded card shows action buttons
     expect(screen.getByText(/^Approve$/)).toBeInTheDocument();
     expect(screen.getByText(/^Reject$/)).toBeInTheDocument();
     expect(screen.getByText(/^Adjust$/)).toBeInTheDocument();
@@ -114,8 +127,7 @@ describe('BaselineEditor', () => {
 
   it('shows no controls message when search has no results', async () => {
     renderEditor();
-    act(() => vi.advanceTimersByTime(1400));
-    vi.useRealTimers();
+    await waitForControlsLoaded();
 
     const searchInput = screen.getByPlaceholderText(/search/i);
     await userEvent.type(searchInput, 'nonexistent_xyz_12345');
@@ -124,81 +136,81 @@ describe('BaselineEditor', () => {
   });
 
   describe('Threat Modeling section', () => {
-    it('renders threat modeling header when control is expanded', () => {
+    it('renders threat modeling header when control is expanded', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
       expect(screen.getByText(/Threat Modeling/i)).toBeInTheDocument();
     });
 
-    it('shows threat count badge', () => {
+    it('shows threat count badge', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
       expect(screen.getByText(/2 threats/i)).toBeInTheDocument();
     });
 
-    it('displays threat scenario names', () => {
+    it('displays threat scenario names', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
       expect(screen.getByText('Unauthorized Data Exposure via Public Bucket')).toBeInTheDocument();
       expect(screen.getByText('Data Exfiltration via Policy Misconfiguration')).toBeInTheDocument();
     });
 
-    it('displays STRIDE category badges', () => {
+    it('displays STRIDE category badges', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
-      expect(screen.getByText(/information disclosure/i)).toBeInTheDocument();
-      expect(screen.getByText(/tampering/i)).toBeInTheDocument();
+      expect(screen.getByText(/^information disclosure$/i)).toBeInTheDocument();
+      expect(screen.getByText(/^tampering$/i)).toBeInTheDocument();
     });
 
-    it('displays likelihood badges with correct text', () => {
+    it('displays likelihood badges with correct text', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
       expect(screen.getByText('high')).toBeInTheDocument();
       expect(screen.getByText('medium')).toBeInTheDocument();
     });
 
-    it('displays attack vector and mitigations', () => {
+    it('displays attack vector and mitigations', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
       const controlBtn = screen.getByText('S3-SEC-001').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
       expect(screen.getAllByText(/Attack Vector/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText(/Mitigations/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText(/Residual Risk/i).length).toBeGreaterThanOrEqual(1);
     });
 
-    it('shows no threats message for control without threats', () => {
+    it('shows no threats message for control without threats', async () => {
       renderEditor();
-      act(() => vi.advanceTimersByTime(1400));
+      await waitForControlsLoaded();
 
-      // Expand a control that may have no threats — check S3-SEC-002 (encryption, 1 threat)
       const controlBtn = screen.getByText('S3-SEC-002').closest('button');
-      act(() => controlBtn!.click());
+      await userEvent.click(controlBtn!);
 
-      // S3-SEC-002 has 1 threat, verify it renders
       expect(screen.getByText('1 threat')).toBeInTheDocument();
     });
   });
 });
+
+

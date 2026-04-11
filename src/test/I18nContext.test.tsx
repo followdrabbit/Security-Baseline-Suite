@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { I18nProvider, useI18n } from '@/contexts/I18nContext';
 
@@ -50,6 +50,8 @@ describe('I18nContext', () => {
   });
 
   it('throws when useI18n is used outside provider', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<TestConsumer />)).toThrow('useI18n must be used within I18nProvider');
+    consoleErrorSpy.mockRestore();
   });
 });

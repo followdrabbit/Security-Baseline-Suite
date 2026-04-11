@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface Notification {
@@ -25,7 +25,7 @@ export function useNotifications() {
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
@@ -42,7 +42,7 @@ export function useNotifications() {
   // Realtime subscription
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
+    const channel = localDb
       .channel('notifications-realtime')
       .on(
         'postgres_changes',
@@ -59,13 +59,13 @@ export function useNotifications() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      localDb.removeChannel(channel);
     };
   }, [user, queryClient]);
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('notifications')
         .update({ is_read: true })
         .eq('id', notificationId);
@@ -77,7 +77,7 @@ export function useNotifications() {
   const markAllAsRead = useMutation({
     mutationFn: async () => {
       if (!user) return;
-      const { error } = await supabase
+      const { error } = await localDb
         .from('notifications')
         .update({ is_read: true })
         .eq('user_id', user.id)
@@ -89,7 +89,7 @@ export function useNotifications() {
 
   const deleteNotification = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('notifications')
         .delete()
         .eq('id', notificationId);
@@ -101,7 +101,7 @@ export function useNotifications() {
   const clearAll = useMutation({
     mutationFn: async () => {
       if (!user) return;
-      const { error } = await supabase
+      const { error } = await localDb
         .from('notifications')
         .delete()
         .eq('user_id', user.id);
@@ -112,3 +112,5 @@ export function useNotifications() {
 
   return { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification, clearAll };
 }
+
+

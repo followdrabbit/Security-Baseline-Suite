@@ -3,7 +3,7 @@ import DiffView from '@/components/DiffHighlight';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
 import { X, Clock, Cpu, Eye, EyeOff, Database, FileText, Globe, ArrowRight, Plus, CheckCircle2, AlertCircle, Loader2, Download, Sparkles, Hash, RefreshCw, FileDown } from 'lucide-react';
@@ -113,7 +113,7 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
 
   const reprocessMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('reprocess-source', {
+      const { data, error } = await localDb.functions.invoke('reprocess-source', {
         body: { sourceId: source.id, model: reprocessModel, maxTokens: 65000 },
       });
       if (error) throw error;
@@ -141,7 +141,7 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
   const { data: activityLogs = [], isLoading: logsLoading } = useQuery({
     queryKey: ['source-activity-logs', source.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('source_activity_logs' as any)
         .select('*')
         .eq('source_id', source.id)
@@ -652,3 +652,5 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
 };
 
 export default SourceDetailPanel;
+
+

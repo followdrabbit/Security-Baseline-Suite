@@ -24,7 +24,7 @@ vi.mock('framer-motion', async () => {
   };
 });
 
-// Mock useRuleValues to avoid needing AuthProvider/Supabase
+// Mock useRuleValues to avoid needing AuthProvider/localDb
 vi.mock('@/hooks/useRuleValues', () => ({
   useRuleValues: ({ defaults }: { defaults: Record<string, string> }) => ({
     values: defaults,
@@ -46,9 +46,21 @@ vi.mock('@/hooks/useTemplateVersions', () => ({
   }),
 }));
 
+// Mock recharts to avoid width/height warnings in jsdom
+vi.mock('recharts', () => ({
+  ResponsiveContainer: ({ children }: any) => <div data-testid="chart-container">{children}</div>,
+  RadarChart: ({ children }: any) => <div data-testid="radar-chart">{children}</div>,
+  Radar: () => null,
+  PolarGrid: () => null,
+  PolarAngleAxis: () => null,
+  PolarRadiusAxis: () => null,
+  Tooltip: () => null,
+  Legend: () => null,
+}));
+
 const renderRules = () =>
   render(
-    <MemoryRouter>
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <I18nProvider>
         <TooltipProvider>
           <RulesTemplates />

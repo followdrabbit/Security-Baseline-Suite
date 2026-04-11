@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
@@ -19,6 +19,7 @@ import SourceDetailPanel from '@/components/SourceDetailPanel';
 import { aiConfigService } from '@/services/aiService';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
+const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
 
 // Maps user-facing model names to Lovable AI gateway model IDs
 const LOVABLE_MODEL_MAP: Record<string, string> = {
@@ -68,7 +69,7 @@ const SourceLibrary: React.FC = () => {
   const { data: projects } = useQuery({
     queryKey: ['projects', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('projects').select('id, name').order('updated_at', { ascending: false });
+      const { data, error } = await localDb.from('projects').select('id, name').order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -88,7 +89,7 @@ const SourceLibrary: React.FC = () => {
   const { data: sources = [], isLoading } = useQuery({
     queryKey: ['sources', user?.id, selectedProjectId],
     queryFn: async () => {
-      let query = supabase.from('sources').select('*').order('added_at', { ascending: false });
+      let query = localDb.from('sources').select('*').order('added_at', { ascending: false });
       if (selectedProjectId) {
         query = query.eq('project_id', selectedProjectId);
       }
@@ -130,10 +131,10 @@ const SourceLibrary: React.FC = () => {
     formData.append('model', model);
     formData.append('maxTokens', String(maxTokens));
 
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const { data: { session: currentSession } } = await localDb.auth.getSession();
 
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`,
+      `${LOCAL_API_URL}/functions/v1/parse-document`,
       {
         method: 'POST',
         headers: {
@@ -192,7 +193,7 @@ const SourceLibrary: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from('sources').delete().in('id', ids);
+      const { error } = await localDb.from('sources').delete().in('id', ids);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -211,9 +212,9 @@ const SourceLibrary: React.FC = () => {
       const model = resolveModelId(defaultConfig);
       const maxTokens = resolveMaxTokens(defaultConfig);
 
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: { session: currentSession } } = await localDb.auth.getSession();
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-url`,
+        `${LOCAL_API_URL}/functions/v1/parse-url`,
         {
           method: 'POST',
           headers: {
@@ -480,3 +481,5 @@ const SourceLibrary: React.FC = () => {
 };
 
 export default SourceLibrary;
+
+

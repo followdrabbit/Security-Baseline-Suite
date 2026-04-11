@@ -5,7 +5,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery } from '@tanstack/react-query';
 import HelpButton from '@/components/HelpButton';
 import { KPICardSkeleton } from '@/components/skeletons/SkeletonPremium';
@@ -208,7 +208,7 @@ const AuditDashboard: React.FC = () => {
     queryKey: ['audit-projects', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('projects')
         .select('id, name, technology, status, current_version, control_count, avg_confidence')
         .eq('user_id', user.id);
@@ -223,7 +223,7 @@ const AuditDashboard: React.FC = () => {
     queryKey: ['audit-versions', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('baseline_versions')
         .select('id, project_id, version, status, control_count, changes_summary, created_at, published_at, controls_snapshot')
         .eq('user_id', user.id)
@@ -239,7 +239,7 @@ const AuditDashboard: React.FC = () => {
     queryKey: ['audit-logs-all', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('version_audit_logs')
         .select('*')
         .eq('user_id', user.id)
@@ -256,7 +256,7 @@ const AuditDashboard: React.FC = () => {
     queryKey: ['audit-controls', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('controls')
         .select('id, review_status, criticality, project_id, framework_mappings, created_at')
         .eq('user_id', user.id);
@@ -1116,3 +1116,5 @@ const AuditDashboard: React.FC = () => {
 };
 
 export default AuditDashboard;
+
+

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import HelpButton from '@/components/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,8 @@ const LOVABLE_MODEL_MAP: Record<string, string> = {
   'gpt-5': 'openai/gpt-5',
   'gpt-5-mini': 'openai/gpt-5-mini',
 };
+
+const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
 
 function resolveModelId(providerConfig: any): string {
   if (!providerConfig) return 'google/gemini-2.5-flash';
@@ -134,8 +136,8 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     setUrlInput('');
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await supabase.functions.invoke('parse-url', {
+      const { data: { session } } = await localDb.auth.getSession();
+      const resp = await localDb.functions.invoke('parse-url', {
         body: { url, projectId },
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
@@ -173,10 +175,10 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       formData.append('model', model);
       formData.append('maxTokens', String(maxTokens));
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await localDb.auth.getSession();
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-document`);
+      xhr.open('POST', `${LOCAL_API_URL}/functions/v1/parse-document`);
       xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
 
       xhr.upload.onprogress = (e) => {
@@ -285,8 +287,8 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
     if (item.type === 'url' && item.originalUrl) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const resp = await supabase.functions.invoke('parse-url', {
+        const { data: { session } } = await localDb.auth.getSession();
+        const resp = await localDb.functions.invoke('parse-url', {
           body: { url: item.originalUrl, projectId },
           headers: { Authorization: `Bearer ${session?.access_token}` },
         });
@@ -492,11 +494,11 @@ const NewProject: React.FC = () => {
     setPipelineProgress('Carregando fontes processadas...');
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await localDb.auth.getSession();
 
       // 1. Fetch processed sources for this project
       setPipelineProgress('Buscando conteúdo das fontes...');
-      const { data: sources, error: srcErr } = await supabase
+      const { data: sources, error: srcErr } = await localDb
         .from('sources')
         .select('name, extracted_content, type')
         .eq('project_id', projectId)
@@ -517,7 +519,7 @@ const NewProject: React.FC = () => {
 
       // 2. Call generate-controls edge function
       setPipelineProgress(`Gerando controles a partir de ${sourceTexts.length} fonte(s)...`);
-      const resp = await supabase.functions.invoke('generate-controls', {
+      const resp = await localDb.functions.invoke('generate-controls', {
         body: {
           projectId,
           sourceTexts,
@@ -752,7 +754,7 @@ const NewProject: React.FC = () => {
                 }
                 setSaving(true);
                 try {
-                  const { data, error } = await supabase.from('projects').insert({
+                  const { data, error } = await localDb.from('projects').insert({
                     name: form.name,
                     technology: form.technology,
                     vendor: form.vendor || null,
@@ -800,3 +802,5 @@ const NewProject: React.FC = () => {
 };
 
 export default NewProject;
+
+

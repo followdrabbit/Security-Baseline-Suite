@@ -1,0 +1,29 @@
+﻿Project: Aureum Baseline Studio
+Date: 2026-04-11
+
+System context for LLM assistants:
+
+1. Backend/storage model
+- The app runs with a local SQLite backend.
+- Main API entrypoint: local-api/server.mjs
+- Database file: local-api/data/security-baseline.sqlite
+- Client integration module: src/integrations/localdb/client.ts
+- Type definitions: src/integrations/localdb/types.ts
+
+2. Runtime mode
+- Start everything with npm run dev:local
+- Local API URL expected by frontend: http://127.0.0.1:8787
+- Auth is local session based (email/password)
+
+3. Removed components
+- Supabase code paths were removed from app runtime.
+- Do not introduce new Supabase imports or env vars.
+
+4. Testing
+- Unit/integration tests: npm test
+- Coverage: npm run test:coverage
+- Tests mock localDb (not supabase).
+
+5. Documentation alignment
+- README.md and docs/* reflect local SQLite mode.
+- Keep docs consistent with local-api and localdb integration.

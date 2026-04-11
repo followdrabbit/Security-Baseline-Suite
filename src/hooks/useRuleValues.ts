@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -21,7 +21,7 @@ export function useRuleValues({ defaults }: UseRuleValuesOptions) {
 
     const load = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await localDb
           .from('user_rule_values')
           .select('rule_id, value')
           .eq('user_id', user.id);
@@ -62,14 +62,14 @@ export function useRuleValues({ defaults }: UseRuleValuesOptions) {
       setSaving(true);
       if (value === defaults[ruleId]) {
         // If restoring to default, delete the row
-        await supabase
+        await localDb
           .from('user_rule_values')
           .delete()
           .eq('user_id', user.id)
           .eq('rule_id', ruleId);
       } else {
         // Upsert custom value
-        const { error } = await supabase
+        const { error } = await localDb
           .from('user_rule_values')
           .upsert(
             { user_id: user.id, rule_id: ruleId, value },
@@ -96,7 +96,7 @@ export function useRuleValues({ defaults }: UseRuleValuesOptions) {
     setValues(defaults);
     try {
       setSaving(true);
-      await supabase
+      await localDb
         .from('user_rule_values')
         .delete()
         .eq('user_id', user.id);
@@ -109,3 +109,5 @@ export function useRuleValues({ defaults }: UseRuleValuesOptions) {
 
   return { values, loading, saving, updateValue, restoreOne, restoreAll };
 }
+
+

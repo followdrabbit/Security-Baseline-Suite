@@ -1,1 +1,0 @@
-UPDATE controls SET title = 'Criptografia de Dados em Repouso (SSE-S3 + KMS)', criticality = 'critical' WHERE control_id = 'S3-002' AND project_id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' AND id = 'c3419f56-2c31-4b4f-ae50-9b73be1abd0d';

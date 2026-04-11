@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import StatusBadge from '@/components/StatusBadge';
 import ConfidenceScore from '@/components/ConfidenceScore';
@@ -223,11 +223,11 @@ const Dashboard: React.FC = () => {
   const deleteProject = useMutation({
     mutationFn: async (projectId: string) => {
       // Delete related data first, then the project
-      await supabase.from('controls').delete().eq('project_id', projectId);
-      await supabase.from('sources').delete().eq('project_id', projectId);
-      await supabase.from('baseline_versions').delete().eq('project_id', projectId);
-      await supabase.from('notifications').delete().eq('project_id', projectId);
-      const { error } = await supabase.from('projects').delete().eq('id', projectId);
+      await localDb.from('controls').delete().eq('project_id', projectId);
+      await localDb.from('sources').delete().eq('project_id', projectId);
+      await localDb.from('baseline_versions').delete().eq('project_id', projectId);
+      await localDb.from('notifications').delete().eq('project_id', projectId);
+      const { error } = await localDb.from('projects').delete().eq('id', projectId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -246,7 +246,7 @@ const Dashboard: React.FC = () => {
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['dashboard-projects', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
   const { data: controls = [], isLoading: controlsLoading } = useQuery({
     queryKey: ['dashboard-controls', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('controls')
         .select('*');
       if (error) throw error;
@@ -273,7 +273,7 @@ const Dashboard: React.FC = () => {
   const { data: baselineVersions = [], isLoading: versionsLoading } = useQuery({
     queryKey: ['dashboard-versions', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('baseline_versions')
         .select('*')
         .order('version', { ascending: true });
@@ -999,3 +999,5 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
+

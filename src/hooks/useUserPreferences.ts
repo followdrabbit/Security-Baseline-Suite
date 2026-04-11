@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface UserPreferences {
@@ -20,7 +20,7 @@ export function useUserPreferences() {
     queryKey: ['user-preferences', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('user_preferences' as any)
         .select('*')
         .eq('user_id', user.id)
@@ -38,20 +38,20 @@ export function useUserPreferences() {
   const updatePreference = useMutation({
     mutationFn: async (updates: Partial<Pick<UserPreferences, 'notify_source_processed' | 'notify_control_status' | 'notify_team_member_joined'>>) => {
       if (!user) return;
-      const { data: existing } = await supabase
+      const { data: existing } = await localDb
         .from('user_preferences' as any)
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { error } = await localDb
           .from('user_preferences' as any)
           .update(updates)
           .eq('user_id', user.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await localDb
           .from('user_preferences' as any)
           .insert({ user_id: user.id, ...updates });
         if (error) throw error;
@@ -64,3 +64,5 @@ export function useUserPreferences() {
 
   return { preferences, notifySourceProcessed, notifyControlStatus, notifyTeamMemberJoined, isLoading, updatePreference };
 }
+
+

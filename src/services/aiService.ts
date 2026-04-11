@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 
 export interface AIProviderConfig {
   id: string;
@@ -13,7 +13,7 @@ export interface AIProviderConfig {
 
 export const aiConfigService = {
   getAll: async (): Promise<AIProviderConfig[]> => {
-    const { data, error } = await supabase
+    const { data, error } = await localDb
       .from('ai_provider_configs')
       .select('*')
       .order('created_at');
@@ -22,7 +22,7 @@ export const aiConfigService = {
   },
 
   getDefault: async (): Promise<AIProviderConfig | null> => {
-    const { data, error } = await supabase
+    const { data, error } = await localDb
       .from('ai_provider_configs')
       .select('*')
       .eq('is_default', true)
@@ -39,10 +39,10 @@ export const aiConfigService = {
     is_default: boolean;
     extra_config?: Record<string, any>;
   }): Promise<AIProviderConfig> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await localDb.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const { data, error } = await supabase
+    const { data, error } = await localDb
       .from('ai_provider_configs')
       .upsert({
         user_id: user.id,
@@ -61,17 +61,17 @@ export const aiConfigService = {
   },
 
   setDefault: async (providerId: string): Promise<void> => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await localDb.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
     // Clear all defaults
-    await supabase
+    await localDb
       .from('ai_provider_configs')
       .update({ is_default: false })
       .eq('user_id', user.id);
 
     // Set new default
-    await supabase
+    await localDb
       .from('ai_provider_configs')
       .update({ is_default: true })
       .eq('user_id', user.id)
@@ -116,10 +116,12 @@ export const aiConfigService = {
 
 export const generateControlsService = {
   generate: async (projectId: string, technology: string, sourceTexts?: { name: string; content: string }[], language?: string) => {
-    const { data, error } = await supabase.functions.invoke('generate-controls', {
+    const { data, error } = await localDb.functions.invoke('generate-controls', {
       body: { projectId, technology, sourceTexts, language },
     });
     if (error) throw error;
     return data;
   },
 };
+
+

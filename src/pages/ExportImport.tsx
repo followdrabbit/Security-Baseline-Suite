@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExportCardSkeleton } from '@/components/skeletons/SkeletonPremium';
 import HelpButton from '@/components/HelpButton';
@@ -50,7 +50,7 @@ const ExportImport: React.FC = () => {
     queryKey: ['export-projects', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('projects')
         .select('id, name, technology, control_count')
         .eq('user_id', user.id)
@@ -69,7 +69,7 @@ const ExportImport: React.FC = () => {
 
     setExporting(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('controls')
         .select('*')
         .eq('user_id', user.id)
@@ -204,7 +204,7 @@ const ExportImport: React.FC = () => {
           return;
         }
 
-        const { data: newProject, error: projError } = await supabase
+        const { data: newProject, error: projError } = await localDb
           .from('projects')
           .insert({
             user_id: user.id,
@@ -250,7 +250,7 @@ const ExportImport: React.FC = () => {
         category: c.category || '',
       }));
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await localDb
         .from('controls')
         .insert(controlRows);
 
@@ -258,14 +258,14 @@ const ExportImport: React.FC = () => {
 
       // Update project control count if existing project
       if (importTargetProject === 'existing') {
-        const { data: countData } = await supabase
+        const { data: countData } = await localDb
           .from('controls')
           .select('id', { count: 'exact', head: true })
           .eq('project_id', projectId)
           .eq('user_id', user.id);
 
         // We don't have exact count from head query, so just update with added
-        await supabase
+        await localDb
           .from('projects')
           .update({ control_count: (projects.find(p => p.id === projectId)?.control_count || 0) + importPreview.controlCount })
           .eq('id', projectId);
@@ -286,7 +286,7 @@ const ExportImport: React.FC = () => {
 
   const handleGenerateDocument = async () => {
     if (!user || !selectedProjectId) return;
-    const { data } = await supabase
+    const { data } = await localDb
       .from('controls')
       .select('*')
       .eq('user_id', user.id)
@@ -653,3 +653,5 @@ const ExportImport: React.FC = () => {
 };
 
 export default ExportImport;
+
+

@@ -11,7 +11,7 @@ import InfoTooltip from '@/components/InfoTooltip';
 import HelpButton from '@/components/HelpButton';
 import { useToast } from '@/hooks/use-toast';
 import { aiConfigService } from '@/services/aiService';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import {
   Brain, Key, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Zap, RefreshCw, Sparkles, LogIn,
 } from 'lucide-react';
@@ -137,7 +137,7 @@ const AIIntegrations: React.FC = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await localDb.auth.getUser();
       setUser(user);
       if (user) {
         await loadConfigs();
@@ -146,7 +146,7 @@ const AIIntegrations: React.FC = () => {
     };
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = localDb.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       if (session?.user) loadConfigs();
     });
@@ -521,3 +521,5 @@ const AIIntegrations: React.FC = () => {
 };
 
 export default AIIntegrations;
+
+

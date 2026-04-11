@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface Team {
@@ -25,7 +25,7 @@ export function useTeams() {
     queryKey: ['teams', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('teams')
         .select('*')
         .order('created_at', { ascending: false });
@@ -38,14 +38,14 @@ export function useTeams() {
   const createTeam = useMutation({
     mutationFn: async (name: string) => {
       if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('teams')
         .insert({ name, owner_id: user.id })
         .select()
         .single();
       if (error) throw error;
       // Auto-add owner as member
-      await supabase.from('team_members').insert({
+      await localDb.from('team_members').insert({
         team_id: data.id,
         user_id: user.id,
         role: 'owner',
@@ -57,7 +57,7 @@ export function useTeams() {
 
   const addMember = useMutation({
     mutationFn: async ({ teamId, userId }: { teamId: string; userId: string }) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('team_members')
         .insert({ team_id: teamId, user_id: userId, role: 'member' });
       if (error) throw error;
@@ -67,7 +67,7 @@ export function useTeams() {
 
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('team_members')
         .delete()
         .eq('id', memberId);
@@ -78,7 +78,7 @@ export function useTeams() {
 
   const assignProjectToTeam = useMutation({
     mutationFn: async ({ projectId, teamId }: { projectId: string; teamId: string | null }) => {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('projects')
         .update({ team_id: teamId })
         .eq('id', projectId);
@@ -95,7 +95,7 @@ export function useTeamMembers(teamId: string | null) {
     queryKey: ['team_members', teamId],
     queryFn: async () => {
       if (!teamId) return [];
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('team_members')
         .select('*')
         .eq('team_id', teamId);
@@ -105,3 +105,5 @@ export function useTeamMembers(teamId: string | null) {
     enabled: !!teamId,
   });
 }
+
+

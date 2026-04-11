@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import { I18nProvider } from '@/contexts/I18nContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Mock framer-motion
 vi.mock('framer-motion', async () => {
@@ -29,11 +30,11 @@ vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div data-testid="chart-container">{children}</div>,
   AreaChart: () => <div data-testid="area-chart" />,
   LineChart: () => <div data-testid="line-chart" />,
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
-  RadarChart: ({ children }: any) => <div data-testid="radar-chart">{children}</div>,
+  BarChart: () => <div data-testid="bar-chart" />,
+  RadarChart: () => <div data-testid="radar-chart" />,
   Area: () => null,
   Line: () => null,
-  Bar: ({ children }: any) => <>{children}</>,
+  Bar: () => null,
   Radar: () => null,
   XAxis: () => null,
   YAxis: () => null,
@@ -54,9 +55,9 @@ vi.mock('@/contexts/AuthContext', () => ({
   }),
 }));
 
-// Mock supabase
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+// Mock localDb
+vi.mock('@/integrations/localdb/client', () => ({
+  localDb: {
     from: (table: string) => ({
       select: () => ({
         order: () => Promise.resolve({
@@ -77,9 +78,11 @@ const renderDashboard = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <I18nProvider>
-          <Dashboard />
+          <TooltipProvider>
+            <Dashboard />
+          </TooltipProvider>
         </I18nProvider>
       </MemoryRouter>
     </QueryClientProvider>
@@ -121,3 +124,5 @@ describe('Dashboard', () => {
     });
   });
 });
+
+

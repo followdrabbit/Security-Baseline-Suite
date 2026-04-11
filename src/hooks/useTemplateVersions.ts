@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { localDb } from '@/integrations/localdb/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -20,7 +20,7 @@ export function useTemplateVersions() {
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      const { data, error } = await localDb
         .from('rule_template_versions')
         .select('id, label, snapshot, created_at')
         .eq('user_id', user.id)
@@ -47,7 +47,7 @@ export function useTemplateVersions() {
     if (!user || currentVersions.length <= MAX_TEMPLATE_VERSIONS) return;
     const toDelete = currentVersions.slice(MAX_TEMPLATE_VERSIONS);
     for (const v of toDelete) {
-      await supabase
+      await localDb
         .from('rule_template_versions')
         .delete()
         .eq('id', v.id)
@@ -58,14 +58,14 @@ export function useTemplateVersions() {
   const saveVersion = useCallback(async (label: string, snapshot: Record<string, string>) => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('rule_template_versions')
         .insert({ user_id: user.id, label, snapshot: snapshot as any });
       if (error) throw error;
       toast.success('Version saved');
       await load();
       // Prune after reload so versions state is fresh
-      const { data } = await supabase
+      const { data } = await localDb
         .from('rule_template_versions')
         .select('id, label, snapshot, created_at')
         .eq('user_id', user.id)
@@ -84,7 +84,7 @@ export function useTemplateVersions() {
   const deleteVersion = useCallback(async (id: string) => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('rule_template_versions')
         .delete()
         .eq('id', id)
@@ -101,7 +101,7 @@ export function useTemplateVersions() {
   const renameVersion = useCallback(async (id: string, newLabel: string) => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      const { error } = await localDb
         .from('rule_template_versions')
         .update({ label: newLabel })
         .eq('id', id)
@@ -117,3 +117,5 @@ export function useTemplateVersions() {
 
   return { versions, loading, saveVersion, deleteVersion, renameVersion, reload: load };
 }
+
+
