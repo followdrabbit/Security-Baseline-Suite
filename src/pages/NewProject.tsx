@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sparkles, Cpu, Loader2, Globe, X, Upload, FileText, AlertCircle, Eye } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sparkles, Cpu, Loader2, Globe, X, Upload, FileText, AlertCircle, Eye, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Locale } from '@/types';
 import { aiConfigService } from '@/services/aiService';
@@ -57,6 +57,8 @@ type SourceItem = {
   showPreview?: boolean;
   fileSize?: number;
   errorMessage?: string;
+  originalUrl?: string;
+  originalFile?: File;
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
@@ -80,7 +82,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
     const itemId = `url-${Date.now()}`;
     setLoadingUrl(true);
-    setAddedSources(prev => [...prev, { id: itemId, name: url, status: 'processing', type: 'url' }]);
+    setAddedSources(prev => [...prev, { id: itemId, name: url, status: 'processing', type: 'url', originalUrl: url }]);
     setUrlInput('');
 
     try {
@@ -176,6 +178,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
         type: 'file' as const,
         fileSize: f.size,
         errorMessage: isOversized ? `Arquivo excede ${MAX_FILE_SIZE_MB}MB` : undefined,
+        originalFile: f,
       };
     });
     
@@ -228,6 +231,46 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
   const removeSource = (id: string) => setAddedSources(prev => prev.filter(s => s.id !== id));
+
+  const reprocessSource = async (item: SourceItem) => {
+    if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
+
+    // Reset status to processing
+    setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'processing' as const, progress: undefined, errorMessage: undefined } : s));
+
+    if (item.type === 'url' && item.originalUrl) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const resp = await supabase.functions.invoke('parse-url', {
+          body: { url: item.originalUrl, projectId },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+        if (resp.error) throw new Error(resp.error.message);
+        setAddedSources(prev => prev.map(s => s.id === item.id
+          ? { ...s, status: 'done' as const, name: resp.data?.source?.name || item.originalUrl!, preview: resp.data?.source?.preview || '' }
+          : s
+        ));
+        toast.success('URL reprocessada com sucesso');
+      } catch (err: any) {
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: err.message } : s));
+        toast.error(`Erro ao reprocessar: ${err.message}`);
+      }
+    } else if (item.type === 'file' && item.originalFile) {
+      try {
+        const result = await uploadFile(item.originalFile, item.id);
+        setAddedSources(prev => prev.map(s => s.id === item.id
+          ? { ...s, status: 'done' as const, name: result?.source?.name || item.originalFile!.name, preview: result?.source?.preview || '' }
+          : s
+        ));
+        toast.success('Arquivo reprocessado com sucesso');
+      } catch (err: any) {
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: err.message } : s));
+        toast.error(`Erro ao reprocessar: ${err.message}`);
+      }
+    } else {
+      toast.error('Não é possível reprocessar — dados originais não disponíveis');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -339,6 +382,15 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     title="Preview"
                   >
                     {item.showPreview ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                )}
+                {item.status === 'error' && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); reprocessSource(item); }}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title="Reprocessar"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
                   </button>
                 )}
                 <button 
