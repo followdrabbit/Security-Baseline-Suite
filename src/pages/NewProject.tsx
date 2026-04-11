@@ -50,11 +50,13 @@ function resolveMaxTokens(providerConfig: any): number {
 type SourceItem = {
   id: string;
   name: string;
-  status: 'pending' | 'processing' | 'done' | 'error';
+  status: 'pending' | 'processing' | 'done' | 'error' | 'oversized';
   type: 'url' | 'file';
   progress?: number;
   preview?: string;
   showPreview?: boolean;
+  fileSize?: number;
+  errorMessage?: string;
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
