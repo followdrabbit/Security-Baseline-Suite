@@ -77,8 +77,7 @@ const FILE_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
 
 function getFileExtension(name: string, type: 'file' | 'url'): string {
   if (type === 'url') return 'url';
-  const ext = name.split('.').pop()?.toLowerCase() || '';
-  return ext;
+  return name.split('.').pop()?.toLowerCase() || '';
 }
 
 function FileTypeBadge({ name, type }: { name: string; type: 'file' | 'url' }) {
@@ -120,7 +119,6 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     if (!url) { toast.error(t.sources.urlPlaceholder); return; }
     if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
 
-    // Auto-prefix https:// if missing
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `https://${url}`;
     }
@@ -151,7 +149,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       ));
       toast.success(t.sources.urlAdded || 'URL adicionada com sucesso');
     } catch (err: any) {
-      setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error' } : s));
+      setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: err.message } : s));
       toast.error(`Erro: ${err.message}`);
     } finally {
       setLoadingUrl(false);
@@ -219,7 +217,6 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     setUploading(true);
     const fileArray = Array.from(files);
 
-    // Validate file sizes and add to list
     const newItems: SourceItem[] = fileArray.map((f, i) => {
       const isOversized = f.size > MAX_FILE_SIZE;
       return {
@@ -235,13 +232,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     
     setAddedSources(prev => [...prev, ...newItems]);
 
-    // Show toast for oversized files
     const oversizedFiles = newItems.filter(item => item.status === 'oversized');
     if (oversizedFiles.length > 0) {
       toast.error(`${oversizedFiles.length} arquivo(s) excedem o limite de ${MAX_FILE_SIZE_MB}MB`);
     }
 
-    // Process only valid files
     const validItems = newItems.filter(item => item.status !== 'oversized');
     
     for (let i = 0; i < validItems.length; i++) {
@@ -286,7 +281,6 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
   const reprocessSource = async (item: SourceItem) => {
     if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
 
-    // Reset status to processing
     setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'processing' as const, progress: undefined, errorMessage: undefined } : s));
 
     if (item.type === 'url' && item.originalUrl) {
@@ -479,13 +473,77 @@ const NewProject: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [sourceCount, setSourceCount] = useState(0);
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+  const [pipelineProgress, setPipelineProgress] = useState('');
+  const [generatedCount, setGeneratedCount] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: '', technology: '', vendor: '', version: '', category: '', outputLanguage: 'en' as Locale, notes: '', tags: '',
   });
 
-  const stepLabels = [t.project.step1, t.project.step2, t.project.step3, t.project.step4, t.project.step5];
+  const stepLabels = [t.project.step1, t.project.step2, t.project.step3, t.project.step4];
 
   const updateForm = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
+
+  const startPipeline = async () => {
+    if (!projectId) { toast.error('Crie o projeto primeiro'); return; }
+    if (sourceCount === 0) { toast.error('Adicione pelo menos uma fonte processada'); return; }
+
+    setPipelineRunning(true);
+    setPipelineProgress('Carregando fontes processadas...');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // 1. Fetch processed sources for this project
+      setPipelineProgress('Buscando conteúdo das fontes...');
+      const { data: sources, error: srcErr } = await supabase
+        .from('sources')
+        .select('name, extracted_content, type')
+        .eq('project_id', projectId)
+        .eq('status', 'processed');
+
+      if (srcErr) throw new Error(srcErr.message);
+
+      const sourceTexts = (sources || [])
+        .filter(s => s.extracted_content)
+        .map(s => ({ name: s.name, content: s.extracted_content! }));
+
+      if (sourceTexts.length === 0) {
+        toast.error('Nenhuma fonte com conteúdo extraído encontrada');
+        setPipelineRunning(false);
+        setPipelineProgress('');
+        return;
+      }
+
+      // 2. Call generate-controls edge function
+      setPipelineProgress(`Gerando controles a partir de ${sourceTexts.length} fonte(s)...`);
+      const resp = await supabase.functions.invoke('generate-controls', {
+        body: {
+          projectId,
+          sourceTexts,
+          technology: form.technology,
+          language: form.outputLanguage,
+        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+
+      if (resp.error) throw new Error(resp.error.message);
+      if (resp.data?.error) throw new Error(resp.data.error);
+
+      const count = resp.data?.count || resp.data?.controls?.length || 0;
+      setGeneratedCount(count);
+      setPipelineProgress(`${count} controles gerados com sucesso!`);
+      toast.success(`Pipeline concluído: ${count} controles gerados`);
+
+      // Auto-advance to review step
+      setCurrent(3);
+    } catch (err: any) {
+      toast.error(`Erro no pipeline: ${err.message}`);
+      setPipelineProgress(`Erro: ${err.message}`);
+    } finally {
+      setPipelineRunning(false);
+    }
+  };
 
   return (
     <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
@@ -515,6 +573,11 @@ const NewProject: React.FC = () => {
               {i === 1 && sourceCount > 0 && (
                 <span className="ml-1 h-4 min-w-[16px] px-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center">
                   {sourceCount}
+                </span>
+              )}
+              {i === 3 && generatedCount !== null && generatedCount > 0 && (
+                <span className="ml-1 h-4 min-w-[16px] px-1 rounded-full bg-success/20 text-success text-[10px] font-bold flex items-center justify-center">
+                  {generatedCount}
                 </span>
               )}
             </button>
@@ -590,49 +653,85 @@ const NewProject: React.FC = () => {
             <SourceSelectionStep projectId={projectId} t={t} onSourceCountChange={setSourceCount} />
           )}
 
-
-
           {current === 2 && (
-            <div className="space-y-5">
-              <p className="text-sm text-muted-foreground">{t.rules.subtitle}</p>
-              <div className="grid gap-4">
-                {[t.rules.template, t.rules.controlStructure, t.rules.writingStandards, t.rules.consolidation, t.rules.deduplication, t.rules.criticality, t.rules.frameworks].map((label) => (
-                  <div key={label} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                    <Button variant="outline" size="sm">{t.common.edit}</Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {current === 3 && (
             <div className="space-y-6 text-center py-8">
-              <div className="h-16 w-16 rounded-full gold-gradient mx-auto flex items-center justify-center animate-pulse-gold">
-                <Cpu className="h-8 w-8 text-primary-foreground" />
+              <div className={`h-16 w-16 rounded-full gold-gradient mx-auto flex items-center justify-center ${pipelineRunning ? 'animate-pulse-gold' : ''}`}>
+                {pipelineRunning
+                  ? <Loader2 className="h-8 w-8 text-primary-foreground animate-spin" />
+                  : <Cpu className="h-8 w-8 text-primary-foreground" />
+                }
               </div>
               <div>
                 <h3 className="text-lg font-display font-semibold text-foreground">{t.workspace.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{t.workspace.subtitle}</p>
               </div>
-              <Button className="gold-gradient text-primary-foreground hover:opacity-90">
-                <Sparkles className="h-4 w-4 mr-2" />{t.workspace.startPipeline}
-              </Button>
+              {pipelineProgress && (
+                <div className="max-w-md mx-auto">
+                  <p className={`text-sm font-medium ${pipelineProgress.startsWith('Erro') ? 'text-destructive' : 'text-primary'}`}>
+                    {pipelineProgress}
+                  </p>
+                  {pipelineRunning && (
+                    <div className="mt-3 h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {!pipelineRunning && generatedCount === null && !pipelineProgress.startsWith('Erro') && (
+                <Button
+                  className="gold-gradient text-primary-foreground hover:opacity-90"
+                  onClick={startPipeline}
+                  disabled={sourceCount === 0}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />{t.workspace.startPipeline}
+                </Button>
+              )}
+              {!pipelineRunning && generatedCount !== null && generatedCount > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-success">
+                    <Check className="h-5 w-5" />
+                    <span className="text-sm font-medium">{generatedCount} controles gerados</span>
+                  </div>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" onClick={() => { setGeneratedCount(null); setPipelineProgress(''); }}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Regenerar
+                    </Button>
+                    <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => setCurrent(3)}>
+                      Revisar <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {!pipelineRunning && pipelineProgress.startsWith('Erro') && (
+                <Button className="gold-gradient text-primary-foreground hover:opacity-90" onClick={startPipeline}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+                </Button>
+              )}
             </div>
           )}
 
-          {current === 4 && (
+          {current === 3 && (
             <div className="space-y-6 text-center py-8">
               <div className="h-16 w-16 rounded-full bg-success/10 mx-auto flex items-center justify-center">
                 <Check className="h-8 w-8 text-success" />
               </div>
               <div>
-                <h3 className="text-lg font-display font-semibold text-foreground">{t.project.step5}</h3>
-                <p className="text-sm text-muted-foreground mt-1">47 {t.common.items}</p>
+                <h3 className="text-lg font-display font-semibold text-foreground">{t.project.step4}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {generatedCount !== null ? `${generatedCount} ${t.common.items}` : t.common.items}
+                </p>
               </div>
-              <Button className="gold-gradient text-primary-foreground hover:opacity-90">
-                {t.project.generate}
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button variant="outline" onClick={() => navigate(`/editor?project=${projectId}`)}>
+                  {t.project.generate}
+                </Button>
+                <Button
+                  className="gold-gradient text-primary-foreground hover:opacity-90"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  {t.project.save}
+                </Button>
+              </div>
             </div>
           )}
         </motion.div>
@@ -643,7 +742,7 @@ const NewProject: React.FC = () => {
         <Button variant="outline" onClick={() => setCurrent(Math.max(0, current - 1))} disabled={current === 0}>
           <ChevronLeft className="h-4 w-4 mr-1" />{t.project.previous}
         </Button>
-        {current < 4 ? (
+        {current < 3 ? (
           <Button
             onClick={async () => {
               if (current === 0 && !projectId) {
@@ -682,7 +781,7 @@ const NewProject: React.FC = () => {
               setCurrent(current + 1);
             }}
             className="gold-gradient text-primary-foreground hover:opacity-90"
-            disabled={saving}
+            disabled={saving || pipelineRunning}
           >
             {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
             {t.project.next}<ChevronRight className="h-4 w-4 ml-1" />
@@ -690,7 +789,7 @@ const NewProject: React.FC = () => {
         ) : (
           <Button
             className="gold-gradient text-primary-foreground hover:opacity-90"
-            onClick={() => navigate('/sources')}
+            onClick={() => navigate('/dashboard')}
           >
             {t.project.save}
           </Button>
@@ -701,5 +800,3 @@ const NewProject: React.FC = () => {
 };
 
 export default NewProject;
-
-// Fix: need to import Cpu at top
