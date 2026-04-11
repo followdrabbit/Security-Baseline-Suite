@@ -61,6 +61,37 @@ type SourceItem = {
   originalFile?: File;
 };
 
+const FILE_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  pdf: { bg: 'bg-red-500/15', text: 'text-red-400' },
+  docx: { bg: 'bg-blue-500/15', text: 'text-blue-400' },
+  doc: { bg: 'bg-blue-500/15', text: 'text-blue-400' },
+  pptx: { bg: 'bg-orange-500/15', text: 'text-orange-400' },
+  xlsx: { bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
+  csv: { bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
+  json: { bg: 'bg-amber-500/15', text: 'text-amber-400' },
+  txt: { bg: 'bg-slate-500/15', text: 'text-slate-400' },
+  md: { bg: 'bg-purple-500/15', text: 'text-purple-400' },
+  html: { bg: 'bg-cyan-500/15', text: 'text-cyan-400' },
+  url: { bg: 'bg-indigo-500/15', text: 'text-indigo-400' },
+};
+
+function getFileExtension(name: string, type: 'file' | 'url'): string {
+  if (type === 'url') return 'url';
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  return ext;
+}
+
+function FileTypeBadge({ name, type }: { name: string; type: 'file' | 'url' }) {
+  const ext = getFileExtension(name, type);
+  const label = type === 'url' ? 'URL' : ext.toUpperCase();
+  const colors = FILE_TYPE_COLORS[ext] || { bg: 'bg-muted', text: 'text-muted-foreground' };
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 ${colors.bg} ${colors.text}`}>
+      {label}
+    </span>
+  );
+}
+
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
