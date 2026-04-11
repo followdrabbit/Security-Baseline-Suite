@@ -382,10 +382,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                 {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
                 {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                 {item.status === 'oversized' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                {item.type === 'file'
-                  ? <FileText className={`h-3.5 w-3.5 shrink-0 ${item.status === 'oversized' ? 'text-destructive' : 'text-muted-foreground'}`} />
-                  : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                }
+                <FileTypeBadge name={item.name} type={item.type} />
                 <div className="flex-1 min-w-0">
                   <span className={`truncate block ${item.status === 'oversized' ? 'text-destructive' : ''}`}>
                     {item.name}
