@@ -106,10 +106,29 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     onSourceCountChange?.(doneCount);
   }, [addedSources, onSourceCountChange]);
 
+  const isValidUrl = (input: string): boolean => {
+    try {
+      const parsed = new URL(input.startsWith('http') ? input : `https://${input}`);
+      return ['http:', 'https:'].includes(parsed.protocol) && parsed.hostname.includes('.');
+    } catch {
+      return false;
+    }
+  };
+
   const handleAddUrl = async () => {
-    const url = urlInput.trim();
+    let url = urlInput.trim();
     if (!url) { toast.error(t.sources.urlPlaceholder); return; }
     if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
+
+    // Auto-prefix https:// if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+
+    if (!isValidUrl(url)) {
+      toast.error('URL inválida. Use o formato: https://exemplo.com');
+      return;
+    }
 
     const itemId = `url-${Date.now()}`;
     setLoadingUrl(true);
