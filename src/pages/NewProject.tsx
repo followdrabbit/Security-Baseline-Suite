@@ -93,6 +93,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       });
 
       if (resp.error) throw new Error(resp.error.message);
+      if (resp.data?.warning) throw new Error(resp.data.warning);
 
       setAddedSources(prev => prev.map(s => s.id === itemId
         ? { ...s, status: 'done', name: resp.data?.source?.name || url, preview: resp.data?.source?.preview || '' }
