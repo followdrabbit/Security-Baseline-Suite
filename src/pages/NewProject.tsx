@@ -18,6 +18,8 @@ const steps = ['step1', 'step2', 'step3', 'step4', 'step5'] as const;
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 const ACCEPTED_EXTENSIONS = ACCEPTED_TYPES.split(',');
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+const MAX_FILE_SIZE_MB = 20;
 
 // Maps user-facing model names to Lovable AI gateway model IDs
 const LOVABLE_MODEL_MAP: Record<string, string> = {
@@ -48,11 +50,13 @@ function resolveMaxTokens(providerConfig: any): number {
 type SourceItem = {
   id: string;
   name: string;
-  status: 'pending' | 'processing' | 'done' | 'error';
+  status: 'pending' | 'processing' | 'done' | 'error' | 'oversized';
   type: 'url' | 'file';
   progress?: number;
   preview?: string;
   showPreview?: boolean;
+  fileSize?: number;
+  errorMessage?: string;
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
@@ -162,18 +166,35 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     setUploading(true);
     const fileArray = Array.from(files);
 
-    // Add all files to the list as processing
-    const newItems: SourceItem[] = fileArray.map((f, i) => ({
-      id: `file-${Date.now()}-${i}`,
-      name: f.name,
-      status: 'processing' as const,
-      type: 'file' as const,
-    }));
+    // Validate file sizes and add to list
+    const newItems: SourceItem[] = fileArray.map((f, i) => {
+      const isOversized = f.size > MAX_FILE_SIZE;
+      return {
+        id: `file-${Date.now()}-${i}`,
+        name: f.name,
+        status: isOversized ? 'oversized' : 'processing' as const,
+        type: 'file' as const,
+        fileSize: f.size,
+        errorMessage: isOversized ? `Arquivo excede ${MAX_FILE_SIZE_MB}MB` : undefined,
+      };
+    });
+    
     setAddedSources(prev => [...prev, ...newItems]);
 
-    for (let i = 0; i < fileArray.length; i++) {
-      const file = fileArray[i];
-      const itemId = newItems[i].id;
+    // Show toast for oversized files
+    const oversizedFiles = newItems.filter(item => item.status === 'oversized');
+    if (oversizedFiles.length > 0) {
+      toast.error(`${oversizedFiles.length} arquivo(s) excedem o limite de ${MAX_FILE_SIZE_MB}MB`);
+    }
+
+    // Process only valid files
+    const validItems = newItems.filter(item => item.status !== 'oversized');
+    
+    for (let i = 0; i < validItems.length; i++) {
+      const itemId = validItems[i].id;
+      const fileIndex = fileArray.findIndex(f => f.name === validItems[i].name && f.size === validItems[i].fileSize);
+      const file = fileArray[fileIndex];
+      
       try {
         const result = await uploadFile(file, itemId);
         setAddedSources(prev => prev.map(s => s.id === itemId
@@ -181,13 +202,13 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
           : s
         ));
       } catch (err: any) {
-        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error' } : s));
+        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: err.message } : s));
         toast.error(`Falha: ${file.name} — ${err.message}`);
       }
     }
 
     setUploading(false);
-    const doneCount = newItems.length;
+    const doneCount = validItems.length;
     if (doneCount > 0) toast.success(`${doneCount} arquivo(s) enviado(s)`);
   };
 
@@ -262,6 +283,9 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
             {uploading ? (t.sources.uploading || 'Enviando...') : t.sources.dragDrop}
           </p>
           <p className="text-xs text-muted-foreground">{t.sources.dragDropSub}</p>
+          <p className="text-[10px] text-muted-foreground/70 px-3 py-1 bg-muted/50 rounded-full mt-1">
+            Máximo {MAX_FILE_SIZE_MB}MB por arquivo
+          </p>
         </div>
       </div>
 
@@ -273,15 +297,32 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
           </p>
           {addedSources.map((item) => (
             <div key={item.id} className="space-y-1">
-              <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border text-sm">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
+                item.status === 'oversized' 
+                  ? 'bg-destructive/10 border-destructive/30' 
+                  : 'bg-muted/40 border-border'
+              }`}>
                 {item.status === 'processing' && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />}
                 {item.status === 'done' && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
                 {item.status === 'error' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                {item.status === 'oversized' && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                 {item.type === 'file'
-                  ? <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  ? <FileText className={`h-3.5 w-3.5 shrink-0 ${item.status === 'oversized' ? 'text-destructive' : 'text-muted-foreground'}`} />
                   : <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 }
-                <span className="truncate flex-1">{item.name}</span>
+                <div className="flex-1 min-w-0">
+                  <span className={`truncate block ${item.status === 'oversized' ? 'text-destructive' : ''}`}>
+                    {item.name}
+                  </span>
+                  {item.type === 'file' && item.fileSize !== undefined && (
+                    <span className="text-[10px] text-muted-foreground/70 block">
+                      {(item.fileSize / (1024 * 1024)).toFixed(2)} MB
+                      {item.status === 'oversized' && (
+                        <span className="text-destructive ml-1">— Limite: {MAX_FILE_SIZE_MB}MB</span>
+                      )}
+                    </span>
+                  )}
+                </div>
                 {item.status === 'processing' && item.progress !== undefined && item.progress < 100 && (
                   <span className="text-[10px] font-medium text-primary shrink-0">{item.progress}%</span>
                 )}
@@ -300,7 +341,11 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     {item.showPreview ? <ChevronUp className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} className="text-muted-foreground hover:text-destructive">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} 
+                  className="text-muted-foreground hover:text-destructive"
+                  title={item.errorMessage || 'Remover'}
+                >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
