@@ -247,6 +247,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
           headers: { Authorization: `Bearer ${session?.access_token}` },
         });
         if (resp.error) throw new Error(resp.error.message);
+        if (resp.data?.warning) throw new Error(resp.data.warning);
         setAddedSources(prev => prev.map(s => s.id === item.id
           ? { ...s, status: 'done' as const, name: resp.data?.source?.name || item.originalUrl!, preview: resp.data?.source?.preview || '' }
           : s
