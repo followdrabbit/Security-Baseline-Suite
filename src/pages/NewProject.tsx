@@ -232,6 +232,46 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
   const removeSource = (id: string) => setAddedSources(prev => prev.filter(s => s.id !== id));
 
+  const reprocessSource = async (item: SourceItem) => {
+    if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
+
+    // Reset status to processing
+    setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'processing' as const, progress: undefined, errorMessage: undefined } : s));
+
+    if (item.type === 'url' && item.originalUrl) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const resp = await supabase.functions.invoke('parse-url', {
+          body: { url: item.originalUrl, projectId },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+        if (resp.error) throw new Error(resp.error.message);
+        setAddedSources(prev => prev.map(s => s.id === item.id
+          ? { ...s, status: 'done' as const, name: resp.data?.source?.name || item.originalUrl!, preview: resp.data?.source?.preview || '' }
+          : s
+        ));
+        toast.success('URL reprocessada com sucesso');
+      } catch (err: any) {
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: err.message } : s));
+        toast.error(`Erro ao reprocessar: ${err.message}`);
+      }
+    } else if (item.type === 'file' && item.originalFile) {
+      try {
+        const result = await uploadFile(item.originalFile, item.id);
+        setAddedSources(prev => prev.map(s => s.id === item.id
+          ? { ...s, status: 'done' as const, name: result?.source?.name || item.originalFile!.name, preview: result?.source?.preview || '' }
+          : s
+        ));
+        toast.success('Arquivo reprocessado com sucesso');
+      } catch (err: any) {
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: err.message } : s));
+        toast.error(`Erro ao reprocessar: ${err.message}`);
+      }
+    } else {
+      toast.error('Não é possível reprocessar — dados originais não disponíveis');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{t.sources.subtitle}</p>
