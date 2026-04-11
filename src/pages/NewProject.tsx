@@ -82,7 +82,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
     const itemId = `url-${Date.now()}`;
     setLoadingUrl(true);
-    setAddedSources(prev => [...prev, { id: itemId, name: url, status: 'processing', type: 'url' }]);
+    setAddedSources(prev => [...prev, { id: itemId, name: url, status: 'processing', type: 'url', originalUrl: url }]);
     setUrlInput('');
 
     try {
