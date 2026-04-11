@@ -359,7 +359,6 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
               )}
               {item.showPreview && item.preview && (
                 <div className="mx-1 px-3 py-2 bg-muted/20 border border-border/50 rounded text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
-                <div className="mx-1 px-3 py-2 bg-muted/20 border border-border/50 rounded text-xs text-muted-foreground leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
                   {item.preview}
                 </div>
               )}
