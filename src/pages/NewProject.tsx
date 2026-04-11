@@ -57,6 +57,8 @@ type SourceItem = {
   showPreview?: boolean;
   fileSize?: number;
   errorMessage?: string;
+  originalUrl?: string;
+  originalFile?: File;
 };
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
