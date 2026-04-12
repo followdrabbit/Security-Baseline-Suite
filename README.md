@@ -18,6 +18,8 @@ Supabase was removed from the application code and tests.
 - Create and manage baseline projects
 - Import sources from files and URLs
 - Generate controls with local AI function flow
+- Configure AI providers and models (OpenAI, Gemini, Grok/xAI, Anthropic Claude, Ollama)
+- Store API keys encrypted at rest in local SQLite configuration
 - Review controls in Baseline Editor and Mind Map
 - Map controls to frameworks in Traceability
 - Export data and manage baseline versions

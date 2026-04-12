@@ -21,24 +21,28 @@ const ACCEPTED_EXTENSIONS = ACCEPTED_TYPES.split(',');
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
 const MAX_FILE_SIZE_MB = 20;
 
-// Maps user-facing model names to Lovable AI gateway model IDs
-const LOVABLE_MODEL_MAP: Record<string, string> = {
-  'gemini-3-flash (padrão)': 'google/gemini-3-flash-preview',
-  'gemini-2.5-pro': 'google/gemini-2.5-pro',
-  'gemini-2.5-flash': 'google/gemini-2.5-flash',
-  'gpt-5': 'openai/gpt-5',
-  'gpt-5-mini': 'openai/gpt-5-mini',
-};
+const DEFAULT_MODEL_ID = 'google/gemini-2.5-flash';
 
 const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
 
 function resolveModelId(providerConfig: any): string {
-  if (!providerConfig) return 'google/gemini-2.5-flash';
-  const selectedModel = providerConfig.selected_model || '';
-  if (providerConfig.provider_id === 'lovable_ai') {
-    return LOVABLE_MODEL_MAP[selectedModel] || 'google/gemini-2.5-flash';
+  if (!providerConfig) return DEFAULT_MODEL_ID;
+
+  const providerId = String(providerConfig.provider_id || '').trim().toLowerCase();
+  const selectedModel = String(providerConfig.selected_model || '').trim();
+  if (!selectedModel) return DEFAULT_MODEL_ID;
+
+  if (selectedModel.includes('/')) {
+    return selectedModel;
   }
-  return 'google/gemini-2.5-flash';
+
+  if (providerId === 'openai') return `openai/${selectedModel}`;
+  if (providerId === 'google' || providerId === 'gemini') return `google/${selectedModel}`;
+  if (providerId === 'anthropic') return `anthropic/${selectedModel}`;
+  if (providerId === 'xai' || providerId === 'grok') return `xai/${selectedModel}`;
+  if (providerId === 'ollama') return `ollama/${selectedModel}`;
+
+  return DEFAULT_MODEL_ID;
 }
 
 function resolveMaxTokens(providerConfig: any): number {

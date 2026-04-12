@@ -398,7 +398,7 @@ const DocAssistant: React.FC = () => {
                   <Send className="h-4 w-4 text-primary-foreground" />
                 </button>
               </div>
-              <p className="text-[9px] text-muted-foreground text-center mt-1.5">Powered by Lovable AI</p>
+              <p className="text-[9px] text-muted-foreground text-center mt-1.5">Configured provider from AI Integrations</p>
             </div>
           </motion.div>
         )}

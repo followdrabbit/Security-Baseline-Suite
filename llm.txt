@@ -20,16 +20,22 @@ System context for LLM assistants:
 - Admin can create local users in Settings -> Usuarios locais.
 - Every user created by admin must change password on first login.
 
-3. Removed components
+3. AI provider configuration
+- Supported providers in AI Integrations: OpenAI, Google Gemini, Anthropic Claude, Grok/xAI, and Ollama local models.
+- Provider selection + model selection are persisted per user in ai_provider_configs.
+- API keys are encrypted at rest by local-api before storage in SQLite.
+- Connection testing should use /functions/v1/test-ai-provider (server-side), not direct browser calls.
+
+4. Removed components
 - Supabase code paths were removed from app runtime.
 - Do not introduce new Supabase imports or env vars.
 
-4. Testing
+5. Testing
 - Unit/integration tests: npm test
 - Coverage: npm run test:coverage
 - Tests mock localDb (not supabase).
 
-5. Documentation alignment
+6. Documentation alignment
 - README.md and docs/* reflect local SQLite mode.
 - In-app docs (Documentation page + translations) must stay aligned with the local auth flow.
 - Keep docs consistent with local-api and localdb integration.

@@ -63,7 +63,7 @@ Aureum is a local-first Security Baseline Suite that uses AI to analyze technica
 - Notification system for team activities
 
 ### Settings & Configuration
-- AI provider configuration (OpenAI, Anthropic, Google, etc.)
+- AI provider configuration (OpenAI, Gemini, Anthropic Claude, Grok/xAI, Ollama)
 - Theme customization (light/dark mode)
 - Language selection (EN, PT-BR, ES)
 - User profile management
@@ -90,8 +90,8 @@ Aureum is a local-first Security Baseline Suite that uses AI to analyze technica
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion
 - UI Components: shadcn/ui (Radix primitives)
 - State Management: TanStack React Query
-- Backend: Lovable Cloud (Supabase) — PostgreSQL, Edge Functions, Auth with RLS
-- AI: Multi-provider support via Edge Functions (OpenAI, Anthropic, Google, Lovable AI)
+- Backend: Local API + SQLite (`local-api/server.mjs`)
+- AI: Multi-provider configuration (OpenAI, Gemini, Anthropic Claude, Grok/xAI, Ollama local models)
 - Charts: Recharts
 - Routing: React Router v6
 

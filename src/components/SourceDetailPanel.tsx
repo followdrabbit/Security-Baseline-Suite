@@ -17,11 +17,34 @@ import { toast } from 'sonner';
 const REPROCESS_MODELS: Record<string, string> = {
   'google/gemini-2.5-flash': 'Gemini 2.5 Flash',
   'google/gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'google/gemini-2.0-flash': 'Gemini 2.0 Flash',
   'google/gemini-3-flash-preview': 'Gemini 3 Flash',
   'google/gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
+  'openai/gpt-4.1': 'GPT-4.1',
+  'openai/gpt-4.1-mini': 'GPT-4.1 Mini',
+  'openai/gpt-4o': 'GPT-4o',
+  'openai/gpt-4o-mini': 'GPT-4o Mini',
   'openai/gpt-5': 'GPT-5',
   'openai/gpt-5-mini': 'GPT-5 Mini',
+  'anthropic/claude-3-7-sonnet-latest': 'Claude 3.7 Sonnet',
+  'anthropic/claude-3-5-sonnet-latest': 'Claude 3.5 Sonnet',
+  'xai/grok-4': 'Grok 4',
+  'xai/grok-3': 'Grok 3',
+  'ollama/llama3.2': 'Ollama Llama 3.2',
+  'ollama/qwen2.5:14b': 'Ollama Qwen 2.5 14B',
 };
+
+function formatModelName(model: string | null | undefined): string {
+  if (!model) return '—';
+  const normalized = String(model);
+  const providerPrefixes = ['google/', 'openai/', 'anthropic/', 'xai/', 'ollama/'];
+  for (const prefix of providerPrefixes) {
+    if (normalized.startsWith(prefix)) {
+      return normalized.slice(prefix.length);
+    }
+  }
+  return normalized;
+}
 
 const EXTRACTION_METHOD_LABELS: Record<string, string> = {
   direct_text: 'Direct Text Read',
@@ -218,7 +241,7 @@ const SourceDetailPanel: React.FC<SourceDetailPanelProps> = ({ source, onClose, 
   <div class="info-item"><div class="info-label">Confidence</div><div class="info-value">${source.confidence != null ? `${Math.round(source.confidence * 100)}%` : '—'}</div></div>
   <div class="info-item"><div class="info-label">Origin</div><div class="info-value">${escHtml(source.origin || '—')}</div></div>
   <div class="info-item"><div class="info-label">Extraction Method</div><div class="info-value">${EXTRACTION_METHOD_LABELS[extractionMethod] || extractionMethod}</div></div>
-  <div class="info-item"><div class="info-label">AI Model</div><div class="info-value">${source.extraction_model ? source.extraction_model.replace('google/', '').replace('openai/', '') : '—'}</div></div>
+  <div class="info-item"><div class="info-label">AI Model</div><div class="info-value">${formatModelName(source.extraction_model)}</div></div>
   <div class="info-item"><div class="info-label">Tokens Used</div><div class="info-value">${source.extraction_tokens != null ? source.extraction_tokens.toLocaleString() : '—'}</div></div>
   <div class="info-item"><div class="info-label">Added At</div><div class="info-value">${fmtDate(addedAt)}</div></div>
   <div class="info-item"><div class="info-label">Processed At</div><div class="info-value">${fmtDate(processedAt)}</div></div>
@@ -392,7 +415,7 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
               <span className="text-muted-foreground">AI Model</span>
               <p className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-warning" />
-                {source.extraction_model.replace('google/', '').replace('openai/', '')}
+                {formatModelName(source.extraction_model)}
               </p>
             </div>
           )}
@@ -459,7 +482,7 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
                 <div className="p-2 bg-destructive/5 text-destructive border-r border-border flex items-center gap-1">
                   <Sparkles className="h-2.5 w-2.5" />
                   {source.previous_extraction_model
-                    ? source.previous_extraction_model.replace('google/', '').replace('openai/', '')
+                    ? formatModelName(source.previous_extraction_model)
                     : 'Previous'}
                   {source.previous_extraction_tokens != null && (
                     <span className="text-muted-foreground ml-auto">{source.previous_extraction_tokens.toLocaleString()} tok</span>
@@ -468,7 +491,7 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
                 <div className="p-2 bg-success/5 text-success flex items-center gap-1">
                   <Sparkles className="h-2.5 w-2.5" />
                   {source.extraction_model
-                    ? source.extraction_model.replace('google/', '').replace('openai/', '')
+                    ? formatModelName(source.extraction_model)
                     : 'Current'}
                   {source.extraction_tokens != null && (
                     <span className="text-muted-foreground ml-auto">{source.extraction_tokens.toLocaleString()} tok</span>
@@ -596,7 +619,7 @@ ${hasRawContent ? `<h2>Raw / Original Content</h2><div class="content-block mono
                       <span className="text-muted-foreground">AI Model</span>
                       <span className="font-medium text-foreground text-right max-w-[180px] truncate flex items-center gap-1">
                         <Sparkles className="h-3 w-3 text-warning" />
-                        {source.extraction_model.replace('google/', '').replace('openai/', '')}
+                        {formatModelName(source.extraction_model)}
                       </span>
                     </div>
                   )}

@@ -21,23 +21,26 @@ import { aiConfigService } from '@/services/aiService';
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
 
-// Maps user-facing model names to Lovable AI gateway model IDs
-const LOVABLE_MODEL_MAP: Record<string, string> = {
-  'gemini-3-flash (padrão)': 'google/gemini-3-flash-preview',
-  'gemini-2.5-pro': 'google/gemini-2.5-pro',
-  'gemini-2.5-flash': 'google/gemini-2.5-flash',
-  'gpt-5': 'openai/gpt-5',
-  'gpt-5-mini': 'openai/gpt-5-mini',
-};
+const DEFAULT_MODEL_ID = 'google/gemini-2.5-flash';
 
 function resolveModelId(providerConfig: any): string {
-  if (!providerConfig) return 'google/gemini-2.5-flash';
-  const selectedModel = providerConfig.selected_model || '';
-  if (providerConfig.provider_id === 'lovable_ai') {
-    return LOVABLE_MODEL_MAP[selectedModel] || 'google/gemini-2.5-flash';
+  if (!providerConfig) return DEFAULT_MODEL_ID;
+
+  const providerId = String(providerConfig.provider_id || '').trim().toLowerCase();
+  const selectedModel = String(providerConfig.selected_model || '').trim();
+  if (!selectedModel) return DEFAULT_MODEL_ID;
+
+  if (selectedModel.includes('/')) {
+    return selectedModel;
   }
-  // For external providers, they'd use their own API — return gateway default
-  return 'google/gemini-2.5-flash';
+
+  if (providerId === 'openai') return `openai/${selectedModel}`;
+  if (providerId === 'google' || providerId === 'gemini') return `google/${selectedModel}`;
+  if (providerId === 'anthropic') return `anthropic/${selectedModel}`;
+  if (providerId === 'xai' || providerId === 'grok') return `xai/${selectedModel}`;
+  if (providerId === 'ollama') return `ollama/${selectedModel}`;
+
+  return DEFAULT_MODEL_ID;
 }
 
 function resolveMaxTokens(providerConfig: any): number {
@@ -46,6 +49,18 @@ function resolveMaxTokens(providerConfig: any): number {
     return Number(extra.max_tokens) || 65000;
   }
   return 65000;
+}
+
+function formatModelLabel(model: string | null | undefined): string {
+  if (!model) return '—';
+  const normalized = String(model);
+  const providerPrefixes = ['google/', 'openai/', 'anthropic/', 'xai/', 'ollama/'];
+  for (const prefix of providerPrefixes) {
+    if (normalized.startsWith(prefix)) {
+      return normalized.slice(prefix.length);
+    }
+  }
+  return normalized;
 }
 
 const SourceLibrary: React.FC = () => {
@@ -412,7 +427,7 @@ const SourceLibrary: React.FC = () => {
                           {source.extraction_model ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-medium">
                               <Sparkles className="h-2.5 w-2.5" />
-                              {source.extraction_model.replace('google/', '').replace('openai/', '')}
+                              {formatModelLabel(source.extraction_model)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>

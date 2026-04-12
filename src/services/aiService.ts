@@ -9,6 +9,27 @@ export interface AIProviderConfig {
   is_default: boolean;
   connection_status: string;
   extra_config: Record<string, any>;
+  has_api_key?: boolean;
+}
+
+export interface TestAIProviderResult {
+  ok: boolean;
+  message: string;
+}
+
+type UpsertConfigInput = {
+  provider_id: string;
+  enabled: boolean;
+  api_key_encrypted?: string;
+  selected_model: string;
+  is_default: boolean;
+  connection_status?: string;
+  extra_config?: Record<string, any>;
+};
+
+function normalizeExtraConfig(value?: Record<string, any>) {
+  if (!value || typeof value !== 'object') return {};
+  return value;
 }
 
 export const aiConfigService = {
@@ -31,31 +52,30 @@ export const aiConfigService = {
     return data as AIProviderConfig | null;
   },
 
-  upsert: async (config: {
-    provider_id: string;
-    enabled: boolean;
-    api_key_encrypted?: string;
-    selected_model: string;
-    is_default: boolean;
-    extra_config?: Record<string, any>;
-  }): Promise<AIProviderConfig> => {
+  upsert: async (config: UpsertConfigInput): Promise<AIProviderConfig> => {
     const { data: { user } } = await localDb.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    const payload: Record<string, any> = {
+      user_id: user.id,
+      provider_id: config.provider_id,
+      enabled: config.enabled,
+      selected_model: config.selected_model,
+      is_default: config.is_default,
+      connection_status: config.connection_status || 'idle',
+      extra_config: normalizeExtraConfig(config.extra_config),
+    };
+
+    if (typeof config.api_key_encrypted === 'string' && config.api_key_encrypted.trim()) {
+      payload.api_key_encrypted = config.api_key_encrypted.trim();
+    }
+
     const { data, error } = await localDb
       .from('ai_provider_configs')
-      .upsert({
-        user_id: user.id,
-        provider_id: config.provider_id,
-        enabled: config.enabled,
-        api_key_encrypted: config.api_key_encrypted || '',
-        selected_model: config.selected_model,
-        is_default: config.is_default,
-        connection_status: 'idle',
-        extra_config: config.extra_config || {},
-      }, { onConflict: 'user_id,provider_id' })
+      .upsert(payload, { onConflict: 'user_id,provider_id' })
       .select()
       .single();
+
     if (error) throw error;
     return data as AIProviderConfig;
   },
@@ -64,13 +84,11 @@ export const aiConfigService = {
     const { data: { user } } = await localDb.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Clear all defaults
     await localDb
       .from('ai_provider_configs')
       .update({ is_default: false })
       .eq('user_id', user.id);
 
-    // Set new default
     await localDb
       .from('ai_provider_configs')
       .update({ is_default: true })
@@ -78,39 +96,28 @@ export const aiConfigService = {
       .eq('provider_id', providerId);
   },
 
-  testConnection: async (providerId: string, apiKey: string, model: string): Promise<boolean> => {
-    // For Lovable AI, no API key needed - always works
-    if (providerId === 'lovable_ai') return true;
+  testConnection: async (
+    providerId: string,
+    apiKey: string,
+    model: string,
+    endpointUrl?: string,
+  ): Promise<TestAIProviderResult> => {
+    const { data, error } = await localDb.functions.invoke('test-ai-provider', {
+      body: {
+        providerId,
+        apiKey,
+        model,
+        endpointUrl: endpointUrl || '',
+      },
+    });
 
-    // For external providers, try a simple request
-    try {
-      if (providerId === 'openai') {
-        const resp = await fetch('https://api.openai.com/v1/models', {
-          headers: { Authorization: `Bearer ${apiKey}` },
-        });
-        return resp.ok;
-      }
-      if (providerId === 'anthropic') {
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'Content-Type': 'application/json',
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: model || 'claude-3-haiku-20240307',
-            max_tokens: 10,
-            messages: [{ role: 'user', content: 'ping' }],
-          }),
-        });
-        return resp.ok;
-      }
-      // For other providers, validate key length
-      return apiKey.length > 10;
-    } catch {
-      return false;
+    if (error) {
+      return { ok: false, message: error.message || 'Connection test failed' };
     }
+
+    const ok = Boolean((data as any)?.ok);
+    const message = String((data as any)?.message || (data as any)?.error || (ok ? 'Connection successful' : 'Connection failed'));
+    return { ok, message };
   },
 };
 
@@ -123,5 +130,4 @@ export const generateControlsService = {
     return data;
   },
 };
-
 

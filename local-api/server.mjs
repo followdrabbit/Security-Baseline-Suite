@@ -2,7 +2,13 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { createHash, randomUUID } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  randomUUID,
+} from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
 const HOST = process.env.LOCAL_API_HOST || "127.0.0.1";
@@ -11,9 +17,76 @@ const DB_PATH = process.env.LOCAL_DB_PATH || path.join(process.cwd(), "local-api
 const ADMIN_USERNAME = "admin";
 const DEFAULT_ADMIN_PASSWORD = "admin1234";
 const AUTH_BOOTSTRAP_KEY = "auth_bootstrap_v2";
-const LOCAL_PROVIDER_ID = "lovable_ai";
+const DEFAULT_PROVIDER_ID = "openai";
+const DEFAULT_PROVIDER_MODEL = "gpt-4.1-mini";
+const ENCRYPTED_SECRET_PREFIX = "enc:v1:";
+const LOCAL_SECRETS_KEY_PATH =
+  process.env.LOCAL_SECRETS_KEY_PATH ||
+  path.join(path.dirname(DB_PATH), "aureum-secrets.key");
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+function loadOrCreateSecretMaterial() {
+  const envSecret = String(process.env.AUREUM_MASTER_KEY || "").trim();
+  if (envSecret) {
+    return envSecret;
+  }
+
+  try {
+    const fromFile = fs.readFileSync(LOCAL_SECRETS_KEY_PATH, "utf8").trim();
+    if (fromFile) {
+      return fromFile;
+    }
+  } catch {
+    // noop
+  }
+
+  const generated = randomBytes(32).toString("base64");
+  fs.writeFileSync(LOCAL_SECRETS_KEY_PATH, `${generated}\n`, { mode: 0o600 });
+  return generated;
+}
+
+const SECRETS_MASTER_KEY = createHash("sha256")
+  .update(loadOrCreateSecretMaterial())
+  .digest();
+
+function isEncryptedSecret(value) {
+  return typeof value === "string" && value.startsWith(ENCRYPTED_SECRET_PREFIX);
+}
+
+function encryptSecret(plainText) {
+  const plain = String(plainText || "").trim();
+  if (!plain) return "";
+  if (isEncryptedSecret(plain)) return plain;
+
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", SECRETS_MASTER_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+
+  return `${ENCRYPTED_SECRET_PREFIX}${iv.toString("base64")}:${authTag.toString("base64")}:${encrypted.toString("base64")}`;
+}
+
+function decryptSecret(encryptedValue) {
+  const raw = String(encryptedValue || "").trim();
+  if (!raw) return "";
+  if (!isEncryptedSecret(raw)) return raw;
+
+  const payload = raw.slice(ENCRYPTED_SECRET_PREFIX.length);
+  const [ivBase64, authTagBase64, cipherBase64] = payload.split(":");
+  if (!ivBase64 || !authTagBase64 || !cipherBase64) {
+    throw new Error("Invalid encrypted secret payload");
+  }
+
+  const iv = Buffer.from(ivBase64, "base64");
+  const authTag = Buffer.from(authTagBase64, "base64");
+  const cipherText = Buffer.from(cipherBase64, "base64");
+
+  const decipher = createDecipheriv("aes-256-gcm", SECRETS_MASTER_KEY, iv);
+  decipher.setAuthTag(authTag);
+  const plain = Buffer.concat([decipher.update(cipherText), decipher.final()]);
+  return plain.toString("utf8");
+}
 
 const db = new DatabaseSync(DB_PATH);
 db.exec("PRAGMA journal_mode = WAL;");
@@ -501,7 +574,7 @@ function seedUserSupportRows(userId) {
 
   const cfg = db
     .prepare("SELECT id FROM ai_provider_configs WHERE user_id = ? AND provider_id = ? LIMIT 1;")
-    .get(userId, LOCAL_PROVIDER_ID);
+    .get(userId, DEFAULT_PROVIDER_ID);
 
   if (!cfg) {
     executeDbQuery(
@@ -510,9 +583,9 @@ function seedUserSupportRows(userId) {
         action: "insert",
         values: {
           user_id: userId,
-          provider_id: LOCAL_PROVIDER_ID,
+          provider_id: DEFAULT_PROVIDER_ID,
           enabled: true,
-          selected_model: "gpt-5-mini",
+          selected_model: DEFAULT_PROVIDER_MODEL,
           is_default: true,
           connection_status: "idle",
           extra_config: {
@@ -588,6 +661,77 @@ function decodeRow(table, row) {
     out[key] = decodeValue(table, key, value);
   }
   return out;
+}
+
+function getAiProviderConfigByRowIdentity(row) {
+  if (!row || typeof row !== "object") return null;
+
+  if (row.id) {
+    return db
+      .prepare("SELECT * FROM ai_provider_configs WHERE id = ? LIMIT 1;")
+      .get(String(row.id));
+  }
+
+  if (row.user_id && row.provider_id) {
+    return db
+      .prepare("SELECT * FROM ai_provider_configs WHERE user_id = ? AND provider_id = ? LIMIT 1;")
+      .get(String(row.user_id), String(row.provider_id));
+  }
+
+  return null;
+}
+
+function shouldKeepExistingApiKey(value) {
+  if (value === undefined) return true;
+  if (value === null) return false;
+  const normalized = String(value).trim();
+  return normalized === "" || normalized === "__stored__";
+}
+
+function prepareAiProviderConfigRowForWrite(row) {
+  if (!row || typeof row !== "object") return row;
+  const out = { ...row };
+
+  if (!Object.prototype.hasOwnProperty.call(out, "api_key_encrypted")) {
+    return out;
+  }
+
+  if (out.api_key_encrypted === null) {
+    return out;
+  }
+
+  if (shouldKeepExistingApiKey(out.api_key_encrypted)) {
+    const existing = getAiProviderConfigByRowIdentity(out);
+    if (existing?.api_key_encrypted) {
+      delete out.api_key_encrypted;
+      return out;
+    }
+    out.api_key_encrypted = "";
+    return out;
+  }
+
+  out.api_key_encrypted = encryptSecret(out.api_key_encrypted);
+  return out;
+}
+
+function sanitizeAiProviderConfigRowForClient(row) {
+  const hasApiKey = Boolean(row?.api_key_encrypted);
+  return {
+    ...row,
+    api_key_encrypted: hasApiKey ? "__stored__" : "",
+    has_api_key: hasApiKey,
+  };
+}
+
+function sanitizeResultForClient(table, data) {
+  if (table !== "ai_provider_configs") return data;
+  if (Array.isArray(data)) {
+    return data.map((row) => sanitizeAiProviderConfigRowForClient(row));
+  }
+  if (data && typeof data === "object") {
+    return sanitizeAiProviderConfigRowForClient(data);
+  }
+  return data;
 }
 
 function applyInsertDefaults(table, rawRow, user) {
@@ -913,7 +1057,10 @@ function executeDbQuery(payload, user) {
 
     runInTransaction(() => {
       for (const rawRow of inputRows) {
-        const withDefaults = applyInsertDefaults(table, rawRow, user);
+        let withDefaults = applyInsertDefaults(table, rawRow, user);
+        if (table === "ai_provider_configs") {
+          withDefaults = prepareAiProviderConfigRowForWrite(withDefaults);
+        }
         const row = encodeRow(table, withDefaults);
         const columns = Object.keys(row);
         if (columns.length === 0) continue;
@@ -985,7 +1132,10 @@ function executeDbQuery(payload, user) {
       ? selectRows({ table, select: "project_id", filters, order: [], limit: null })
       : [];
 
-    const updatePayload = { ...valuesRaw };
+    let updatePayload = { ...valuesRaw };
+    if (table === "ai_provider_configs") {
+      updatePayload = prepareAiProviderConfigRowForWrite(updatePayload);
+    }
     if (columns.has("updated_at") && updatePayload.updated_at === undefined) {
       updatePayload.updated_at = nowIso();
     }
@@ -1041,6 +1191,8 @@ function executeDbQuery(payload, user) {
   } else {
     throw new Error(`Unsupported action: ${action}`);
   }
+
+  data = sanitizeResultForClient(table, data);
 
   if ((single || maybeSingle) && !head) {
     const rows = Array.isArray(data) ? data : [];
@@ -1219,7 +1371,68 @@ function ensureSeedData() {
   seedUserSupportRows(admin.id);
 }
 
+function migrateStoredAiProviderSecrets() {
+  const rows = db
+    .prepare(
+      `
+        SELECT id, api_key_encrypted
+        FROM ai_provider_configs
+        WHERE api_key_encrypted IS NOT NULL
+          AND TRIM(api_key_encrypted) <> '';
+      `
+    )
+    .all();
+
+  for (const row of rows) {
+    const current = String(row.api_key_encrypted || "");
+    if (isEncryptedSecret(current)) continue;
+    const encrypted = encryptSecret(current);
+    db.prepare(
+      "UPDATE ai_provider_configs SET api_key_encrypted = ?, updated_at = ? WHERE id = ?;"
+    ).run(encrypted, nowIso(), row.id);
+  }
+}
+
+function removeDeprecatedBuiltinProviderConfigs() {
+  db.prepare("DELETE FROM ai_provider_configs WHERE provider_id = 'lovable_ai';").run();
+
+  const users = db.prepare("SELECT id FROM users;").all();
+  for (const row of users) {
+    const userId = String(row.id);
+    const currentDefault = db
+      .prepare(
+        `
+          SELECT id
+          FROM ai_provider_configs
+          WHERE user_id = ? AND is_default = 1
+          LIMIT 1;
+        `
+      )
+      .get(userId);
+
+    if (currentDefault) continue;
+
+    const candidate = db
+      .prepare(
+        `
+          SELECT id
+          FROM ai_provider_configs
+          WHERE user_id = ?
+          ORDER BY enabled DESC, updated_at DESC
+          LIMIT 1;
+        `
+      )
+      .get(userId);
+
+    if (candidate?.id) {
+      db.prepare("UPDATE ai_provider_configs SET is_default = 1 WHERE id = ?;").run(candidate.id);
+    }
+  }
+}
+
 ensureSeedData();
+migrateStoredAiProviderSecrets();
+removeDeprecatedBuiltinProviderConfigs();
 
 function writeCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -1835,6 +2048,134 @@ function handleReprocessSource({ user, body }) {
   };
 }
 
+function getAiProviderConfigForUser(userId, providerId) {
+  if (!userId || !providerId) return null;
+  return db
+    .prepare("SELECT * FROM ai_provider_configs WHERE user_id = ? AND provider_id = ? LIMIT 1;")
+    .get(String(userId), String(providerId));
+}
+
+async function fetchWithTimeout(url, init = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function handleTestAiProvider({ user, body }) {
+  const providerId = String(body?.providerId || "").trim().toLowerCase();
+  const selectedModel = String(body?.model || "").trim();
+  const apiKeyFromPayload = String(body?.apiKey || "").trim();
+  const endpointFromPayload = String(body?.endpointUrl || "").trim();
+
+  if (!providerId) {
+    throw new Error("providerId is required");
+  }
+
+  const persisted = getAiProviderConfigForUser(user.id, providerId);
+  const persistedExtra = decodeValue("ai_provider_configs", "extra_config", persisted?.extra_config || "{}") || {};
+  const persistedEndpoint = String(persistedExtra?.endpoint_url || "").trim();
+  const endpointUrl = endpointFromPayload || persistedEndpoint;
+
+  let apiKey = apiKeyFromPayload;
+  if (!apiKey && persisted?.api_key_encrypted) {
+    apiKey = decryptSecret(persisted.api_key_encrypted);
+  }
+
+  if (providerId === "ollama") {
+    const baseUrl = endpointUrl || "http://127.0.0.1:11434";
+    const response = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}/api/tags`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!response.ok) {
+      return { ok: false, message: `Ollama connection failed (${response.status})` };
+    }
+    return { ok: true, message: "Ollama connection successful" };
+  }
+
+  if (!apiKey) {
+    return { ok: false, message: "API key is required for this provider" };
+  }
+
+  if (providerId === "openai") {
+    const response = await fetchWithTimeout("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    return { ok: response.ok, message: response.ok ? "OpenAI connection successful" : `OpenAI error (${response.status})` };
+  }
+
+  if (providerId === "google" || providerId === "gemini") {
+    const model = selectedModel || "gemini-2.5-flash";
+    const response = await fetchWithTimeout(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "ping" }] }],
+          generationConfig: { maxOutputTokens: 8 },
+        }),
+      }
+    );
+    return { ok: response.ok, message: response.ok ? "Gemini connection successful" : `Gemini error (${response.status})` };
+  }
+
+  if (providerId === "anthropic") {
+    const model = selectedModel || "claude-3-5-haiku-latest";
+    const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 8,
+        messages: [{ role: "user", content: "ping" }],
+      }),
+    });
+    return { ok: response.ok, message: response.ok ? "Anthropic connection successful" : `Anthropic error (${response.status})` };
+  }
+
+  if (providerId === "xai" || providerId === "grok") {
+    const response = await fetchWithTimeout("https://api.x.ai/v1/models", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    return { ok: response.ok, message: response.ok ? "xAI (Grok) connection successful" : `xAI error (${response.status})` };
+  }
+
+  if (endpointUrl) {
+    const response = await fetchWithTimeout(endpointUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    return { ok: response.ok, message: response.ok ? "Connection successful" : `Provider error (${response.status})` };
+  }
+
+  return {
+    ok: apiKey.length > 12,
+    message: apiKey.length > 12 ? "API key format looks valid" : "API key appears invalid",
+  };
+}
+
 function handleDocAssistant(_req, res, rawBody) {
   const body = parseJsonOrThrow(rawBody);
   const messages = Array.isArray(body?.messages) ? body.messages : [];
@@ -1844,7 +2185,7 @@ function handleDocAssistant(_req, res, rawBody) {
   const answer = [
     "Local assistant mode is active.",
     "This project is running with a local SQLite backend.",
-    "Remote AI providers and cloud edge functions are disabled in this mode.",
+    "AI provider selection is configured in AI Integrations (OpenAI, Gemini, Grok, Anthropic, Ollama).",
     prompt ? `You asked: ${prompt}` : "Ask about workflows, project data, or migration status.",
   ].join(" ");
 
@@ -1921,6 +2262,13 @@ function handleFunctionRequest(req, res, fnName, rawBody, user) {
   if (fnName === "reprocess-source") {
     const result = handleReprocessSource({ user, body: payload });
     sendJson(res, 200, result);
+    return;
+  }
+
+  if (fnName === "test-ai-provider") {
+    handleTestAiProvider({ user, body: payload })
+      .then((result) => sendJson(res, 200, result))
+      .catch((error) => sendJson(res, 400, { ok: false, error: error.message }));
     return;
   }
 

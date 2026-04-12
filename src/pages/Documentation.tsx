@@ -482,7 +482,7 @@ const Documentation: React.FC = () => {
     {
       id: 'ai-integrations', icon: Brain, title: d.aiTitle,
       category: 'ai',
-      keywords: 'AI integrations providers GPT Gemini Claude model API key configuration default',
+      keywords: 'AI integrations providers GPT Gemini Claude Grok Ollama model API key configuration default',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.aiDesc}</p>
@@ -502,7 +502,8 @@ const Documentation: React.FC = () => {
             <ul className="list-disc pl-4 space-y-1 mt-1">
               <li><strong>GPT-5 / Gemini Pro</strong> — Best for complex baselines with many sources</li>
               <li><strong>GPT-5 Mini / Gemini Flash</strong> — Good balance of speed and quality</li>
-              <li><strong>Claude</strong> — Excellent for detailed, well-structured control descriptions</li>
+              <li><strong>Claude / Grok</strong> — Strong reasoning for structured control descriptions and review notes</li>
+              <li><strong>Ollama local models</strong> — Best when data must stay fully on local infrastructure</li>
             </ul>
           </DocCallout>
         </div>
