@@ -166,11 +166,11 @@ const Documentation: React.FC = () => {
           </DocCallout>
 
           <DocStepList steps={[
-            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth, sign in as admin, change the default password, then create users in Settings.' },
+            { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth, sign in as admin, change the default password, validate policy compliance (12+ chars with complexity), then create users in Settings.' },
             { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard → "Create New Baseline" → Fill fields → Save' },
             { title: d.step3Title, description: d.step3Desc, detail: 'Source Library → Add URL or Upload → Wait for extraction' },
             { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates → Select template → Customize fields' },
-            { title: d.step5Title, description: d.step5Desc, detail: 'AI Workspace → Start Pipeline → Monitor stages' },
+            { title: d.step5Title, description: d.step5Desc, detail: 'AI Workspace -> Configure and test at least one provider in AI Integrations -> Start Pipeline -> Monitor stages' },
             { title: d.step6Title, description: d.step6Desc, detail: 'Baseline Editor → Review → Approve/Reject/Adjust' },
           ]} />
 
@@ -338,8 +338,8 @@ const Documentation: React.FC = () => {
 
           <DocCallout variant="tip">{d.workspaceTip}</DocCallout>
 
-          <DocCallout variant="warning" title="Important">
-            In local mode, the pipeline can run with the built-in local flow. If you configure external AI providers in AI Integrations, generation quality and behavior will depend on model selection and source quality.
+          <DocCallout variant="warning" title="Important Prerequisite">
+            In local mode, source extraction and pipeline execution require at least one configured provider in AI Integrations. If no provider is configured, execution is blocked and the app shows a warning before continuing.
           </DocCallout>
         </div>
       ),
@@ -505,6 +505,7 @@ const Documentation: React.FC = () => {
               <li><strong>Claude / Grok</strong> — Strong reasoning for structured control descriptions and review notes</li>
               <li><strong>Ollama local models</strong> — Best when data must stay fully on local infrastructure</li>
             </ul>
+            <p className="mt-3 text-xs text-muted-foreground">Provider configuration is mandatory before running extraction or pipeline execution.</p>
           </DocCallout>
         </div>
       ),

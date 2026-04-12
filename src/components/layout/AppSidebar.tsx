@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 
 const UserFooter: React.FC<{ collapsed: boolean }> = ({ collapsed }) => {
+  const { t } = useI18n();
   const { user, signOut } = useAuth();
   if (!user) return null;
   return (
@@ -26,7 +27,11 @@ const UserFooter: React.FC<{ collapsed: boolean }> = ({ collapsed }) => {
           </div>
         )}
         {!collapsed && (
-          <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors" title="Sair">
+          <button
+            onClick={signOut}
+            className="text-muted-foreground hover:text-destructive transition-colors"
+            title={(t.nav as any).signOut || 'Sign out'}
+          >
             <LogOut className="h-3.5 w-3.5" />
           </button>
         )}
@@ -51,7 +56,7 @@ const AppSidebar: React.FC = () => {
   ];
 
   const auditItems = [
-    { title: 'Audit Dashboard', url: '/audit', icon: ClipboardCheck },
+    { title: (t.nav as any).auditDashboard || 'Audit Dashboard', url: '/audit', icon: ClipboardCheck },
     { title: t.nav.traceability, url: '/traceability', icon: GitBranch },
     { title: t.nav.history, url: '/history', icon: History },
     { title: t.nav.exportImport, url: '/export-import', icon: ArrowUpDown },
@@ -59,8 +64,8 @@ const AppSidebar: React.FC = () => {
 
   const toolItems = [
     { title: (t.nav as any).aiIntegrations || 'AI Integrations', url: '/ai-integrations', icon: Brain },
-    { title: 'Teams', url: '/teams', icon: Users },
-    { title: 'Docs', url: '/docs', icon: BookOpen },
+    { title: (t.nav as any).teams || 'Teams', url: '/teams', icon: Users },
+    { title: (t.nav as any).docs || 'Docs', url: '/docs', icon: BookOpen },
   ];
 
   const renderItem = (item: { title: string; url: string; icon: React.ElementType }) => (
@@ -88,8 +93,8 @@ const AppSidebar: React.FC = () => {
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-display text-base font-semibold tracking-tight text-foreground leading-none">Aureum</span>
-              <span className="text-[10px] text-muted-foreground tracking-widest uppercase">Security Baseline Suite</span>
+              <span className="font-display text-base font-semibold tracking-tight text-foreground leading-none">{t.app.name}</span>
+              <span className="text-[10px] text-muted-foreground tracking-widest uppercase">{t.app.tagline}</span>
             </div>
           )}
         </Link>
@@ -97,7 +102,7 @@ const AppSidebar: React.FC = () => {
 
       <SidebarContent className="px-2">
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1">Operations</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1">{(t.nav as any).operations || 'Operations'}</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>{mainItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>
@@ -113,7 +118,7 @@ const AppSidebar: React.FC = () => {
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">Tools</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel className="text-[10px] tracking-widest uppercase text-muted-foreground/60 px-3 mb-1 mt-2">{(t.nav as any).tools || 'Tools'}</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>{toolItems.map(renderItem)}</SidebarMenu>
           </SidebarGroupContent>

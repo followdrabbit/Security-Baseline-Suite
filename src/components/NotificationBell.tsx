@@ -4,10 +4,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useI18n } from '@/contexts/I18nContext';
 import { formatDistanceToNow } from 'date-fns';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 const NotificationBell: React.FC = () => {
+  const { t } = useI18n();
+  const tNotifications = (t as any).notifications || {};
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -47,7 +50,7 @@ const NotificationBell: React.FC = () => {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between p-3 border-b border-border">
-          <h4 className="text-sm font-semibold">Notifications</h4>
+          <h4 className="text-sm font-semibold">{tNotifications.title || 'Notifications'}</h4>
           <div className="flex gap-1">
             {unreadCount > 0 && (
               <Button
@@ -57,7 +60,7 @@ const NotificationBell: React.FC = () => {
                 onClick={() => markAllAsRead.mutate()}
               >
                 <CheckCheck className="h-3 w-3" />
-                Read all
+                {tNotifications.readAll || 'Read all'}
               </Button>
             )}
             {notifications.length > 0 && (
@@ -67,7 +70,7 @@ const NotificationBell: React.FC = () => {
                 onClick={() => setConfirmClear(true)}
               >
                 <Trash2 className="h-3 w-3" />
-                Clear
+                {tNotifications.clear || 'Clear'}
               </Button>
             )}
           </div>
@@ -75,7 +78,7 @@ const NotificationBell: React.FC = () => {
         <ScrollArea className="max-h-80">
           {notifications.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
-              No notifications yet
+              {tNotifications.empty || 'No notifications yet'}
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -127,10 +130,10 @@ const NotificationBell: React.FC = () => {
         open={confirmClear}
         onOpenChange={setConfirmClear}
         variant="reject"
-        title="Clear all notifications?"
-        description="This will permanently delete all your notifications. This action cannot be undone."
-        confirmLabel="Clear all"
-        cancelLabel="Cancel"
+        title={tNotifications.clearAllTitle || 'Clear all notifications?'}
+        description={tNotifications.clearAllDescription || 'This will permanently delete all your notifications. This action cannot be undone.'}
+        confirmLabel={tNotifications.clearAllConfirm || 'Clear all'}
+        cancelLabel={tNotifications.cancel || 'Cancel'}
         onConfirm={() => {
           clearAll.mutate();
           setConfirmClear(false);

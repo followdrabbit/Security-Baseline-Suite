@@ -46,6 +46,34 @@ vi.mock('@/contexts/I18nContext', () => ({
         backup: 'Backup',
         createBackup: 'Criar backup',
         restoreBackup: 'Restaurar backup',
+        userManagement: {
+          title: 'Usuarios locais',
+          subtitle: 'Crie usuarios com senha temporaria. A troca de senha sera obrigatoria no primeiro login.',
+          refreshing: 'Atualizando...',
+          refreshList: 'Atualizar lista',
+          usernamePlaceholder: 'usuario',
+          passwordPlaceholder: 'senha temporaria',
+          creating: 'Criando...',
+          createUser: 'Criar usuario',
+          passwordPolicyHint: 'Politica de senha',
+          usernameColumn: 'Usuario',
+          roleColumn: 'Perfil',
+          passwordStatusColumn: 'Status de senha',
+          pendingPasswordChange: 'Troca pendente',
+          passwordUpdated: 'Senha atualizada',
+          noUsers: 'Nenhum usuario cadastrado alem do admin.',
+          userCreatedToast: 'Usuario criado com senha temporaria. Troca sera exigida no primeiro login.',
+        },
+      },
+      common: {
+        localeEnglishUs: 'English (US)',
+        localePortugueseBr: 'Português (BR)',
+        localeSpanishEs: 'Español (ES)',
+      },
+      exportImport: {
+        json: 'JSON',
+        markdown: 'Markdown',
+        pdf: 'PDF',
       },
       tooltips: {
         outputLanguage: 'Idioma de saida',
@@ -158,13 +186,13 @@ describe('Settings', () => {
 
     await screen.findByText('Usuarios locais', {}, { timeout: 3000 });
     await user.type(screen.getByPlaceholderText('usuario'), 'Analyst.User');
-    await user.type(screen.getByPlaceholderText('senha temporaria'), 'TempPass123');
+    await user.type(screen.getByPlaceholderText('senha temporaria'), 'TempPass@1234');
     await user.click(screen.getByRole('button', { name: /criar usuario/i }));
 
     await waitFor(() => {
       expect(mocks.createUser).toHaveBeenCalledWith({
         username: 'analyst.user',
-        password: 'TempPass123',
+        password: 'TempPass@1234',
       });
       expect(mocks.toastSuccess).toHaveBeenCalled();
       expect(mocks.listUsers).toHaveBeenCalledTimes(2);

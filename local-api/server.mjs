@@ -15,7 +15,11 @@ const HOST = process.env.LOCAL_API_HOST || "127.0.0.1";
 const PORT = Number(process.env.LOCAL_API_PORT || 8787);
 const DB_PATH = process.env.LOCAL_DB_PATH || path.join(process.cwd(), "local-api", "data", "security-baseline.sqlite");
 const ADMIN_USERNAME = "admin";
-const DEFAULT_ADMIN_PASSWORD = "admin1234";
+const DEFAULT_ADMIN_PASSWORD = "Admin@123456";
+const PASSWORD_POLICY = Object.freeze({
+  minLength: 12,
+  maxLength: 128,
+});
 const AUTH_BOOTSTRAP_KEY = "auth_bootstrap_v2";
 const DEFAULT_PROVIDER_ID = "openai";
 const DEFAULT_PROVIDER_MODEL = "gpt-4.1-mini";
@@ -454,9 +458,38 @@ function isValidUsername(username) {
   return /^[a-z0-9._-]{3,64}$/.test(username);
 }
 
+function validatePasswordComplexity(password) {
+  const value = String(password || "");
+
+  if (value.length < PASSWORD_POLICY.minLength) {
+    return `Password must have at least ${PASSWORD_POLICY.minLength} characters`;
+  }
+  if (value.length > PASSWORD_POLICY.maxLength) {
+    return `Password must have at most ${PASSWORD_POLICY.maxLength} characters`;
+  }
+  if (!/[a-z]/.test(value)) {
+    return "Password must include at least one lowercase letter";
+  }
+  if (!/[A-Z]/.test(value)) {
+    return "Password must include at least one uppercase letter";
+  }
+  if (!/[0-9]/.test(value)) {
+    return "Password must include at least one number";
+  }
+  if (!/[^A-Za-z0-9]/.test(value)) {
+    return "Password must include at least one special character";
+  }
+  if (/\s/.test(value)) {
+    return "Password must not contain whitespace";
+  }
+
+  return null;
+}
+
 function validateNewPassword(currentPassword, newPassword) {
-  if (!newPassword || newPassword.length < 8) {
-    return "Password must have at least 8 characters";
+  const complexityError = validatePasswordComplexity(newPassword);
+  if (complexityError) {
+    return complexityError;
   }
   if (newPassword === currentPassword) {
     return "New password must be different from the current password";
@@ -1305,6 +1338,10 @@ function createSessionForUser(user) {
 
 function ensureSeedData() {
   ensureUserTableColumns();
+  const defaultAdminPasswordError = validatePasswordComplexity(DEFAULT_ADMIN_PASSWORD);
+  if (defaultAdminPasswordError) {
+    throw new Error(`DEFAULT_ADMIN_PASSWORD does not satisfy password policy: ${defaultAdminPasswordError}`);
+  }
 
   const now = nowIso();
   const adminUsername = normalizeUsername(ADMIN_USERNAME);
@@ -2485,8 +2522,9 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      if (!password || password.length < 8) {
-        sendJson(res, 400, { error: "Password must have at least 8 characters" });
+      const passwordError = validatePasswordComplexity(password);
+      if (passwordError) {
+        sendJson(res, 400, { error: passwordError });
         return;
       }
 

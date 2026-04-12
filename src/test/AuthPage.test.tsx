@@ -24,6 +24,41 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }));
 
+vi.mock('@/contexts/I18nContext', () => ({
+  useI18n: () => ({
+    t: {
+      app: {
+        name: 'Aureum',
+        tagline: 'Security Baseline Suite',
+      },
+      auth: {
+        updatePasswordErrorTitle: 'Erro ao atualizar senha',
+        updatePasswordErrorDesc: 'Confirme a nova senha corretamente.',
+        passwordUpdatedTitle: 'Senha atualizada',
+        passwordUpdatedDesc: 'Acesso liberado com a nova senha.',
+        passwordChangeRequiredTitle: 'Troca de senha obrigatoria',
+        passwordChangeRequiredDesc: 'Defina uma nova senha para concluir o primeiro login.',
+        loginErrorTitle: 'Erro ao fazer login',
+        changePasswordTitle: 'Troque sua senha',
+        loginTitle: 'Fazer login',
+        changePasswordSubtitle: 'A senha padrao precisa ser alterada no primeiro acesso.',
+        loginSubtitle: 'Use usuario e senha locais para acessar o sistema.',
+        usernameLabel: 'Usuario',
+        usernamePlaceholder: 'admin',
+        passwordLabel: 'Senha',
+        passwordPlaceholder: '********',
+        newPasswordLabel: 'Nova senha',
+        newPasswordPlaceholder: 'Digite a nova senha',
+        confirmNewPasswordLabel: 'Confirmar nova senha',
+        confirmNewPasswordPlaceholder: 'Repita a nova senha',
+        passwordPolicyHint: 'Requisitos: minimo de 12 caracteres com maiuscula, minuscula, numero e caractere especial.',
+        changePasswordSubmit: 'Atualizar senha e entrar',
+        loginSubmit: 'Entrar',
+      },
+    },
+  }),
+}));
+
 describe('AuthPage', () => {
   beforeEach(() => {
     authMock.user = null;
@@ -57,11 +92,11 @@ describe('AuthPage', () => {
 
     await user.clear(screen.getByPlaceholderText('admin'));
     await user.type(screen.getByPlaceholderText('admin'), 'admin');
-    await user.type(screen.getByPlaceholderText('********'), 'admin1234');
+    await user.type(screen.getByPlaceholderText('********'), 'Admin@123456');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
     await waitFor(() => {
-      expect(authMock.signIn).toHaveBeenCalledWith('admin', 'admin1234');
+      expect(authMock.signIn).toHaveBeenCalledWith('admin', 'Admin@123456');
     });
   });
 
@@ -80,7 +115,7 @@ describe('AuthPage', () => {
 
     await user.clear(screen.getByPlaceholderText('admin'));
     await user.type(screen.getByPlaceholderText('admin'), 'admin');
-    await user.type(screen.getByPlaceholderText('********'), 'admin1234');
+    await user.type(screen.getByPlaceholderText('********'), 'Admin@123456');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
     await waitFor(() => {
@@ -88,15 +123,15 @@ describe('AuthPage', () => {
       expect(screen.getByPlaceholderText('Repita a nova senha')).toBeInTheDocument();
     });
 
-    await user.type(screen.getByPlaceholderText('Digite a nova senha'), 'new-admin-123');
-    await user.type(screen.getByPlaceholderText('Repita a nova senha'), 'new-admin-123');
+    await user.type(screen.getByPlaceholderText('Digite a nova senha'), 'New-admin-123');
+    await user.type(screen.getByPlaceholderText('Repita a nova senha'), 'New-admin-123');
     await user.click(screen.getByRole('button', { name: /atualizar senha e entrar/i }));
 
     await waitFor(() => {
       expect(authMock.completeFirstLoginPasswordChange).toHaveBeenCalledWith({
         username: 'admin',
-        currentPassword: 'admin1234',
-        newPassword: 'new-admin-123',
+        currentPassword: 'Admin@123456',
+        newPassword: 'New-admin-123',
       });
     });
   });

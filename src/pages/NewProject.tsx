@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Check, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Sparkles, Cpu, Loader2, Globe, X, Upload, FileText, AlertCircle, Eye, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Locale } from '@/types';
-import { aiConfigService } from '@/services/aiService';
+import { aiConfigService, AI_CONFIGURATION_REQUIRED_MESSAGE } from '@/services/aiService';
 
 const steps = ['step1', 'step2', 'step3', 'step4'] as const;
 
@@ -55,6 +55,7 @@ function resolveMaxTokens(providerConfig: any): number {
 
 type SourceItem = {
   id: string;
+  sourceId?: string;
   name: string;
   status: 'pending' | 'processing' | 'done' | 'error' | 'oversized';
   type: 'url' | 'file';
@@ -98,18 +99,79 @@ function FileTypeBadge({ name, type }: { name: string; type: 'file' | 'url' }) {
 }
 
 const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSourceCountChange?: (count: number) => void }> = ({ projectId, t, onSourceCountChange }) => {
-  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
   const [addedSources, setAddedSources] = useState<SourceItem[]>([]);
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const tProjectUi = t?.project?.ui || {};
+  const tSources = t?.sources || {};
+  const aiConfigRequiredMessage = t?.common?.aiIntegrationRequired || AI_CONFIGURATION_REQUIRED_MESSAGE;
+
+  const resolveRuntimeErrorMessage = (err: any, fallback = tProjectUi.unexpectedError || 'Unexpected error'): string => {
+    const rawMessage = String(err?.message || fallback);
+    return rawMessage === AI_CONFIGURATION_REQUIRED_MESSAGE ? aiConfigRequiredMessage : rawMessage;
+  };
+
+  const normalizeSourceStatus = (status: string): SourceItem['status'] => {
+    if (status === 'processed') return 'done';
+    if (status === 'failed') return 'error';
+    if (status === 'extracting' || status === 'normalized') return 'processing';
+    if (status === 'pending') return 'pending';
+    return 'pending';
+  };
+
+  const mapDbSourceToItem = (source: any): SourceItem => {
+    const sourceType = String(source?.type || '').toLowerCase();
+    const safeStatus = normalizeSourceStatus(String(source?.status || 'pending'));
+    const extractedPreview = typeof source?.extracted_content === 'string'
+      ? source.extracted_content.slice(0, 280)
+      : '';
+
+    return {
+      id: `source-${source.id}`,
+      sourceId: source.id,
+      name: source?.name || source?.file_name || source?.url || tProjectUi.unnamedSource || 'Unnamed source',
+      status: safeStatus,
+      type: sourceType === 'url' ? 'url' : 'file',
+      preview: source?.preview || extractedPreview,
+      originalUrl: sourceType === 'url' ? (source?.url || undefined) : undefined,
+      errorMessage: safeStatus === 'error' ? (tProjectUi.sourceProcessingFailed || 'Source processing failed') : undefined,
+    };
+  };
+
+  const syncProjectSources = useCallback(async () => {
+    if (!projectId) {
+      setAddedSources([]);
+      onSourceCountChange?.(0);
+      return;
+    }
+
+    const { data, error } = await localDb
+      .from('sources')
+      .select('id, name, type, status, preview, url, file_name, extracted_content, added_at')
+      .eq('project_id', projectId)
+      .order('added_at', { ascending: false });
+
+    if (error) {
+      return;
+    }
+
+    const dbSources = data || [];
+    const processedCount = dbSources.filter((row: any) => {
+      return row.status === 'processed'
+        && typeof row.extracted_content === 'string'
+        && row.extracted_content.trim().length > 0;
+    }).length;
+
+    setAddedSources(dbSources.map(mapDbSourceToItem));
+    onSourceCountChange?.(processedCount);
+  }, [projectId, onSourceCountChange]);
 
   useEffect(() => {
-    const doneCount = addedSources.filter(s => s.status === 'done').length;
-    onSourceCountChange?.(doneCount);
-  }, [addedSources, onSourceCountChange]);
+    void syncProjectSources();
+  }, [syncProjectSources]);
 
   const isValidUrl = (input: string): boolean => {
     try {
@@ -120,17 +182,45 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     }
   };
 
+  const parseUrlSource = async (url: string) => {
+    if (!projectId) {
+      throw new Error(tProjectUi.createProjectFirstStep1 || 'Create the project first (step 1)');
+    }
+
+    const configuredProvider = await aiConfigService.ensureConfiguredProvider();
+    const model = resolveModelId(configuredProvider);
+    const maxTokens = resolveMaxTokens(configuredProvider);
+
+    const resp = await localDb.functions.invoke('parse-url', {
+      body: { url, projectId, model, maxTokens },
+    });
+
+    if (resp.error) throw new Error(resp.error.message);
+    if (resp.data?.warning) throw new Error(resp.data.warning);
+    if (!resp.data?.source?.id) {
+      throw new Error(tProjectUi.urlNotPersisted || 'The URL source was not persisted correctly');
+    }
+
+    return resp.data;
+  };
+
   const handleAddUrl = async () => {
     let url = urlInput.trim();
     if (!url) { toast.error(t.sources.urlPlaceholder); return; }
-    if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
+    if (!projectId) { toast.error(tProjectUi.createProjectFirstStep1 || 'Create the project first (step 1)'); return; }
+
+    const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+    if (!hasAiConfigured) {
+      toast.error(aiConfigRequiredMessage);
+      return;
+    }
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = `https://${url}`;
     }
 
     if (!isValidUrl(url)) {
-      toast.error('URL inválida. Use o formato: https://exemplo.com');
+      toast.error(tProjectUi.invalidUrl || 'Invalid URL. Use format: https://example.com');
       return;
     }
 
@@ -140,23 +230,24 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
     setUrlInput('');
 
     try {
-      const { data: { session } } = await localDb.auth.getSession();
-      const resp = await localDb.functions.invoke('parse-url', {
-        body: { url, projectId },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-
-      if (resp.error) throw new Error(resp.error.message);
-      if (resp.data?.warning) throw new Error(resp.data.warning);
+      const result = await parseUrlSource(url);
 
       setAddedSources(prev => prev.map(s => s.id === itemId
-        ? { ...s, status: 'done', name: resp.data?.source?.name || url, preview: resp.data?.source?.preview || '' }
+        ? {
+          ...s,
+          status: 'done',
+          sourceId: result.source.id,
+          name: result.source?.name || url,
+          preview: result.source?.preview || '',
+        }
         : s
       ));
-      toast.success(t.sources.urlAdded || 'URL adicionada com sucesso');
+      await syncProjectSources();
+      toast.success(t.sources.urlAdded || tProjectUi.urlAddedSuccess || 'URL added successfully');
     } catch (err: any) {
-      setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: err.message } : s));
-      toast.error(`Erro: ${err.message}`);
+      const message = resolveRuntimeErrorMessage(err);
+      setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: message } : s));
+      toast.error(`${t.common.error}: ${message}`);
     } finally {
       setLoadingUrl(false);
     }
@@ -165,13 +256,20 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
   const uploadFile = (file: File, itemId: string): Promise<any> => {
     return new Promise(async (resolve, reject) => {
       if (!projectId) {
-        reject(new Error('Crie o projeto primeiro (passo 1)'));
+        reject(new Error(tProjectUi.createProjectFirstStep1 || 'Create the project first (step 1)'));
         return;
       }
 
-      const defaultConfig = await aiConfigService.getDefault();
-      const model = resolveModelId(defaultConfig);
-      const maxTokens = resolveMaxTokens(defaultConfig);
+      let configuredProvider: any;
+      try {
+        configuredProvider = await aiConfigService.ensureConfiguredProvider();
+      } catch (err) {
+        reject(err);
+        return;
+      }
+
+      const model = resolveModelId(configuredProvider);
+      const maxTokens = resolveMaxTokens(configuredProvider);
 
       const formData = new FormData();
       formData.append('file', file);
@@ -183,7 +281,9 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${LOCAL_API_URL}/functions/v1/parse-document`);
-      xhr.setRequestHeader('Authorization', `Bearer ${session?.access_token}`);
+      if (session?.access_token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+      }
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -202,21 +302,27 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
         } else {
           try {
             const err = JSON.parse(xhr.responseText);
-            reject(new Error(err.error || 'Upload failed'));
+            reject(new Error(err.error || tProjectUi.uploadFailed || 'Upload failed'));
           } catch {
-            reject(new Error('Upload failed'));
+            reject(new Error(tProjectUi.uploadFailed || 'Upload failed'));
           }
         }
       };
 
-      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.onerror = () => reject(new Error(tProjectUi.networkError || 'Network error'));
       xhr.send(formData);
     });
   };
 
   const handleFiles = async (files: FileList | File[]) => {
     if (!projectId) {
-      toast.error('Crie o projeto primeiro (passo 1)');
+      toast.error(tProjectUi.createProjectFirstStep1 || 'Create the project first (step 1)');
+      return;
+    }
+
+    const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+    if (!hasAiConfigured) {
+      toast.error(aiConfigRequiredMessage);
       return;
     }
 
@@ -231,7 +337,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
         status: isOversized ? 'oversized' : 'processing' as const,
         type: 'file' as const,
         fileSize: f.size,
-        errorMessage: isOversized ? `Arquivo excede ${MAX_FILE_SIZE_MB}MB` : undefined,
+        errorMessage: isOversized ? `${tProjectUi.fileTooLargePrefix || 'File exceeds'} ${MAX_FILE_SIZE_MB}MB` : undefined,
         originalFile: f,
       };
     });
@@ -240,11 +346,12 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
     const oversizedFiles = newItems.filter(item => item.status === 'oversized');
     if (oversizedFiles.length > 0) {
-      toast.error(`${oversizedFiles.length} arquivo(s) excedem o limite de ${MAX_FILE_SIZE_MB}MB`);
+      toast.error(`${oversizedFiles.length} ${tProjectUi.filesTooLargeSuffix || 'file(s) exceed the limit of'} ${MAX_FILE_SIZE_MB}MB`);
     }
 
     const validItems = newItems.filter(item => item.status !== 'oversized');
-    
+    let successCount = 0;
+
     for (let i = 0; i < validItems.length; i++) {
       const itemId = validItems[i].id;
       const fileIndex = fileArray.findIndex(f => f.name === validItems[i].name && f.size === validItems[i].fileSize);
@@ -252,19 +359,30 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       
       try {
         const result = await uploadFile(file, itemId);
+        if (!result?.source?.id) {
+          throw new Error(tProjectUi.fileNotPersisted || 'File uploaded, but source was not persisted correctly');
+        }
         setAddedSources(prev => prev.map(s => s.id === itemId
-          ? { ...s, status: 'done', name: result?.source?.name || file.name, preview: result?.source?.preview || '' }
+          ? {
+            ...s,
+            status: 'done',
+            sourceId: result.source.id,
+            name: result?.source?.name || file.name,
+            preview: result?.source?.preview || '',
+          }
           : s
         ));
+        successCount += 1;
       } catch (err: any) {
-        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: err.message } : s));
-        toast.error(`Falha: ${file.name} — ${err.message}`);
+        const message = resolveRuntimeErrorMessage(err);
+        setAddedSources(prev => prev.map(s => s.id === itemId ? { ...s, status: 'error', errorMessage: message } : s));
+        toast.error(`${tProjectUi.failurePrefix || 'Failure'}: ${file.name} — ${message}`);
       }
     }
 
     setUploading(false);
-    const doneCount = validItems.length;
-    if (doneCount > 0) toast.success(`${doneCount} arquivo(s) enviado(s)`);
+    await syncProjectSources();
+    if (successCount > 0) toast.success(`${successCount} ${tProjectUi.filesUploadedSuffix || 'file(s) uploaded'}`);
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -282,45 +400,93 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
 
-  const removeSource = (id: string) => setAddedSources(prev => prev.filter(s => s.id !== id));
+  const removeSource = async (item: SourceItem) => {
+    setAddedSources(prev => prev.filter(s => s.id !== item.id));
+
+    if (!item.sourceId) return;
+
+    const { error } = await localDb.from('sources').delete().eq('id', item.sourceId);
+    if (error) {
+      toast.error(`${tProjectUi.removeSourceFailedPrefix || 'Failed to remove source'}: ${error.message}`);
+      return;
+    }
+
+    await syncProjectSources();
+  };
 
   const reprocessSource = async (item: SourceItem) => {
-    if (!projectId) { toast.error('Crie o projeto primeiro (passo 1)'); return; }
+    if (!projectId) { toast.error(tProjectUi.createProjectFirstStep1 || 'Create the project first (step 1)'); return; }
+
+    const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+    if (!hasAiConfigured) {
+      toast.error(aiConfigRequiredMessage);
+      return;
+    }
 
     setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'processing' as const, progress: undefined, errorMessage: undefined } : s));
 
-    if (item.type === 'url' && item.originalUrl) {
+    if (item.sourceId) {
       try {
-        const { data: { session } } = await localDb.auth.getSession();
-        const resp = await localDb.functions.invoke('parse-url', {
-          body: { url: item.originalUrl, projectId },
-          headers: { Authorization: `Bearer ${session?.access_token}` },
+        const resp = await localDb.functions.invoke('reprocess-source', {
+          body: { sourceId: item.sourceId, maxTokens: 65000 },
         });
         if (resp.error) throw new Error(resp.error.message);
-        if (resp.data?.warning) throw new Error(resp.data.warning);
+        if (resp.data?.error) throw new Error(resp.data.error);
+        await syncProjectSources();
+        toast.success(tProjectUi.sourceReprocessedSuccess || 'Source reprocessed successfully');
+      } catch (err: any) {
+        const message = resolveRuntimeErrorMessage(err);
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: message } : s));
+        toast.error(`${tProjectUi.reprocessErrorPrefix || 'Reprocess error'}: ${message}`);
+      }
+      return;
+    }
+
+    if (item.type === 'url' && item.originalUrl) {
+      try {
+        const result = await parseUrlSource(item.originalUrl);
         setAddedSources(prev => prev.map(s => s.id === item.id
-          ? { ...s, status: 'done' as const, name: resp.data?.source?.name || item.originalUrl!, preview: resp.data?.source?.preview || '' }
+          ? {
+            ...s,
+            status: 'done' as const,
+            sourceId: result.source.id,
+            name: result.source?.name || item.originalUrl!,
+            preview: result.source?.preview || '',
+          }
           : s
         ));
-        toast.success('URL reprocessada com sucesso');
+        await syncProjectSources();
+        toast.success(tProjectUi.urlReprocessedSuccess || 'URL reprocessed successfully');
       } catch (err: any) {
-        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: err.message } : s));
-        toast.error(`Erro ao reprocessar: ${err.message}`);
+        const message = resolveRuntimeErrorMessage(err);
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: message } : s));
+        toast.error(`${tProjectUi.reprocessErrorPrefix || 'Reprocess error'}: ${message}`);
       }
     } else if (item.type === 'file' && item.originalFile) {
       try {
         const result = await uploadFile(item.originalFile, item.id);
+        if (!result?.source?.id) {
+          throw new Error(tProjectUi.reprocessedFileNotPersisted || 'Reprocessed file did not persist the source');
+        }
         setAddedSources(prev => prev.map(s => s.id === item.id
-          ? { ...s, status: 'done' as const, name: result?.source?.name || item.originalFile!.name, preview: result?.source?.preview || '' }
+          ? {
+            ...s,
+            status: 'done' as const,
+            sourceId: result.source.id,
+            name: result?.source?.name || item.originalFile!.name,
+            preview: result?.source?.preview || '',
+          }
           : s
         ));
-        toast.success('Arquivo reprocessado com sucesso');
+        await syncProjectSources();
+        toast.success(tProjectUi.fileReprocessedSuccess || 'File reprocessed successfully');
       } catch (err: any) {
-        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: err.message } : s));
-        toast.error(`Erro ao reprocessar: ${err.message}`);
+        const message = resolveRuntimeErrorMessage(err);
+        setAddedSources(prev => prev.map(s => s.id === item.id ? { ...s, status: 'error' as const, errorMessage: message } : s));
+        toast.error(`${tProjectUi.reprocessErrorPrefix || 'Reprocess error'}: ${message}`);
       }
     } else {
-      toast.error('Não é possível reprocessar — dados originais não disponíveis');
+      toast.error(tProjectUi.cannotReprocessMissingData || 'Cannot reprocess — original data unavailable');
     }
   };
 
@@ -379,7 +545,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
           </p>
           <p className="text-xs text-muted-foreground">{t.sources.dragDropSub}</p>
           <p className="text-[10px] text-muted-foreground/70 px-3 py-1 bg-muted/50 rounded-full mt-1">
-            Máximo {MAX_FILE_SIZE_MB}MB por arquivo
+            {tProjectUi.maxFileSizeLabel || 'Maximum'} {MAX_FILE_SIZE_MB}MB {(tProjectUi.maxFileSizePerFileSuffix || 'per file')}
           </p>
         </div>
       </div>
@@ -388,7 +554,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
       {addedSources.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">
-            {t.sources.added || 'Fontes adicionadas'} ({addedSources.length})
+            {t.sources.added || 'Added sources'} ({addedSources.length})
           </p>
           {addedSources.map((item) => (
             <div key={item.id} className="space-y-1">
@@ -410,7 +576,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                     <span className="text-[10px] text-muted-foreground/70 block">
                       {(item.fileSize / (1024 * 1024)).toFixed(2)} MB
                       {item.status === 'oversized' && (
-                        <span className="text-destructive ml-1">— Limite: {MAX_FILE_SIZE_MB}MB</span>
+                        <span className="text-destructive ml-1">— {(tProjectUi.limitLabel || 'Limit')}: {MAX_FILE_SIZE_MB}MB</span>
                       )}
                     </span>
                   )}
@@ -419,7 +585,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                   <span className="text-[10px] font-medium text-primary shrink-0">{item.progress}%</span>
                 )}
                 {item.status === 'processing' && item.progress === 100 && (
-                  <span className="text-[10px] font-medium text-muted-foreground shrink-0">Processando…</span>
+                  <span className="text-[10px] font-medium text-muted-foreground shrink-0">{tProjectUi.processingEllipsis || 'Processing...'}</span>
                 )}
                 {item.status === 'done' && item.preview && (
                   <button
@@ -443,7 +609,7 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
                   </button>
                 )}
                 <button 
-                  onClick={(e) => { e.stopPropagation(); removeSource(item.id); }} 
+                  onClick={(e) => { e.stopPropagation(); void removeSource(item); }} 
                   className="text-muted-foreground hover:text-destructive"
                   title={item.errorMessage || 'Remover'}
                 >
@@ -473,14 +639,18 @@ const SourceSelectionStep: React.FC<{ projectId: string | null; t: any; onSource
 
 const NewProject: React.FC = () => {
   const { t } = useI18n();
+  const tProjectUi = (t as any).project?.ui || {};
   const { user } = useAuth();
   const navigate = useNavigate();
+  const aiConfigRequiredMessage = t.common.aiIntegrationRequired || AI_CONFIGURATION_REQUIRED_MESSAGE;
+  const projectCreatedWithoutAiMessage = t.common.projectCreatedAiNotConfigured || 'Project created, but AI integration is not configured yet. Configure AI Integrations before processing sources or running the pipeline.';
   const [current, setCurrent] = useState(0);
   const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [sourceCount, setSourceCount] = useState(0);
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineProgress, setPipelineProgress] = useState('');
+  const [pipelineHasError, setPipelineHasError] = useState(false);
   const [generatedCount, setGeneratedCount] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: '', technology: '', vendor: '', version: '', category: '', outputLanguage: 'en' as Locale, notes: '', tags: '',
@@ -491,17 +661,22 @@ const NewProject: React.FC = () => {
   const updateForm = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
   const startPipeline = async () => {
-    if (!projectId) { toast.error('Crie o projeto primeiro'); return; }
-    if (sourceCount === 0) { toast.error('Adicione pelo menos uma fonte processada'); return; }
+    if (!projectId) { toast.error(tProjectUi.createProjectFirst || 'Create the project first'); return; }
+    if (sourceCount === 0) { toast.error(tProjectUi.addProcessedSourceFirst || 'Add at least one processed source'); return; }
+
+    const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+    if (!hasAiConfigured) {
+      toast.error(aiConfigRequiredMessage);
+      return;
+    }
 
     setPipelineRunning(true);
-    setPipelineProgress('Carregando fontes processadas...');
+    setPipelineHasError(false);
+    setPipelineProgress(tProjectUi.pipelineRunning || 'Running pipeline...');
 
     try {
-      const { data: { session } } = await localDb.auth.getSession();
-
       // 1. Fetch processed sources for this project
-      setPipelineProgress('Buscando conteúdo das fontes...');
+      setPipelineProgress(tProjectUi.pipelineFetchingSources || 'Fetching source content...');
       const { data: sources, error: srcErr } = await localDb
         .from('sources')
         .select('name, extracted_content, type')
@@ -515,14 +690,11 @@ const NewProject: React.FC = () => {
         .map(s => ({ name: s.name, content: s.extracted_content! }));
 
       if (sourceTexts.length === 0) {
-        toast.error('Nenhuma fonte com conteúdo extraído encontrada');
-        setPipelineRunning(false);
-        setPipelineProgress('');
-        return;
+        setPipelineProgress(tProjectUi.pipelineNoLocalSourceCache || 'No local source cache found; validating in backend...');
       }
 
       // 2. Call generate-controls edge function
-      setPipelineProgress(`Gerando controles a partir de ${sourceTexts.length} fonte(s)...`);
+      setPipelineProgress(`${tProjectUi.pipelineGeneratingPrefix || 'Generating controls from'} ${sourceTexts.length} ${tProjectUi.pipelineGeneratingSuffix || 'source(s)...'}`);
       const resp = await localDb.functions.invoke('generate-controls', {
         body: {
           projectId,
@@ -530,22 +702,29 @@ const NewProject: React.FC = () => {
           technology: form.technology,
           language: form.outputLanguage,
         },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
 
       if (resp.error) throw new Error(resp.error.message);
-      if (resp.data?.error) throw new Error(resp.data.error);
+      if (resp.data?.error) {
+        const backendError = String(resp.data.error || '');
+        if (backendError.toLowerCase().includes('no processed sources')) {
+          throw new Error(tProjectUi.noExtractedSourceFound || 'No source with extracted content found');
+        }
+        throw new Error(backendError);
+      }
 
       const count = resp.data?.count || resp.data?.controls?.length || 0;
       setGeneratedCount(count);
-      setPipelineProgress(`${count} controles gerados com sucesso!`);
-      toast.success(`Pipeline concluído: ${count} controles gerados`);
+      setPipelineProgress(`${count} ${tProjectUi.pipelineGeneratedSuccessSuffix || 'controls generated successfully!'}`);
+      toast.success(`${tProjectUi.pipelineCompletedPrefix || 'Pipeline completed'}: ${count} ${tProjectUi.pipelineCompletedSuffix || 'controls generated'}`);
+      setPipelineHasError(false);
 
       // Auto-advance to review step
       setCurrent(3);
     } catch (err: any) {
-      toast.error(`Erro no pipeline: ${err.message}`);
-      setPipelineProgress(`Erro: ${err.message}`);
+      toast.error(`${tProjectUi.pipelineErrorPrefix || 'Pipeline error'}: ${err.message}`);
+      setPipelineProgress(`${t.common.error}: ${err.message}`);
+      setPipelineHasError(true);
     } finally {
       setPipelineRunning(false);
     }
@@ -637,9 +816,9 @@ const NewProject: React.FC = () => {
                   <Select value={form.outputLanguage} onValueChange={v => updateForm('outputLanguage', v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English (US)</SelectItem>
-                      <SelectItem value="pt">Português (BR)</SelectItem>
-                      <SelectItem value="es">Español (ES)</SelectItem>
+                      <SelectItem value="en">{(t.common as any).localeEnglishUs || 'English (US)'}</SelectItem>
+                      <SelectItem value="pt">{(t.common as any).localePortugueseBr || 'Português (BR)'}</SelectItem>
+                      <SelectItem value="es">{(t.common as any).localeSpanishEs || 'Español (ES)'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -673,7 +852,7 @@ const NewProject: React.FC = () => {
               </div>
               {pipelineProgress && (
                 <div className="max-w-md mx-auto">
-                  <p className={`text-sm font-medium ${pipelineProgress.startsWith('Erro') ? 'text-destructive' : 'text-primary'}`}>
+                  <p className={`text-sm font-medium ${pipelineHasError ? 'text-destructive' : 'text-primary'}`}>
                     {pipelineProgress}
                   </p>
                   {pipelineRunning && (
@@ -683,7 +862,7 @@ const NewProject: React.FC = () => {
                   )}
                 </div>
               )}
-              {!pipelineRunning && generatedCount === null && !pipelineProgress.startsWith('Erro') && (
+              {!pipelineRunning && generatedCount === null && !pipelineHasError && (
                 <Button
                   className="gold-gradient text-primary-foreground hover:opacity-90"
                   onClick={startPipeline}
@@ -696,21 +875,21 @@ const NewProject: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-2 text-success">
                     <Check className="h-5 w-5" />
-                    <span className="text-sm font-medium">{generatedCount} controles gerados</span>
+                    <span className="text-sm font-medium">{generatedCount} {tProjectUi.generatedControlsSuffix || 'controls generated'}</span>
                   </div>
                   <div className="flex gap-2 justify-center">
-                    <Button variant="outline" size="sm" onClick={() => { setGeneratedCount(null); setPipelineProgress(''); }}>
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Regenerar
+                    <Button variant="outline" size="sm" onClick={() => { setGeneratedCount(null); setPipelineProgress(''); setPipelineHasError(false); }}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> {tProjectUi.regenerate || 'Regenerate'}
                     </Button>
                     <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => setCurrent(3)}>
-                      Revisar <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                      {tProjectUi.review || 'Review'} <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     </Button>
                   </div>
                 </div>
               )}
-              {!pipelineRunning && pipelineProgress.startsWith('Erro') && (
+              {!pipelineRunning && pipelineHasError && (
                 <Button className="gold-gradient text-primary-foreground hover:opacity-90" onClick={startPipeline}>
-                  <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+                  <RefreshCw className="h-4 w-4 mr-2" /> {tProjectUi.tryAgain || 'Try again'}
                 </Button>
               )}
             </div>
@@ -753,7 +932,7 @@ const NewProject: React.FC = () => {
             onClick={async () => {
               if (current === 0 && !projectId) {
                 if (!form.name || !form.technology) {
-                  toast.error('Preencha nome e tecnologia');
+                  toast.error(tProjectUi.fillNameAndTechnology || 'Fill in name and technology');
                   return;
                 }
                 setSaving(true);
@@ -772,16 +951,21 @@ const NewProject: React.FC = () => {
                   }).select('id').single();
                   if (error) throw error;
                   setProjectId(data.id);
-                  toast.success('Projeto criado com sucesso');
+                  toast.success(tProjectUi.projectCreatedSuccess || 'Project created successfully');
+
+                  const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+                  if (!hasAiConfigured) {
+                    toast.warning(projectCreatedWithoutAiMessage);
+                  }
                 } catch (err: any) {
-                  toast.error(`Erro ao criar projeto: ${err.message}`);
+                  toast.error(`${tProjectUi.projectCreateErrorPrefix || 'Error creating project'}: ${err.message}`);
                   setSaving(false);
                   return;
                 }
                 setSaving(false);
               }
               if (current === 1 && sourceCount === 0) {
-                toast.error('Adicione pelo menos uma fonte antes de avançar');
+                toast.error(tProjectUi.addSourceBeforeContinue || 'Add at least one source before continuing');
                 return;
               }
               setCurrent(current + 1);

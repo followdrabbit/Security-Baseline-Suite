@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTeams, useTeamMembers } from '@/hooks/useTeams';
 import { useAuth } from '@/contexts/AuthContext';
+import { useI18n } from '@/contexts/I18nContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { localDb } from '@/integrations/localdb/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,8 @@ import { toast } from '@/hooks/use-toast';
 import HelpButton from '@/components/HelpButton';
 
 const Teams: React.FC = () => {
+  const { t } = useI18n();
+  const tTeams = (t as any).teamsPage || {};
   const { user } = useAuth();
   const { teams, isLoading, createTeam, addMember, removeMember, assignProjectToTeam } = useTeams();
   const [newTeamName, setNewTeamName] = useState('');
@@ -36,9 +39,16 @@ const Teams: React.FC = () => {
     try {
       await createTeam.mutateAsync(newTeamName.trim());
       setNewTeamName('');
-      toast({ title: 'Team created', description: `Team "${newTeamName}" created successfully.` });
+      toast({
+        title: tTeams.createdTitle || 'Team created',
+        description: `${tTeams.createdDescPrefix || 'Team'} "${newTeamName}" ${tTeams.createdDescSuffix || 'created successfully.'}`,
+      });
     } catch {
-      toast({ title: 'Error', description: 'Failed to create team.', variant: 'destructive' });
+      toast({
+        title: t.common.error,
+        description: tTeams.createFailed || 'Failed to create team.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -46,8 +56,8 @@ const Teams: React.FC = () => {
     if (!selectedTeam || !newMemberEmail.trim()) return;
     // In a real app, you'd look up user by email. For now, we show a message.
     toast({
-      title: 'Invite sent',
-      description: `Team invite functionality requires user lookup. Member email: ${newMemberEmail}`,
+      title: tTeams.inviteSentTitle || 'Invite sent',
+      description: `${tTeams.inviteSentDescPrefix || 'Team invite functionality requires user lookup. Member email:'} ${newMemberEmail}`,
     });
     setNewMemberEmail('');
   };
@@ -58,9 +68,16 @@ const Teams: React.FC = () => {
         projectId,
         teamId: teamId === 'none' ? null : teamId,
       });
-      toast({ title: 'Project updated', description: 'Project team assignment updated.' });
+      toast({
+        title: tTeams.projectUpdatedTitle || 'Project updated',
+        description: tTeams.projectUpdatedDesc || 'Project team assignment updated.',
+      });
     } catch {
-      toast({ title: 'Error', description: 'Failed to assign project.', variant: 'destructive' });
+      toast({
+        title: t.common.error,
+        description: tTeams.assignFailed || 'Failed to assign project.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -70,8 +87,8 @@ const Teams: React.FC = () => {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Teams</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your teams and collaborate on security baselines</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">{tTeams.title || 'Teams'}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{tTeams.subtitle || 'Manage your teams and collaborate on security baselines'}</p>
         </div>
         <HelpButton section="teams" />
       </div>
@@ -82,7 +99,7 @@ const Teams: React.FC = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Create Team
+                <Plus className="h-4 w-4" /> {tTeams.createTeam || 'Create Team'}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -90,12 +107,12 @@ const Teams: React.FC = () => {
                 <Input
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  placeholder="Team name..."
+                  placeholder={tTeams.teamNamePlaceholder || 'Team name...'}
                   className="text-sm"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateTeam()}
                 />
                 <Button size="sm" onClick={handleCreateTeam} disabled={createTeam.isPending}>
-                  Create
+                  {tTeams.createButton || 'Create'}
                 </Button>
               </div>
             </CardContent>
@@ -104,14 +121,14 @@ const Teams: React.FC = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="h-4 w-4" /> Your Teams
+                <Users className="h-4 w-4" /> {tTeams.yourTeams || 'Your Teams'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <p className="text-xs text-muted-foreground">Loading...</p>
+                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
               ) : teams.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No teams yet. Create one above.</p>
+                <p className="text-xs text-muted-foreground">{tTeams.noTeams || 'No teams yet. Create one above.'}</p>
               ) : (
                 <div className="space-y-1">
                   {teams.map((team) => (
@@ -147,18 +164,22 @@ const Teams: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">{activeTeam.name}</CardTitle>
                   <CardDescription className="text-xs">
-                    {activeTeam.owner_id === user?.id ? 'You are the owner' : 'Member'}
+                    {activeTeam.owner_id === user?.id
+                      ? (tTeams.youAreOwner || 'You are the owner')
+                      : (tTeams.memberRole || 'Member')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Members ({members.length})</h4>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                      {(tTeams.members || 'Members')} ({members.length})
+                    </h4>
                     <div className="space-y-1">
                       {members.map((m) => (
                         <div key={m.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-accent/30">
                           <div className="flex items-center gap-2 text-sm">
                             <User className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="truncate">{m.user_id === user?.id ? 'You' : m.user_id.slice(0, 8) + '...'}</span>
+                            <span className="truncate">{m.user_id === user?.id ? (tTeams.you || 'You') : m.user_id.slice(0, 8) + '...'}</span>
                             <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
                           </div>
                           {activeTeam.owner_id === user?.id && m.user_id !== user?.id && (
@@ -178,16 +199,16 @@ const Teams: React.FC = () => {
 
                   {activeTeam.owner_id === user?.id && (
                     <div>
-                      <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Add Member</h4>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{tTeams.addMember || 'Add Member'}</h4>
                       <div className="flex gap-2">
                         <Input
                           value={newMemberEmail}
                           onChange={(e) => setNewMemberEmail(e.target.value)}
-                          placeholder="Member email..."
+                          placeholder={tTeams.memberEmailPlaceholder || 'Member email...'}
                           className="text-sm"
                         />
                         <Button size="sm" onClick={handleAddMember}>
-                          Add
+                          {tTeams.addButton || 'Add'}
                         </Button>
                       </div>
                     </div>
@@ -198,15 +219,15 @@ const Teams: React.FC = () => {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <FolderPlus className="h-4 w-4" /> Assign Projects
+                    <FolderPlus className="h-4 w-4" /> {tTeams.assignProjects || 'Assign Projects'}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Share projects with this team for collaborative review
+                    {tTeams.assignProjectsDesc || 'Share projects with this team for collaborative review'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {projects.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No projects available.</p>
+                    <p className="text-xs text-muted-foreground">{tTeams.noProjectsAvailable || 'No projects available.'}</p>
                   ) : (
                     <div className="space-y-2">
                       {projects.map((project: any) => (
@@ -220,7 +241,7 @@ const Teams: React.FC = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">No team</SelectItem>
+                              <SelectItem value="none">{tTeams.noTeam || 'No team'}</SelectItem>
                               {teams.map((t) => (
                                 <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                               ))}
@@ -237,7 +258,7 @@ const Teams: React.FC = () => {
             <Card>
               <CardContent className="p-12 text-center">
                 <Users className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Select a team to view details</p>
+                <p className="text-sm text-muted-foreground">{tTeams.selectTeamToView || 'Select a team to view details'}</p>
               </CardContent>
             </Card>
           )}

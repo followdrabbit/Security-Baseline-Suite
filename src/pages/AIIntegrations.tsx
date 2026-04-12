@@ -134,6 +134,7 @@ const AIIntegrations: React.FC = () => {
   const [configs, setConfigs] = useState<Record<string, ProviderConfig>>(makeInitialConfigs);
 
   const tAI = (t as any).aiIntegrations || {};
+  const providerDescriptions = tAI.providerDescriptions || {};
 
   const updateConfig = (providerId: string, updates: Partial<ProviderConfig>) => {
     setConfigs(prev => ({
@@ -222,14 +223,14 @@ const AIIntegrations: React.FC = () => {
 
       if (!options?.silent) {
         toast({
-          title: 'Configuration saved',
-          description: 'Provider configuration persisted successfully.',
+          title: tAI.configSavedTitle || 'Configuration saved',
+          description: tAI.configSavedDesc || 'Provider configuration persisted successfully.',
         });
       }
     } catch (err: any) {
       toast({
-        title: 'Save error',
-        description: err?.message || 'Could not save provider configuration.',
+        title: tAI.saveErrorTitle || 'Save error',
+        description: err?.message || tAI.saveErrorDesc || 'Could not save provider configuration.',
         variant: 'destructive',
       });
     } finally {
@@ -250,13 +251,13 @@ const AIIntegrations: React.FC = () => {
       await aiConfigService.setDefault(providerId);
       const provider = AI_PROVIDERS.find(p => p.id === providerId);
       toast({
-        title: 'Default provider updated',
-        description: `${provider?.name || providerId} is now the default provider.`,
+        title: tAI.defaultUpdatedTitle || 'Default provider updated',
+        description: `${provider?.name || providerId} ${tAI.defaultUpdatedDescSuffix || 'is now the default provider.'}`,
       });
     } catch (err: any) {
       toast({
-        title: 'Default provider error',
-        description: err?.message || 'Could not update default provider.',
+        title: tAI.defaultUpdatedErrorTitle || 'Default provider error',
+        description: err?.message || tAI.defaultUpdatedErrorDesc || 'Could not update default provider.',
         variant: 'destructive',
       });
     }
@@ -269,8 +270,8 @@ const AIIntegrations: React.FC = () => {
 
     if (provider.requiresApiKey && !config.apiKey.trim() && !config.hasStoredKey) {
       toast({
-        title: 'API key required',
-        description: 'Enter an API key or keep a stored key before testing.',
+        title: tAI.apiKeyRequiredTitle || 'API key required',
+        description: tAI.apiKeyRequiredDesc || 'Enter an API key or keep a stored key before testing.',
         variant: 'destructive',
       });
       return;
@@ -288,7 +289,7 @@ const AIIntegrations: React.FC = () => {
     if (!result.ok) {
       updateConfig(providerId, { connectionStatus: 'failed' });
       toast({
-        title: 'Connection failed',
+        title: tAI.connectionFailed || 'Connection failed',
         description: result.message,
         variant: 'destructive',
       });
@@ -309,7 +310,7 @@ const AIIntegrations: React.FC = () => {
     });
 
     toast({
-      title: 'Connection successful',
+      title: tAI.connectionSuccess || 'Connection successful',
       description: result.message,
     });
   };
@@ -328,9 +329,9 @@ const AIIntegrations: React.FC = () => {
       <div className="p-6 lg:p-8 max-w-4xl mx-auto">
         <div className="bg-card border border-border rounded-lg p-8 text-center space-y-4 shadow-premium">
           <LogIn className="h-12 w-12 text-primary/50 mx-auto" />
-          <h2 className="text-xl font-display font-semibold text-foreground">Sign in required</h2>
+          <h2 className="text-xl font-display font-semibold text-foreground">{tAI.signInRequiredTitle || 'Sign in required'}</h2>
           <p className="text-sm text-muted-foreground">
-            You must be authenticated to configure AI providers and persist settings.
+            {tAI.signInRequiredDesc || 'You must be authenticated to configure AI providers and persist settings.'}
           </p>
         </div>
       </div>
@@ -409,20 +410,20 @@ const AIIntegrations: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-foreground">{provider.name}</span>
                         {config.isDefault && (
-                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Default</Badge>
+                          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">{tAI.default || 'Default'}</Badge>
                         )}
                         {config.connectionStatus === 'connected' && (
                           <Badge variant="outline" className="text-[10px] border-success/30 text-success">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />Connected
+                            <CheckCircle2 className="h-3 w-3 mr-1" />{tAI.connected || 'Connected'}
                           </Badge>
                         )}
                         {config.connectionStatus === 'failed' && (
                           <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">
-                            <XCircle className="h-3 w-3 mr-1" />Failed
+                            <XCircle className="h-3 w-3 mr-1" />{tAI.failed || 'Failed'}
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{provider.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{providerDescriptions[provider.id] || provider.description}</p>
                     </div>
                   </div>
 
@@ -450,7 +451,7 @@ const AIIntegrations: React.FC = () => {
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                           <Key className="h-3 w-3 text-primary/70" />
-                          API Key
+                          {tAI.apiKeyLabel || 'API Key'}
                           <InfoTooltip content={tAI.apiKeyTooltip || 'API keys are encrypted at rest in the local database.'} />
                         </label>
 
@@ -458,7 +459,9 @@ const AIIntegrations: React.FC = () => {
                           <div className="relative flex-1">
                             <Input
                               type={showKeys[provider.id] ? 'text' : 'password'}
-                              placeholder={config.hasStoredKey ? 'Stored key detected. Enter a new key to rotate.' : 'Paste provider API key'}
+                              placeholder={config.hasStoredKey
+                                ? (tAI.apiKeyStoredPlaceholder || 'Stored key detected. Enter a new key to rotate.')
+                                : (tAI.apiKeyPlaceholder || 'Paste provider API key')}
                               value={config.apiKey}
                               onChange={(e) => updateConfig(provider.id, {
                                 apiKey: e.target.value,
@@ -492,7 +495,7 @@ const AIIntegrations: React.FC = () => {
                             onClick={() => testConnection(provider.id)}
                           >
                             {config.connectionStatus === 'testing' ? (
-                              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Testing...</>
+                              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{tAI.testing || 'Testing...'}</>
                             ) : (
                               <><RefreshCw className="h-3.5 w-3.5 mr-1.5" />{tAI.testConnection || 'Test'}</>
                             )}
@@ -500,7 +503,7 @@ const AIIntegrations: React.FC = () => {
                         </div>
 
                         {config.hasStoredKey && (
-                          <p className="text-[11px] text-muted-foreground">A key is already stored securely for this provider.</p>
+                          <p className="text-[11px] text-muted-foreground">{tAI.storedKeyHint || 'A key is already stored securely for this provider.'}</p>
                         )}
 
                         <a
@@ -518,7 +521,7 @@ const AIIntegrations: React.FC = () => {
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                           <Server className="h-3 w-3 text-primary/70" />
-                          Endpoint URL
+                          {tAI.endpointUrlLabel || 'Endpoint URL'}
                         </label>
                         <Input
                           placeholder={provider.endpointPlaceholder}
@@ -551,7 +554,7 @@ const AIIntegrations: React.FC = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-foreground">Max Tokens (Extraction)</label>
+                      <label className="text-xs font-medium text-foreground">{tAI.maxTokensLabel || 'Max Tokens (Extraction)'}</label>
                       <div className="flex items-center gap-3 max-w-xs">
                         <Input
                           type="number"
@@ -566,7 +569,7 @@ const AIIntegrations: React.FC = () => {
                           onBlur={() => saveConfig(provider.id, configs[provider.id], { silent: true }).catch(() => null)}
                           className="w-32"
                         />
-                        <span className="text-[10px] text-muted-foreground">tokens</span>
+                        <span className="text-[10px] text-muted-foreground">{tAI.tokensSuffix || 'tokens'}</span>
                       </div>
                     </div>
 
@@ -589,7 +592,7 @@ const AIIntegrations: React.FC = () => {
                         disabled={config.connectionStatus === 'testing' || (provider.requiresApiKey && !config.apiKey.trim() && !config.hasStoredKey)}
                       >
                         {config.connectionStatus === 'testing' ? (
-                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Testing...</>
+                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{tAI.testing || 'Testing...'}</>
                         ) : (
                           <><RefreshCw className="h-3.5 w-3.5 mr-1.5" />{tAI.testConnection || 'Test'}</>
                         )}

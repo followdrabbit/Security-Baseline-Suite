@@ -4,6 +4,55 @@ import userEvent from '@testing-library/user-event';
 import BaselineMindMap from '@/components/BaselineMindMap';
 import type { ControlItem } from '@/types';
 
+vi.mock('@/contexts/I18nContext', () => ({
+  useI18n: () => ({
+    t: {
+      dashboard: {
+        controls: 'controls',
+        trends: {
+          exportPng: 'Export as PNG',
+        },
+      },
+      editor: {
+        search: 'Search controls...',
+        filterCriticality: 'Criticality',
+        filterStatus: 'Review Status',
+        expandAll: 'Expand All',
+        collapseAll: 'Collapse All',
+        clearFilter: 'Clear',
+        mindmap: {
+          allCriticality: 'All Criticality',
+          allStatus: 'All Status',
+          legend: 'Legend',
+          reviewProgress: 'Review progress',
+          avgConfidence: 'Avg. confidence',
+          toolbarAria: 'Mind map controls',
+          zoomInAria: 'Zoom in',
+          zoomOutAria: 'Zoom out',
+          zoomLevelAriaPrefix: 'Zoom level',
+          resetAria: 'Reset view',
+          reset: 'Reset',
+          zoomPanHint: 'Scroll to zoom · Drag to pan',
+          exportPngAria: 'Export mind map as PNG',
+        },
+      },
+      common: {
+        of: 'of',
+        critical: 'critical',
+        high: 'high',
+        medium: 'medium',
+        low: 'low',
+        informational: 'informational',
+        approved: 'approved',
+        reviewed: 'reviewed',
+        pending: 'pending',
+        rejected: 'rejected',
+        adjusted: 'adjusted',
+      },
+    },
+  }),
+}));
+
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', async () => {
   const actual = await vi.importActual<typeof import('framer-motion')>('framer-motion');
@@ -121,7 +170,7 @@ describe('BaselineMindMap integration', () => {
 
   it('collapse all hides control nodes and changes button text', () => {
     renderMindMap();
-    const collapseBtn = screen.getByLabelText('Collapse all categories');
+    const collapseBtn = screen.getByLabelText('Collapse All');
     fireEvent.click(collapseBtn);
 
     // Button should now say "Expand All"
@@ -133,10 +182,10 @@ describe('BaselineMindMap integration', () => {
 
   it('expand all restores control nodes', () => {
     renderMindMap();
-    fireEvent.click(screen.getByLabelText('Collapse all categories'));
+    fireEvent.click(screen.getByLabelText('Collapse All'));
     expect(screen.queryByLabelText(/Control S3-SEC-001/)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Expand all categories'));
+    fireEvent.click(screen.getByLabelText('Expand All'));
     expect(screen.getByLabelText(/Control S3-SEC-001/)).toBeInTheDocument();
   });
 

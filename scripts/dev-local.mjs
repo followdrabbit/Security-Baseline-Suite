@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+const isWindows = process.platform === "win32";
+const npmCommand = isWindows ? "npm.cmd" : "npm";
 
 const apiProcess = spawn(process.execPath, ["local-api/server.mjs"], {
   stdio: "inherit",
@@ -11,6 +12,8 @@ const apiProcess = spawn(process.execPath, ["local-api/server.mjs"], {
 const webProcess = spawn(npmCommand, ["run", "dev"], {
   stdio: "inherit",
   env: process.env,
+  // On Windows, .cmd scripts require a shell to avoid spawn EINVAL.
+  shell: isWindows,
 });
 
 let shuttingDown = false;

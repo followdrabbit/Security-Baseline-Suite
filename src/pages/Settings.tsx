@@ -25,6 +25,8 @@ type ManagedUser = {
 
 const Settings: React.FC = () => {
   const { t, locale, setLocale } = useI18n();
+  const tSettings = (t as any).settings || {};
+  const tUserMgmt = tSettings.userManagement || {};
   const { theme, setTheme } = useTheme();
   const { user, listUsers, createUser } = useAuth();
   const { notifySourceProcessed, notifyControlStatus, notifyTeamMemberJoined, updatePreference } = useUserPreferences();
@@ -71,7 +73,7 @@ const Settings: React.FC = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success('Usuario criado com senha temporaria. Troca sera exigida no primeiro login.');
+      toast.success(tUserMgmt.userCreatedToast || 'User created with temporary password. Password change will be required on first login.');
       setNewUsername('');
       setNewUserPassword('');
       await loadManagedUsers();
@@ -87,9 +89,9 @@ const Settings: React.FC = () => {
         <Select value={locale} onValueChange={(v) => setLocale(v as Locale)}>
           <SelectTrigger className="w-60"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="en">English (US)</SelectItem>
-            <SelectItem value="pt">Português (BR)</SelectItem>
-            <SelectItem value="es">Español (ES)</SelectItem>
+            <SelectItem value="en">{(t.common as any).localeEnglishUs || 'English (US)'}</SelectItem>
+            <SelectItem value="pt">{(t.common as any).localePortugueseBr || 'Português (BR)'}</SelectItem>
+            <SelectItem value="es">{(t.common as any).localeSpanishEs || 'Español (ES)'}</SelectItem>
           </SelectContent>
         </Select>
       ),
@@ -100,9 +102,9 @@ const Settings: React.FC = () => {
         <Select defaultValue="en">
           <SelectTrigger className="w-60"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="en">English (US)</SelectItem>
-            <SelectItem value="pt">Português (BR)</SelectItem>
-            <SelectItem value="es">Español (ES)</SelectItem>
+            <SelectItem value="en">{(t.common as any).localeEnglishUs || 'English (US)'}</SelectItem>
+            <SelectItem value="pt">{(t.common as any).localePortugueseBr || 'Português (BR)'}</SelectItem>
+            <SelectItem value="es">{(t.common as any).localeSpanishEs || 'Español (ES)'}</SelectItem>
           </SelectContent>
         </Select>
       ),
@@ -156,9 +158,9 @@ const Settings: React.FC = () => {
         <Select defaultValue="json">
           <SelectTrigger className="w-60"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="json">JSON</SelectItem>
-            <SelectItem value="markdown">Markdown</SelectItem>
-            <SelectItem value="pdf">PDF</SelectItem>
+            <SelectItem value="json">{t.exportImport.json}</SelectItem>
+            <SelectItem value="markdown">{t.exportImport.markdown}</SelectItem>
+            <SelectItem value="pdf">{(t.exportImport as any).pdf || 'PDF'}</SelectItem>
           </SelectContent>
         </Select>
       ),
@@ -264,41 +266,48 @@ const Settings: React.FC = () => {
         <div className="bg-card border border-border rounded-lg p-5 shadow-premium space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-foreground">Usuarios locais</h2>
+              <h2 className="text-sm font-semibold text-foreground">{tUserMgmt.title || 'Local users'}</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Crie usuarios com senha temporaria. A troca de senha sera obrigatoria no primeiro login.
+                {tUserMgmt.subtitle || 'Create users with temporary passwords. Password change will be required on first login.'}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={loadManagedUsers} disabled={usersLoading}>
-              {usersLoading ? 'Atualizando...' : 'Atualizar lista'}
+              {usersLoading
+                ? (tUserMgmt.refreshing || 'Refreshing...')
+                : (tUserMgmt.refreshList || 'Refresh list')}
             </Button>
           </div>
 
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Input
-              placeholder="usuario"
+              placeholder={tUserMgmt.usernamePlaceholder || 'username'}
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
               autoComplete="off"
             />
             <Input
               type="password"
-              placeholder="senha temporaria"
+              placeholder={tUserMgmt.passwordPlaceholder || 'temporary password'}
               value={newUserPassword}
               onChange={(e) => setNewUserPassword(e.target.value)}
-              minLength={8}
+              minLength={12}
               autoComplete="new-password"
             />
             <Button type="submit" disabled={creatingUser}>
-              {creatingUser ? 'Criando...' : 'Criar usuario'}
+              {creatingUser
+                ? (tUserMgmt.creating || 'Creating...')
+                : (tUserMgmt.createUser || 'Create user')}
             </Button>
           </form>
+          <p className="text-[11px] text-muted-foreground">
+            {tUserMgmt.passwordPolicyHint || 'Password policy: minimum 12 characters with uppercase, lowercase, number, and special character.'}
+          </p>
 
           <div className="rounded-md border border-border/60 overflow-hidden">
             <div className="grid grid-cols-3 gap-3 px-3 py-2 bg-muted/30 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <span>Usuario</span>
-              <span>Perfil</span>
-              <span>Status de senha</span>
+              <span>{tUserMgmt.usernameColumn || 'Username'}</span>
+              <span>{tUserMgmt.roleColumn || 'Role'}</span>
+              <span>{tUserMgmt.passwordStatusColumn || 'Password status'}</span>
             </div>
             <div className="divide-y divide-border/40">
               {managedUsers.map((managedUser) => (
@@ -306,13 +315,15 @@ const Settings: React.FC = () => {
                   <span className="font-medium text-foreground">{managedUser.username}</span>
                   <span className="text-muted-foreground">{managedUser.role}</span>
                   <span className={managedUser.must_change_password ? 'text-amber-600' : 'text-emerald-600'}>
-                    {managedUser.must_change_password ? 'Troca pendente' : 'Senha atualizada'}
+                    {managedUser.must_change_password
+                      ? (tUserMgmt.pendingPasswordChange || 'Pending password change')
+                      : (tUserMgmt.passwordUpdated || 'Password updated')}
                   </span>
                 </div>
               ))}
               {managedUsers.length === 0 && (
                 <div className="px-3 py-4 text-sm text-muted-foreground">
-                  Nenhum usuario cadastrado alem do admin.
+                  {tUserMgmt.noUsers || 'No users registered besides admin.'}
                 </div>
               )}
             </div>

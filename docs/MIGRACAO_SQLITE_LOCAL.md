@@ -1,6 +1,6 @@
 ﻿# Migracao para SQLite Local
 
-Data: 2026-04-11
+Data: 2026-04-12
 
 ## Objetivo
 
@@ -40,10 +40,11 @@ Cobertura validada com foco nos fluxos alterados:
 - `src/test/AuthPage.test.tsx`: login local + troca obrigatoria de senha
 - `src/test/Settings.test.tsx`: criacao/listagem de usuarios locais pelo admin
 - Snapshot de cobertura apos os ajustes:
-  - Global statements: `38.08%`
-  - Global branches: `64.06%`
-  - `src/pages/AuthPage.tsx`: `87.24%` statements
-  - `src/pages/Settings.tsx`: `97.44%` statements
+  - Global statements: `39.90%`
+  - Global branches: `58.76%`
+  - `src/pages/AuthPage.tsx`: `87.97%` statements
+  - `src/pages/Settings.tsx`: `97.16%` statements
+  - `src/components/mindmap/MindMapToolbar.tsx`: `100%` statements
 
 ## Execucao local
 
@@ -63,3 +64,10 @@ npm run dev
 - Nao reintroduzir variaveis `VITE_SUPABASE_*`.
 - Nao reintroduzir imports de `@supabase/supabase-js`.
 - Preferir a camada `localDb` para acesso a dados no frontend.
+
+
+## Atualizacoes posteriores
+
+- Fluxos que dependem de IA agora validam configuracao de provedor antes de executar extracao/pipeline e exibem aviso claro quando ausente.
+- Cobertura i18n foi expandida para navegacao, notificacoes, equipes, pagina de autenticacao e controles do Mind Map.
+- `npm run dev:local` foi ajustado para compatibilidade com Windows (`spawn EINVAL`).

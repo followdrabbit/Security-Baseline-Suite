@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/contexts/I18nContext';
 import { List, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TocItem {
@@ -33,6 +34,8 @@ const HighlightTocText: React.FC<{ text: string; highlight?: string }> = ({ text
 };
 
 const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId, onSelect, search }) => {
+  const { t } = useI18n();
+  const tDocs = (t as any).docs || {};
   const activeIndex = items.findIndex(i => i.id === activeId);
 
   return (
@@ -40,7 +43,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId
       <div className="sticky top-6 space-y-1">
         <div className="flex items-center gap-2 mb-4 px-3">
           <List className="h-4 w-4 text-primary" />
-          <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Contents</span>
+          <span className="text-xs font-semibold text-foreground uppercase tracking-wider">{tDocs.contents || 'Contents'}</span>
         </div>
 
         <div className="space-y-0.5">
@@ -76,7 +79,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId
               className="flex-1 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed py-1.5 rounded-md hover:bg-muted/50 transition-colors"
             >
               <ChevronLeft className="h-3 w-3" />
-              Prev
+              {tDocs.prev || 'Prev'}
             </button>
             <span className="text-[10px] text-muted-foreground tabular-nums">
               {activeIndex + 1}/{items.length}
@@ -86,7 +89,7 @@ const DocTableOfContents: React.FC<DocTableOfContentsProps> = ({ items, activeId
               disabled={activeIndex >= items.length - 1}
               className="flex-1 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed py-1.5 rounded-md hover:bg-muted/50 transition-colors"
             >
-              Next
+              {tDocs.next || 'Next'}
               <ChevronRight className="h-3 w-3" />
             </button>
           </div>

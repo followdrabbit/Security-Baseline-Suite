@@ -24,9 +24,13 @@ const AppLayout: React.FC = () => {
     'rules': t.nav.rules,
     'workspace': t.nav.workspace,
     'editor': t.nav.editor,
+    'audit': (t.nav as any).auditDashboard || 'Audit Dashboard',
     'traceability': t.nav.traceability,
     'history': t.nav.history,
     'export-import': t.nav.exportImport,
+    'ai-integrations': (t.nav as any).aiIntegrations || 'AI Integrations',
+    'teams': (t.nav as any).teams || 'Teams',
+    'docs': (t.nav as any).docs || 'Docs',
     'settings': t.nav.settings,
   };
 
@@ -77,9 +81,9 @@ const AppLayout: React.FC = () => {
                   <SelectValue>{locale.toUpperCase()}</SelectValue>
                 </SelectTrigger>
                 <SelectContent align="end">
-                  <SelectItem value="en">EN-US</SelectItem>
-                  <SelectItem value="pt">PT-BR</SelectItem>
-                  <SelectItem value="es">ES-ES</SelectItem>
+                  <SelectItem value="en">{(t.common as any).localeEnglishUs || 'EN-US'}</SelectItem>
+                  <SelectItem value="pt">{(t.common as any).localePortugueseBr || 'PT-BR'}</SelectItem>
+                  <SelectItem value="es">{(t.common as any).localeSpanishEs || 'ES-ES'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

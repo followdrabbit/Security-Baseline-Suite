@@ -55,11 +55,12 @@ Default local API URL: `http://127.0.0.1:8787`
 ## Default admin credentials
 
 - Username: `admin`
-- Password: `admin1234`
+- Password: `Admin@123456`
 
 On first login, password change is mandatory.
 After logging in as admin, go to **Settings -> Usuarios locais** to create other users with temporary passwords.
 Each created user is required to change their password on first login.
+Password policy: at least 12 chars, with uppercase, lowercase, number, special character, and no spaces.
 
 ## Auth lifecycle in local mode
 
@@ -68,6 +69,21 @@ Each created user is required to change their password on first login.
 3. `admin` must change the default password at first login.
 4. `admin` creates other local users in Settings.
 5. Every created user must change password at first login.
+
+
+## Recent updates (2026-04-12)
+
+- `npm run dev:local` is compatible with Windows (`spawn EINVAL` mitigation in `scripts/dev-local.mjs`).
+- Actions that require AI now validate provider configuration first and show a clear warning when missing.
+  - Affected flows: New Project, Source Library, AI Workspace.
+- i18n coverage was expanded across key UI surfaces:
+  - Auth, sidebar/layout navigation, Teams, Notifications, Settings local user management,
+  - Source/Pipeline runtime messages,
+  - Documentation TOC labels and Mind Map controls/legend/filter labels.
+- Password policy is enforced for local users:
+  - minimum 12 characters,
+  - uppercase + lowercase + number + special character,
+  - no spaces.
 
 ## Tests and coverage
 
@@ -80,11 +96,12 @@ Coverage is validated for the updated auth/user-management flows in:
 - `src/test/AuthPage.test.tsx`
 - `src/test/Settings.test.tsx`
 
-Coverage snapshot (2026-04-11):
-- Global statements: `38.08%`
-- Global branches: `64.06%`
-- `src/pages/AuthPage.tsx`: `87.24%` statements
-- `src/pages/Settings.tsx`: `97.44%` statements
+Coverage snapshot (2026-04-12):
+- Global statements: `39.90%`
+- Global branches: `58.76%`
+- `src/pages/AuthPage.tsx`: `87.97%` statements
+- `src/pages/Settings.tsx`: `97.16%` statements
+- `src/components/mindmap/MindMapToolbar.tsx`: `100%` statements
 
 ## Tech stack
 

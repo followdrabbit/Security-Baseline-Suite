@@ -18,6 +18,7 @@ coverage
 *.local
 local-api/data/*.sqlite
 local-api/data/*.sqlite-*
+local-api/data/*.key
 
 # Editor directories and files
 .vscode/*

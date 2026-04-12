@@ -16,7 +16,7 @@ import { Search, Upload, Link2, FileText, Globe, X, Sparkles, Loader2, CheckCirc
 import HelpButton from '@/components/HelpButton';
 import { toast } from 'sonner';
 import SourceDetailPanel from '@/components/SourceDetailPanel';
-import { aiConfigService } from '@/services/aiService';
+import { aiConfigService, AI_CONFIGURATION_REQUIRED_MESSAGE } from '@/services/aiService';
 
 const ACCEPTED_TYPES = '.pdf,.docx,.pptx,.xlsx,.csv,.json,.txt,.md,.html';
 const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://127.0.0.1:8787';
@@ -66,6 +66,12 @@ function formatModelLabel(model: string | null | undefined): string {
 const SourceLibrary: React.FC = () => {
   const { t } = useI18n();
   const { user, session } = useAuth();
+  const tSources = (t as any).sources || {};
+  const aiConfigRequiredMessage = t.common.aiIntegrationRequired || AI_CONFIGURATION_REQUIRED_MESSAGE;
+  const resolveRuntimeErrorMessage = (err: any, fallback = tSources.operationFailed || 'Operation failed'): string => {
+    const rawMessage = String(err?.message || fallback);
+    return rawMessage === AI_CONFIGURATION_REQUIRED_MESSAGE ? aiConfigRequiredMessage : rawMessage;
+  };
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,14 +137,13 @@ const SourceLibrary: React.FC = () => {
   // Upload mutation
   const uploadFile = async (file: File) => {
     if (!selectedProjectId) {
-      toast.error('Selecione um projeto primeiro');
+      toast.error(tSources.selectProjectFirst || 'Select a project first');
       return;
     }
 
-    // Get user's default AI config for model/maxTokens
-    const defaultConfig = await aiConfigService.getDefault();
-    const model = resolveModelId(defaultConfig);
-    const maxTokens = resolveMaxTokens(defaultConfig);
+    const configuredProvider = await aiConfigService.ensureConfiguredProvider();
+    const model = resolveModelId(configuredProvider);
+    const maxTokens = resolveMaxTokens(configuredProvider);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -161,13 +166,19 @@ const SourceLibrary: React.FC = () => {
 
     if (!response.ok) {
       const err = await response.json();
-      throw new Error(err.error || 'Upload failed');
+      throw new Error(err.error || tSources.uploadFailed || 'Upload failed');
     }
 
     return response.json();
   };
 
   const handleFiles = async (files: FileList | File[]) => {
+    const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+    if (!hasAiConfigured) {
+      toast.error(aiConfigRequiredMessage);
+      return;
+    }
+
     setUploading(true);
     const fileArray = Array.from(files);
     let successCount = 0;
@@ -178,8 +189,9 @@ const SourceLibrary: React.FC = () => {
         await uploadFile(file);
         successCount++;
       } catch (err: any) {
+        const message = resolveRuntimeErrorMessage(err, tSources.uploadFailed || 'Upload failed');
         failCount++;
-        toast.error(`Falha ao enviar ${file.name}: ${err.message}`);
+        toast.error(`${tSources.uploadFailurePrefix || 'Failed to upload'} ${file.name}: ${message}`);
       }
     }
 
@@ -187,7 +199,7 @@ const SourceLibrary: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['sources'] });
 
     if (successCount > 0) {
-      toast.success(`${successCount} arquivo(s) enviado(s) com sucesso`);
+      toast.success(`${successCount} ${tSources.uploadSuccessSuffix || 'file(s) uploaded successfully'}`);
     }
   };
 
@@ -214,18 +226,25 @@ const SourceLibrary: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sources'] });
       setSelected([]);
-      toast.success('Fontes removidas');
+      toast.success(tSources.sourcesRemoved || 'Sources removed');
     },
   });
 
   const handleAddUrl = async () => {
     if (!urlInput.trim() || !selectedProjectId) return;
+
+    const hasAiConfigured = await aiConfigService.hasConfiguredProvider();
+    if (!hasAiConfigured) {
+      toast.error(aiConfigRequiredMessage);
+      return;
+    }
+
     setUrlLoading(true);
 
     try {
-      const defaultConfig = await aiConfigService.getDefault();
-      const model = resolveModelId(defaultConfig);
-      const maxTokens = resolveMaxTokens(defaultConfig);
+      const configuredProvider = await aiConfigService.ensureConfiguredProvider();
+      const model = resolveModelId(configuredProvider);
+      const maxTokens = resolveMaxTokens(configuredProvider);
 
       const { data: { session: currentSession } } = await localDb.auth.getSession();
       const response = await fetch(
@@ -242,15 +261,16 @@ const SourceLibrary: React.FC = () => {
 
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to process URL');
+        throw new Error(result.error || tSources.processUrlFailed || 'Failed to process URL');
       }
 
       queryClient.invalidateQueries({ queryKey: ['sources'] });
-      toast.success(`URL processada com sucesso: ${result.source?.name || urlInput}`);
+      toast.success(`${tSources.urlProcessedSuccessPrefix || 'URL processed successfully'}: ${result.source?.name || urlInput}`);
       setUrlInput('');
       setUrlDialogOpen(false);
     } catch (err: any) {
-      toast.error(`Falha ao processar URL: ${err.message}`);
+      const message = resolveRuntimeErrorMessage(err, tSources.processUrlFailed || 'Failed to process URL');
+      toast.error(`${tSources.processUrlFailurePrefix || 'Failed to process URL'}: ${message}`);
     } finally {
       setUrlLoading(false);
     }
@@ -298,7 +318,7 @@ const SourceLibrary: React.FC = () => {
 
         {projects && projects.length > 1 && (
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Projeto" /></SelectTrigger>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder={tSources.projectLabel || 'Project'} /></SelectTrigger>
             <SelectContent>
               {projects.map(p => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -323,8 +343,8 @@ const SourceLibrary: React.FC = () => {
           <SelectTrigger className="w-[130px]"><SelectValue placeholder={t.sources.allTypes} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.sources.allTypes}</SelectItem>
-            <SelectItem value="url">URL</SelectItem>
-            <SelectItem value="document">Document</SelectItem>
+            <SelectItem value="url">{tSources.typeUrl || 'URL'}</SelectItem>
+            <SelectItem value="document">{tSources.typeDocument || 'Document'}</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex gap-2 ml-auto">
@@ -359,7 +379,7 @@ const SourceLibrary: React.FC = () => {
       {!selectedProjectId && projects?.length === 0 && (
         <div className="p-6 bg-muted/30 border border-border rounded-lg text-center">
           <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm font-medium text-muted-foreground">Crie um projeto primeiro para começar a adicionar fontes.</p>
+          <p className="text-sm font-medium text-muted-foreground">{tSources.createProjectFirst || 'Create a project first to start adding sources.'}</p>
         </div>
       )}
 
@@ -401,7 +421,7 @@ const SourceLibrary: React.FC = () => {
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.name}</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.type}</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.status}</th>
-                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Model</th>
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{tSources.model || 'Model'}</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{t.sources.confidence}</th>
                     </tr>
                   </thead>
@@ -459,33 +479,33 @@ const SourceLibrary: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-primary" />
-              Add URL Source
+              {tSources.addUrlTitle || 'Add URL Source'}
             </DialogTitle>
             <DialogDescription>
-              Enter a web page URL to automatically fetch and extract its content for analysis.
+              {tSources.addUrlDescription || 'Enter a web page URL to automatically fetch and extract its content for analysis.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <Input
-              placeholder="https://docs.aws.amazon.com/..."
+              placeholder={t.sources.urlPlaceholder}
               value={urlInput}
               onChange={e => setUrlInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !urlLoading && handleAddUrl()}
               disabled={urlLoading}
             />
             <p className="text-[11px] text-muted-foreground">
-              The page content will be fetched, extracted using AI, and saved as a processed source ready for control generation.
+              {tSources.addUrlHint || 'The page content will be fetched, extracted using AI, and saved as a processed source ready for control generation.'}
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUrlDialogOpen(false)} disabled={urlLoading}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button onClick={handleAddUrl} disabled={urlLoading || !urlInput.trim()}>
               {urlLoading ? (
-                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Processing...</>
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />{tSources.processing || 'Processing...'}</>
               ) : (
-                <><Link2 className="h-4 w-4 mr-1.5" />Add & Process</>
+                <><Link2 className="h-4 w-4 mr-1.5" />{tSources.addAndProcess || 'Add & Process'}</>
               )}
             </Button>
           </DialogFooter>

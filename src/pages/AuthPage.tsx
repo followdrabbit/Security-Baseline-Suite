@@ -2,6 +2,7 @@
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useI18n } from '@/contexts/I18nContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -9,7 +10,9 @@ import { Loader2, Shield, Lock, ArrowRight, User } from 'lucide-react';
 
 const AuthPage: React.FC = () => {
   const { user, loading, signIn, completeFirstLoginPasswordChange } = useAuth();
+  const { t } = useI18n();
   const { toast } = useToast();
+  const tAuth = (t as any).auth || {};
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -35,8 +38,8 @@ const AuthPage: React.FC = () => {
     if (requiresPasswordChange) {
       if (!newPassword || newPassword !== confirmPassword) {
         toast({
-          title: 'Erro ao atualizar senha',
-          description: 'Confirme a nova senha corretamente.',
+          title: tAuth.updatePasswordErrorTitle || 'Error updating password',
+          description: tAuth.updatePasswordErrorDesc || 'Confirm the new password correctly.',
           variant: 'destructive',
         });
         setSubmitting(false);
@@ -51,14 +54,14 @@ const AuthPage: React.FC = () => {
 
       if (error) {
         toast({
-          title: 'Erro ao atualizar senha',
+          title: tAuth.updatePasswordErrorTitle || 'Error updating password',
           description: error.message,
           variant: 'destructive',
         });
       } else {
         toast({
-          title: 'Senha atualizada',
-          description: 'Acesso liberado com a nova senha.',
+          title: tAuth.passwordUpdatedTitle || 'Password updated',
+          description: tAuth.passwordUpdatedDesc || 'Access granted with the new password.',
         });
       }
 
@@ -72,12 +75,12 @@ const AuthPage: React.FC = () => {
       if (error.code === 'PASSWORD_CHANGE_REQUIRED') {
         setRequiresPasswordChange(true);
         toast({
-          title: 'Troca de senha obrigatoria',
-          description: 'Defina uma nova senha para concluir o primeiro login.',
+          title: tAuth.passwordChangeRequiredTitle || 'Password change required',
+          description: tAuth.passwordChangeRequiredDesc || 'Set a new password to complete first login.',
         });
       } else {
         toast({
-          title: 'Erro ao fazer login',
+          title: tAuth.loginErrorTitle || 'Login error',
           description: error.message,
           variant: 'destructive',
         });
@@ -98,30 +101,32 @@ const AuthPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
             <Shield className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-display font-semibold text-foreground">Aureum</h1>
-          <p className="text-sm text-muted-foreground">Security Baseline Suite</p>
+          <h1 className="text-3xl font-display font-semibold text-foreground">{t.app.name}</h1>
+          <p className="text-sm text-muted-foreground">{t.app.tagline}</p>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 shadow-premium space-y-6">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-foreground">
-              {requiresPasswordChange ? 'Troque sua senha' : 'Fazer login'}
+              {requiresPasswordChange
+                ? (tAuth.changePasswordTitle || 'Change your password')
+                : (tAuth.loginTitle || 'Sign in')}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
               {requiresPasswordChange
-                ? 'A senha padrao precisa ser alterada no primeiro acesso.'
-                : 'Use usuario e senha locais para acessar o sistema.'}
+                ? (tAuth.changePasswordSubtitle || 'The default password must be changed on first access.')
+                : (tAuth.loginSubtitle || 'Use local username and password to access the system.')}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                <User className="h-3 w-3 text-primary/70" /> Usuario
+                <User className="h-3 w-3 text-primary/70" /> {tAuth.usernameLabel || 'Username'}
               </label>
               <Input
                 type="text"
-                placeholder="admin"
+                placeholder={tAuth.usernamePlaceholder || 'admin'}
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 required
@@ -132,15 +137,15 @@ const AuthPage: React.FC = () => {
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                <Lock className="h-3 w-3 text-primary/70" /> Senha
+                <Lock className="h-3 w-3 text-primary/70" /> {tAuth.passwordLabel || 'Password'}
               </label>
               <Input
                 type="password"
-                placeholder="********"
+                placeholder={tAuth.passwordPlaceholder || '********'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={12}
                 autoComplete={requiresPasswordChange ? 'current-password' : 'password'}
                 disabled={requiresPasswordChange}
               />
@@ -150,33 +155,36 @@ const AuthPage: React.FC = () => {
               <>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <Lock className="h-3 w-3 text-primary/70" /> Nova senha
+                    <Lock className="h-3 w-3 text-primary/70" /> {tAuth.newPasswordLabel || 'New password'}
                   </label>
                   <Input
                     type="password"
-                    placeholder="Digite a nova senha"
+                    placeholder={tAuth.newPasswordPlaceholder || 'Type the new password'}
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     required
-                    minLength={8}
+                    minLength={12}
                     autoComplete="new-password"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <Lock className="h-3 w-3 text-primary/70" /> Confirmar nova senha
+                    <Lock className="h-3 w-3 text-primary/70" /> {tAuth.confirmNewPasswordLabel || 'Confirm new password'}
                   </label>
                   <Input
                     type="password"
-                    placeholder="Repita a nova senha"
+                    placeholder={tAuth.confirmNewPasswordPlaceholder || 'Repeat the new password'}
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
                     required
-                    minLength={8}
+                    minLength={12}
                     autoComplete="new-password"
                   />
                 </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {tAuth.passwordPolicyHint || 'Requirements: at least 12 characters with uppercase, lowercase, number, and special character.'}
+                </p>
               </>
             )}
 
@@ -186,7 +194,9 @@ const AuthPage: React.FC = () => {
               ) : (
                 <ArrowRight className="h-4 w-4 mr-2" />
               )}
-              {requiresPasswordChange ? 'Atualizar senha e entrar' : 'Entrar'}
+              {requiresPasswordChange
+                ? (tAuth.changePasswordSubmit || 'Update password and sign in')
+                : (tAuth.loginSubmit || 'Sign in')}
             </Button>
           </form>
         </div>

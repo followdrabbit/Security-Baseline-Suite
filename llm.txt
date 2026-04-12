@@ -1,6 +1,6 @@
 ﻿Project: Aureum
 Product: Security Baseline Suite
-Date: 2026-04-11
+Date: 2026-04-12
 
 System context for LLM assistants:
 
@@ -16,7 +16,7 @@ System context for LLM assistants:
 - Local API URL expected by frontend: http://127.0.0.1:8787
 - Auth is local session based (username/password).
 - Public sign-up and OAuth sign-in are disabled in local mode.
-- Default bootstrap user: admin / admin1234 (password change required on first login).
+- Default bootstrap user: admin / Admin@123456 (password change required on first login).
 - Admin can create local users in Settings -> Usuarios locais.
 - Every user created by admin must change password on first login.
 
@@ -39,3 +39,13 @@ System context for LLM assistants:
 - README.md and docs/* reflect local SQLite mode.
 - In-app docs (Documentation page + translations) must stay aligned with the local auth flow.
 - Keep docs consistent with local-api and localdb integration.
+
+
+7. UX/i18n and AI gating behavior
+- Core pages/components use i18n keys for EN/PT/ES labels, statuses, toasts, and navigation text.
+- Flows that require AI (source extraction, pipeline execution, project-to-AI operations) must validate provider setup first.
+- If no provider is configured, surface the explicit warning from `AI_CONFIGURATION_REQUIRED_MESSAGE` / `common.aiIntegrationRequired`.
+
+8. Local auth password policy
+- Local passwords must follow server policy: minimum 12 chars, max 128, at least 1 uppercase, 1 lowercase, 1 number, 1 special char, and no spaces.
+- Default bootstrap credentials remain `admin / Admin@123456` for first login in distributed code.

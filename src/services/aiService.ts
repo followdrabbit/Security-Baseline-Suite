@@ -1,5 +1,8 @@
 import { localDb } from '@/integrations/localdb/client';
 
+export const AI_CONFIGURATION_REQUIRED_MESSAGE =
+  'Integração de IA não configurada. Acesse AI Integrations e configure um provedor antes de continuar.';
+
 export interface AIProviderConfig {
   id: string;
   provider_id: string;
@@ -32,6 +35,34 @@ function normalizeExtraConfig(value?: Record<string, any>) {
   return value;
 }
 
+const PROVIDERS_WITHOUT_API_KEY = new Set(['ollama']);
+
+function hasConfiguredApiKey(config: AIProviderConfig | null | undefined): boolean {
+  if (!config) return false;
+
+  const providerId = String(config.provider_id || '').trim().toLowerCase();
+  if (PROVIDERS_WITHOUT_API_KEY.has(providerId)) {
+    return true;
+  }
+
+  if (config.has_api_key === true) {
+    return true;
+  }
+
+  const raw = String(config.api_key_encrypted || '').trim();
+  return raw.length > 0 && raw !== '';
+}
+
+function isUsableProviderConfig(config: AIProviderConfig | null | undefined): boolean {
+  if (!config) return false;
+  if (!config.enabled) return false;
+
+  const model = String(config.selected_model || '').trim();
+  if (!model) return false;
+
+  return hasConfiguredApiKey(config);
+}
+
 export const aiConfigService = {
   getAll: async (): Promise<AIProviderConfig[]> => {
     const { data, error } = await localDb
@@ -50,6 +81,27 @@ export const aiConfigService = {
       .maybeSingle();
     if (error) throw error;
     return data as AIProviderConfig | null;
+  },
+
+  getConfiguredProvider: async (): Promise<AIProviderConfig | null> => {
+    const all = await aiConfigService.getAll();
+    const candidates = all.filter((config) => isUsableProviderConfig(config));
+    if (candidates.length === 0) return null;
+
+    return candidates.find((config) => config.is_default) || candidates[0];
+  },
+
+  hasConfiguredProvider: async (): Promise<boolean> => {
+    const provider = await aiConfigService.getConfiguredProvider();
+    return Boolean(provider);
+  },
+
+  ensureConfiguredProvider: async (): Promise<AIProviderConfig> => {
+    const provider = await aiConfigService.getConfiguredProvider();
+    if (!provider) {
+      throw new Error(AI_CONFIGURATION_REQUIRED_MESSAGE);
+    }
+    return provider;
   },
 
   upsert: async (config: UpsertConfigInput): Promise<AIProviderConfig> => {
@@ -130,4 +182,3 @@ export const generateControlsService = {
     return data;
   },
 };
-
