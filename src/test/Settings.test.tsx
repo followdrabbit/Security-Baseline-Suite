@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import Settings from '@/pages/Settings';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -129,11 +130,17 @@ vi.mock('@/components/HelpButton', () => ({
   default: () => <div data-testid="help-button" />,
 }));
 
+vi.mock('@/pages/AIIntegrations', () => ({
+  default: () => <div data-testid="ai-integrations-panel" />,
+}));
+
 describe('Settings', () => {
   const renderSettings = () => render(
-    <TooltipProvider>
-      <Settings />
-    </TooltipProvider>
+    <MemoryRouter initialEntries={['/settings']}>
+      <TooltipProvider>
+        <Settings />
+      </TooltipProvider>
+    </MemoryRouter>
   );
 
   beforeEach(() => {
@@ -162,9 +169,11 @@ describe('Settings', () => {
 
     renderSettings();
 
-    expect(await screen.findByText('Usuarios locais', {}, { timeout: 3000 })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('tab', { name: /usuarios locais|access & users/i }));
+    expect(await screen.findByRole('heading', { name: 'Usuarios locais' }, { timeout: 3000 })).toBeInTheDocument();
     expect(mocks.listUsers).toHaveBeenCalled();
-    expect(screen.getAllByText('admin').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('admin', {}, { timeout: 3000 })).length).toBeGreaterThan(0);
   });
 
   it('creates user with lowercased username and refreshes list', async () => {
@@ -184,7 +193,8 @@ describe('Settings', () => {
 
     renderSettings();
 
-    await screen.findByText('Usuarios locais', {}, { timeout: 3000 });
+    await user.click(screen.getByRole('tab', { name: /usuarios locais|access & users/i }));
+    await screen.findByRole('heading', { name: 'Usuarios locais' }, { timeout: 3000 });
     await user.type(screen.getByPlaceholderText('usuario'), 'Analyst.User');
     await user.type(screen.getByPlaceholderText('senha temporaria'), 'TempPass@1234');
     await user.click(screen.getByRole('button', { name: /criar usuario/i }));

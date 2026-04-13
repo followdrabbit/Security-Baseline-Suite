@@ -1,7 +1,7 @@
 import { localDb } from '@/integrations/localdb/client';
 
 export const AI_CONFIGURATION_REQUIRED_MESSAGE =
-  'Integração de IA não configurada. Acesse AI Integrations e configure um provedor antes de continuar.';
+  'Integracao de IA nao configurada. Acesse Settings > AI Integrations e configure um provedor antes de continuar.';
 
 export interface AIProviderConfig {
   id: string;
@@ -95,12 +95,58 @@ async function getCurrentUserOrThrow() {
 
 const PROVIDERS_WITHOUT_API_KEY = new Set(['ollama']);
 
+function getCredentialScope(config: AIProviderConfig | null | undefined): 'provider' | 'model' {
+  const extra = normalizeExtraConfig(config?.extra_config);
+  const scope = String((extra as any).credential_scope || '').trim().toLowerCase();
+  return scope === 'model' ? 'model' : 'provider';
+}
+
+function getEndpointScope(config: AIProviderConfig | null | undefined): 'none' | 'provider' | 'model' {
+  const extra = normalizeExtraConfig(config?.extra_config);
+  const scope = String((extra as any).endpoint_scope || '').trim().toLowerCase();
+  if (scope === 'model') return 'model';
+  if (scope === 'provider') return 'provider';
+  return 'none';
+}
+
+function getSelectedModelCredential(config: AIProviderConfig | null | undefined): {
+  hasApiKey: boolean;
+  endpointUrl: string;
+} {
+  const fallback = { hasApiKey: false, endpointUrl: '' };
+  if (!config) return fallback;
+
+  const selectedModel = String(config.selected_model || '').trim();
+  if (!selectedModel) return fallback;
+
+  const extra = normalizeExtraConfig(config.extra_config);
+  const rawModelCredentials = (extra as any).model_credentials && typeof (extra as any).model_credentials === 'object'
+    ? (extra as any).model_credentials as Record<string, any>
+    : {};
+  const selectedModelCredential = rawModelCredentials[selectedModel] && typeof rawModelCredentials[selectedModel] === 'object'
+    ? rawModelCredentials[selectedModel] as Record<string, any>
+    : {};
+
+  const storedKeyToken = String(selectedModelCredential.api_key_encrypted || '').trim();
+  const endpointUrl = String(selectedModelCredential.endpoint_url || '').trim();
+
+  return {
+    hasApiKey: storedKeyToken.length > 0,
+    endpointUrl,
+  };
+}
+
 function hasConfiguredApiKey(config: AIProviderConfig | null | undefined): boolean {
   if (!config) return false;
 
   const providerId = String(config.provider_id || '').trim().toLowerCase();
   if (PROVIDERS_WITHOUT_API_KEY.has(providerId)) {
     return true;
+  }
+
+  if (getCredentialScope(config) === 'model') {
+    const selectedModelCredential = getSelectedModelCredential(config);
+    return selectedModelCredential.hasApiKey;
   }
 
   if (config.has_api_key === true) {
@@ -111,6 +157,17 @@ function hasConfiguredApiKey(config: AIProviderConfig | null | undefined): boole
   return raw.length > 0 && raw !== '';
 }
 
+function hasRequiredEndpoint(config: AIProviderConfig | null | undefined): boolean {
+  if (!config) return false;
+
+  if (getEndpointScope(config) !== 'model') {
+    return true;
+  }
+
+  const selectedModelCredential = getSelectedModelCredential(config);
+  return selectedModelCredential.endpointUrl.length > 0;
+}
+
 function isUsableProviderConfig(config: AIProviderConfig | null | undefined): boolean {
   if (!config) return false;
   if (!config.enabled) return false;
@@ -118,7 +175,7 @@ function isUsableProviderConfig(config: AIProviderConfig | null | undefined): bo
   const model = String(config.selected_model || '').trim();
   if (!model) return false;
 
-  return hasConfiguredApiKey(config);
+  return hasConfiguredApiKey(config) && hasRequiredEndpoint(config);
 }
 
 export const aiConfigService = {

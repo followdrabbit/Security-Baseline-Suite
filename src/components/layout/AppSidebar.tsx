@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, Brain, LogOut, User, Users, BookOpen, ClipboardCheck,
+  LayoutDashboard, Plus, Library, Settings2, Cpu, FileEdit, GitBranch, History, ArrowUpDown, Settings, Shield, LogOut, User, Users, BookOpen, ClipboardCheck,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useI18n } from '@/contexts/I18nContext';
@@ -63,7 +63,6 @@ const AppSidebar: React.FC = () => {
   ];
 
   const toolItems = [
-    { title: (t.nav as any).aiIntegrations || 'AI Integrations', url: '/ai-integrations', icon: Brain },
     { title: (t.nav as any).teams || 'Teams', url: '/teams', icon: Users },
     { title: (t.nav as any).docs || 'Docs', url: '/docs', icon: BookOpen },
   ];

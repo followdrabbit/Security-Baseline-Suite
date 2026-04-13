@@ -254,42 +254,48 @@ describe('AIIntegrations', () => {
     expect(payload.extra_config.fallback_model).toBe('gpt-5');
   });
 
-  it('keeps advanced params disabled by default and persists selected parameter values when enabled', async () => {
+  it('persists model-scoped API key and endpoint for Azure OpenAI', async () => {
     const user = userEvent.setup();
     render(<AIIntegrations />);
     await screen.findByText('AI Integrations');
-    await screen.findByPlaceholderText('Paste provider API key');
-
-    const advancedToggle = await screen.findByTestId('advanced-params-toggle-openai');
-    expect(advancedToggle).not.toBeChecked();
-
-    await user.click(advancedToggle);
-    expect(advancedToggle).toBeChecked();
-    await screen.findByTestId('param-toggle-openai-temperature');
+    await user.click(screen.getByRole('button', { name: 'Azure OpenAI' }));
+    const integrationToggle = screen.getAllByRole('checkbox')[0] as HTMLInputElement;
+    if (!integrationToggle.checked) {
+      await user.click(integrationToggle);
+    }
+    await screen.findByText('Model API key');
 
     mocks.upsert.mockClear();
-    await user.click(screen.getByTestId('param-toggle-openai-temperature'));
+    fireEvent.change(screen.getByPlaceholderText('Paste provider API key'), { target: { value: 'az-key-123' } });
+    await user.click(screen.getByRole('button', { name: 'Save key' }));
+
+    fireEvent.change(
+      screen.getByPlaceholderText('https://<resource>.openai.azure.com'),
+      { target: { value: 'https://my-azure.openai.azure.com' } },
+    );
+    fireEvent.blur(screen.getByPlaceholderText('https://<resource>.openai.azure.com'));
 
     await waitFor(() => {
       expect(mocks.upsert).toHaveBeenCalled();
     });
 
-    let payload = mocks.upsert.mock.calls[mocks.upsert.mock.calls.length - 1][0];
-    expect(payload.extra_config.model_params_enabled).toBe(true);
-    expect(payload.extra_config.model_params.temperature).toBe(1);
+    const payload = mocks.upsert.mock.calls[mocks.upsert.mock.calls.length - 1][0];
+    expect(payload.provider_id).toBe('azure_openai');
+    expect(payload.extra_config.model_credentials['gpt-4.1'].api_key_encrypted).toBeDefined();
+    expect(payload.extra_config.model_credentials['gpt-4.1'].endpoint_url).toBe('https://my-azure.openai.azure.com');
   });
 
   it('creates a custom provider through CRUD form', async () => {
     const user = userEvent.setup();
     render(<AIIntegrations />);
     await screen.findByText('AI Integrations');
-
-    await user.click(screen.getByRole('button', { name: 'Manage CRUD' }));
+    await user.click(screen.getByRole('tab', { name: 'Provider' }));
+    await user.click(screen.getByRole('tab', { name: 'Create Provider' }));
 
     fireEvent.change(screen.getByPlaceholderText('provider-id (e.g. custom-ai)'), { target: { value: 'custom-ai' } });
-    fireEvent.change(screen.getAllByPlaceholderText('Provider name')[0], { target: { value: 'Custom Provider' } });
+    fireEvent.change(screen.getByPlaceholderText('Provider name'), { target: { value: 'Custom Provider' } });
     fireEvent.change(screen.getByPlaceholderText('Default model (e.g. model-v1)'), { target: { value: 'custom-model-v1' } });
-    fireEvent.change(screen.getAllByPlaceholderText('Description')[0], { target: { value: 'Custom provider for internal workloads' } });
+    fireEvent.change(screen.getByPlaceholderText('Description'), { target: { value: 'Custom provider for internal workloads' } });
 
     await user.click(screen.getByRole('button', { name: 'Create Provider' }));
 
@@ -315,7 +321,7 @@ describe('AIIntegrations', () => {
     render(<AIIntegrations />);
     await screen.findByText('AI Integrations');
 
-    await user.click(screen.getByRole('button', { name: 'Manage CRUD' }));
+    await user.click(screen.getByRole('tab', { name: 'Model' }));
     await user.type(screen.getByPlaceholderText('New model id'), 'gpt-custom-experimental');
     await user.click(screen.getByRole('button', { name: 'Add Model' }));
 

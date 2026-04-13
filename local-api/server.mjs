@@ -81,6 +81,26 @@ const BUILTIN_AI_PROVIDER_DEFINITIONS = Object.freeze([
       "gpt-4o-mini",
     ],
     default_model: "gpt-4.1-mini",
+    extra_config: {
+      credential_scope: "provider",
+      endpoint_scope: "none",
+    },
+  },
+  {
+    provider_id: "azure_openai",
+    name: "Azure OpenAI",
+    description: "Azure OpenAI deployments where API key and endpoint are configured per model.",
+    icon: "AZR",
+    docs_url: "https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource",
+    requires_api_key: true,
+    supports_endpoint: true,
+    endpoint_placeholder: "https://<resource>.openai.azure.com",
+    models: ["gpt-4.1", "gpt-4o", "o4-mini"],
+    default_model: "gpt-4.1",
+    extra_config: {
+      credential_scope: "model",
+      endpoint_scope: "model",
+    },
   },
   {
     provider_id: "google",
@@ -93,6 +113,10 @@ const BUILTIN_AI_PROVIDER_DEFINITIONS = Object.freeze([
     endpoint_placeholder: "",
     models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
     default_model: "gemini-2.5-pro",
+    extra_config: {
+      credential_scope: "provider",
+      endpoint_scope: "none",
+    },
   },
   {
     provider_id: "anthropic",
@@ -105,6 +129,10 @@ const BUILTIN_AI_PROVIDER_DEFINITIONS = Object.freeze([
     endpoint_placeholder: "",
     models: ["claude-3-7-sonnet-latest", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
     default_model: "claude-3-7-sonnet-latest",
+    extra_config: {
+      credential_scope: "provider",
+      endpoint_scope: "none",
+    },
   },
   {
     provider_id: "xai",
@@ -117,6 +145,10 @@ const BUILTIN_AI_PROVIDER_DEFINITIONS = Object.freeze([
     endpoint_placeholder: "",
     models: ["grok-4", "grok-3", "grok-3-mini"],
     default_model: "grok-3",
+    extra_config: {
+      credential_scope: "provider",
+      endpoint_scope: "none",
+    },
   },
   {
     provider_id: "ollama",
@@ -129,6 +161,10 @@ const BUILTIN_AI_PROVIDER_DEFINITIONS = Object.freeze([
     endpoint_placeholder: "http://127.0.0.1:11434",
     models: ["llama3.2", "qwen2.5:14b", "mistral"],
     default_model: "llama3.2",
+    extra_config: {
+      credential_scope: "provider",
+      endpoint_scope: "provider",
+    },
   },
 ]);
 
@@ -757,7 +793,7 @@ function seedAiProviderRegistryForUser(userId) {
         provider.description || "",
         provider.docs_url || "",
         provider.endpoint_placeholder || "",
-        JSON.stringify({}),
+        JSON.stringify(provider.extra_config || {}),
         provider.icon || "CUS",
         1,
         1,
@@ -950,36 +986,153 @@ function shouldKeepExistingApiKey(value) {
   return normalized === "" || normalized === "__stored__";
 }
 
+function normalizeAiProviderExtraConfig(value) {
+  if (value === null || value === undefined) return {};
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return {};
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { ...parsed };
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return { ...value };
+  }
+
+  return {};
+}
+
 function prepareAiProviderConfigRowForWrite(row) {
   if (!row || typeof row !== "object") return row;
   const out = { ...row };
+  const existing = getAiProviderConfigByRowIdentity(out);
+  const existingExtra = normalizeAiProviderExtraConfig(
+    decodeValue("ai_provider_configs", "extra_config", existing?.extra_config || {})
+  );
 
-  if (!Object.prototype.hasOwnProperty.call(out, "api_key_encrypted")) {
-    return out;
-  }
-
-  if (out.api_key_encrypted === null) {
-    return out;
-  }
-
-  if (shouldKeepExistingApiKey(out.api_key_encrypted)) {
-    const existing = getAiProviderConfigByRowIdentity(out);
-    if (existing?.api_key_encrypted) {
-      delete out.api_key_encrypted;
-      return out;
+  if (Object.prototype.hasOwnProperty.call(out, "api_key_encrypted")) {
+    if (out.api_key_encrypted !== null) {
+      if (shouldKeepExistingApiKey(out.api_key_encrypted)) {
+        if (existing?.api_key_encrypted) {
+          delete out.api_key_encrypted;
+        } else {
+          out.api_key_encrypted = "";
+        }
+      } else {
+        out.api_key_encrypted = encryptSecret(out.api_key_encrypted);
+      }
     }
-    out.api_key_encrypted = "";
-    return out;
   }
 
-  out.api_key_encrypted = encryptSecret(out.api_key_encrypted);
+  if (Object.prototype.hasOwnProperty.call(out, "extra_config")) {
+    const incomingExtra = normalizeAiProviderExtraConfig(out.extra_config);
+    const incomingModelCredentials = incomingExtra.model_credentials && typeof incomingExtra.model_credentials === "object"
+      ? incomingExtra.model_credentials
+      : null;
+    const existingModelCredentials = existingExtra.model_credentials && typeof existingExtra.model_credentials === "object"
+      ? existingExtra.model_credentials
+      : {};
+
+    if (incomingModelCredentials) {
+      const nextModelCredentials = {};
+
+      for (const [modelId, credentialValue] of Object.entries(incomingModelCredentials)) {
+        if (!modelId) continue;
+        if (!credentialValue || typeof credentialValue !== "object") continue;
+
+        const incomingCredential = { ...credentialValue };
+        const existingCredential = existingModelCredentials[modelId] && typeof existingModelCredentials[modelId] === "object"
+          ? existingModelCredentials[modelId]
+          : {};
+        const hasIncomingApiKey = Object.prototype.hasOwnProperty.call(incomingCredential, "api_key_encrypted");
+
+        if (hasIncomingApiKey) {
+          if (incomingCredential.api_key_encrypted === null) {
+            delete incomingCredential.api_key_encrypted;
+          } else if (shouldKeepExistingApiKey(incomingCredential.api_key_encrypted)) {
+            const existingSecret = String(existingCredential.api_key_encrypted || "").trim();
+            if (existingSecret) {
+              incomingCredential.api_key_encrypted = existingSecret;
+            } else {
+              delete incomingCredential.api_key_encrypted;
+            }
+          } else {
+            incomingCredential.api_key_encrypted = encryptSecret(incomingCredential.api_key_encrypted);
+          }
+        } else if (existingCredential.api_key_encrypted) {
+          incomingCredential.api_key_encrypted = String(existingCredential.api_key_encrypted).trim();
+        }
+
+        if (Object.prototype.hasOwnProperty.call(incomingCredential, "endpoint_url")) {
+          const endpointUrl = String(incomingCredential.endpoint_url || "").trim();
+          if (endpointUrl) {
+            incomingCredential.endpoint_url = endpointUrl;
+          } else {
+            delete incomingCredential.endpoint_url;
+          }
+        }
+
+        const hasApiKey = Boolean(String(incomingCredential.api_key_encrypted || "").trim());
+        const hasEndpoint = Boolean(String(incomingCredential.endpoint_url || "").trim());
+        if (!hasApiKey && !hasEndpoint) {
+          continue;
+        }
+
+        nextModelCredentials[modelId] = incomingCredential;
+      }
+
+      if (Object.keys(nextModelCredentials).length > 0) {
+        incomingExtra.model_credentials = nextModelCredentials;
+      } else {
+        delete incomingExtra.model_credentials;
+      }
+    }
+
+    out.extra_config = incomingExtra;
+  }
+
   return out;
 }
 
 function sanitizeAiProviderConfigRowForClient(row) {
   const hasApiKey = Boolean(row?.api_key_encrypted);
+  const extra = normalizeAiProviderExtraConfig(row?.extra_config || {});
+  const rawModelCredentials = extra.model_credentials && typeof extra.model_credentials === "object"
+    ? extra.model_credentials
+    : null;
+
+  if (rawModelCredentials) {
+    const sanitizedModelCredentials = {};
+    for (const [modelId, credentialValue] of Object.entries(rawModelCredentials)) {
+      if (!credentialValue || typeof credentialValue !== "object") continue;
+      const credential = { ...credentialValue };
+      const hasModelKey = Boolean(String(credential.api_key_encrypted || "").trim());
+      if (hasModelKey) {
+        credential.api_key_encrypted = "__stored__";
+      } else if (Object.prototype.hasOwnProperty.call(credential, "api_key_encrypted")) {
+        credential.api_key_encrypted = "";
+      }
+      sanitizedModelCredentials[modelId] = credential;
+    }
+
+    if (Object.keys(sanitizedModelCredentials).length > 0) {
+      extra.model_credentials = sanitizedModelCredentials;
+    } else {
+      delete extra.model_credentials;
+    }
+  }
+
   return {
     ...row,
+    extra_config: extra,
     api_key_encrypted: hasApiKey ? "__stored__" : "",
     has_api_key: hasApiKey,
   };
@@ -1641,21 +1794,51 @@ function migrateStoredAiProviderSecrets() {
   const rows = db
     .prepare(
       `
-        SELECT id, api_key_encrypted
-        FROM ai_provider_configs
-        WHERE api_key_encrypted IS NOT NULL
-          AND TRIM(api_key_encrypted) <> '';
+        SELECT id, api_key_encrypted, extra_config
+        FROM ai_provider_configs;
       `
     )
     .all();
 
   for (const row of rows) {
-    const current = String(row.api_key_encrypted || "");
-    if (isEncryptedSecret(current)) continue;
-    const encrypted = encryptSecret(current);
+    const currentTopLevel = String(row.api_key_encrypted || "").trim();
+    let nextTopLevel = currentTopLevel;
+    let hasChanges = false;
+
+    if (currentTopLevel && currentTopLevel !== "__stored__" && !isEncryptedSecret(currentTopLevel)) {
+      nextTopLevel = encryptSecret(currentTopLevel);
+      hasChanges = true;
+    }
+
+    const extra = normalizeAiProviderExtraConfig(decodeValue("ai_provider_configs", "extra_config", row.extra_config || {}));
+    const rawModelCredentials = extra.model_credentials && typeof extra.model_credentials === "object"
+      ? extra.model_credentials
+      : null;
+
+    if (rawModelCredentials) {
+      const nextModelCredentials = { ...rawModelCredentials };
+      for (const [modelId, credentialValue] of Object.entries(rawModelCredentials)) {
+        if (!credentialValue || typeof credentialValue !== "object") continue;
+        const credential = { ...credentialValue };
+        const currentModelSecret = String(credential.api_key_encrypted || "").trim();
+        if (!currentModelSecret || currentModelSecret === "__stored__" || isEncryptedSecret(currentModelSecret)) {
+          nextModelCredentials[modelId] = credential;
+          continue;
+        }
+        credential.api_key_encrypted = encryptSecret(currentModelSecret);
+        nextModelCredentials[modelId] = credential;
+        hasChanges = true;
+      }
+      extra.model_credentials = nextModelCredentials;
+    }
+
+    if (!hasChanges) {
+      continue;
+    }
+
     db.prepare(
-      "UPDATE ai_provider_configs SET api_key_encrypted = ?, updated_at = ? WHERE id = ?;"
-    ).run(encrypted, nowIso(), row.id);
+      "UPDATE ai_provider_configs SET api_key_encrypted = ?, extra_config = ?, updated_at = ? WHERE id = ?;"
+    ).run(nextTopLevel, JSON.stringify(extra), nowIso(), row.id);
   }
 }
 
@@ -2380,11 +2563,35 @@ async function handleTestAiProvider({ user, body }) {
   }
 
   const persisted = getAiProviderConfigForUser(user.id, providerId);
-  const persistedExtra = decodeValue("ai_provider_configs", "extra_config", persisted?.extra_config || "{}") || {};
-  const persistedEndpoint = String(persistedExtra?.endpoint_url || "").trim();
+  const persistedExtra = normalizeAiProviderExtraConfig(
+    decodeValue("ai_provider_configs", "extra_config", persisted?.extra_config || "{}")
+  );
+  const persistedSelectedModel = String(persisted?.selected_model || "").trim();
+  const effectiveModel = selectedModel || persistedSelectedModel;
+  const credentialScope = String(persistedExtra?.credential_scope || "").trim().toLowerCase() === "model"
+    ? "model"
+    : "provider";
+  const endpointScope = String(persistedExtra?.endpoint_scope || "").trim().toLowerCase() === "model"
+    ? "model"
+    : "provider";
+  const persistedModelCredentials = persistedExtra.model_credentials && typeof persistedExtra.model_credentials === "object"
+    ? persistedExtra.model_credentials
+    : {};
+  const selectedModelCredential = effectiveModel && persistedModelCredentials[effectiveModel] && typeof persistedModelCredentials[effectiveModel] === "object"
+    ? persistedModelCredentials[effectiveModel]
+    : {};
+  const persistedEndpoint = endpointScope === "model"
+    ? String(selectedModelCredential.endpoint_url || "").trim()
+    : String(persistedExtra?.endpoint_url || "").trim();
   const endpointUrl = endpointFromPayload || persistedEndpoint;
 
   let apiKey = apiKeyFromPayload;
+  if (!apiKey && credentialScope === "model") {
+    const storedModelApiKey = String(selectedModelCredential.api_key_encrypted || "").trim();
+    if (storedModelApiKey && storedModelApiKey !== "__stored__") {
+      apiKey = decryptSecret(storedModelApiKey);
+    }
+  }
   if (!apiKey && persisted?.api_key_encrypted) {
     apiKey = decryptSecret(persisted.api_key_encrypted);
   }
@@ -2405,6 +2612,10 @@ async function handleTestAiProvider({ user, body }) {
     return { ok: false, message: "API key is required for this provider" };
   }
 
+  if (endpointScope === "model" && !endpointUrl) {
+    return { ok: false, message: "Endpoint URL is required for this model" };
+  }
+
   if (providerId === "openai") {
     const response = await fetchWithTimeout("https://api.openai.com/v1/models", {
       method: "GET",
@@ -2413,6 +2624,33 @@ async function handleTestAiProvider({ user, body }) {
       },
     });
     return { ok: response.ok, message: response.ok ? "OpenAI connection successful" : `OpenAI error (${response.status})` };
+  }
+
+  if (providerId === "azure_openai") {
+    const deployment = effectiveModel;
+    if (!deployment) {
+      return { ok: false, message: "Model deployment is required for Azure OpenAI" };
+    }
+
+    const baseUrl = endpointUrl.replace(/\/$/, "");
+    const response = await fetchWithTimeout(
+      `${baseUrl}/openai/deployments/${encodeURIComponent(deployment)}/chat/completions?api-version=2024-10-21`,
+      {
+        method: "POST",
+        headers: {
+          "api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "ping" }],
+          max_tokens: 8,
+        }),
+      }
+    );
+    return {
+      ok: response.ok,
+      message: response.ok ? "Azure OpenAI connection successful" : `Azure OpenAI error (${response.status})`,
+    };
   }
 
   if (providerId === "google" || providerId === "gemini") {

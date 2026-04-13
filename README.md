@@ -18,10 +18,14 @@ Supabase was removed from the application code and tests.
 - Create and manage baseline projects
 - Import sources from files and URLs
 - Generate controls with local AI function flow
-- Configure AI providers and models (OpenAI, Gemini, Grok/xAI, Anthropic Claude, Ollama)
-- Manage AI provider catalog and model registry with full CRUD
-- Select primary and fallback model per provider configuration
-- Configure advanced model parameters (optional and disabled by default)
+- Configure AI providers and models (OpenAI, Azure OpenAI, Gemini, Grok/xAI, Anthropic Claude, Ollama)
+- Manage AI provider catalog and model registry with full CRUD in Settings > AI Integrations
+- Use dedicated tabs in AI Integrations:
+  - Provider: new/edit/delete providers
+  - Model: new/edit/delete models (always associated with an existing provider)
+  - Integration: select provider/model, set fallback, save credentials, and test connection
+- Configure optional additional model parameters in the Model tab (disabled by default)
+- Support provider-scoped and model-scoped credentials/endpoints per provider rules
 - Store API keys encrypted at rest in local SQLite configuration
 - Review controls in Baseline Editor and Mind Map
 - Map controls to frameworks in Traceability
@@ -74,16 +78,20 @@ Password policy: at least 12 chars, with uppercase, lowercase, number, special c
 5. Every created user must change password at first login.
 
 
-## Recent updates (2026-04-12)
+## Recent updates (2026-04-13)
 
 - `npm run dev:local` is compatible with Windows (`spawn EINVAL` mitigation in `scripts/dev-local.mjs`).
 - Actions that require AI now validate provider configuration first and show a clear warning when missing.
   - Affected flows: New Project, Source Library, AI Workspace.
-- AI Integrations now supports full provider/model CRUD:
-  - provider catalog create/read/update/delete,
-  - model registry create/read/update/delete per provider,
-  - default model and fallback model configuration.
-- Advanced AI model parameters are configurable through per-parameter flags and remain disabled by default.
+- AI Integrations was reorganized into 3 UX tabs in Settings:
+  - `Provider`: create, edit, and delete providers.
+  - `Model`: create, edit, and delete models per provider.
+  - `Integration`: select provider/model, configure fallback, and test/save integration.
+- Business rules in AI Integrations were formalized:
+  - a model can only be created when a provider exists,
+  - OpenAI uses provider-level key (single key for all models),
+  - Azure OpenAI uses model-level key and model-level endpoint (per model/deployment).
+- Additional model parameters moved to model lifecycle (create/edit) and are summarized during integration selection.
 - i18n coverage was expanded across key UI surfaces:
   - Auth, sidebar/layout navigation, Teams, Notifications, Settings local user management,
   - Source/Pipeline runtime messages,
@@ -107,13 +115,13 @@ Coverage is validated for updated auth, documentation, notifications, and AI int
 - `src/test/Documentation.test.tsx`
 - `src/test/NotificationBell.test.tsx`
 
-Coverage snapshot (2026-04-12):
+Coverage snapshot (2026-04-13):
 - Total tests: `165` (all passing)
-- Global statements: `47.67%`
-- Global branches: `60.47%`
+- Global statements: `48.36%`
+- Global branches: `60.27%`
 - `src/pages/AuthPage.tsx`: `87.97%` statements
-- `src/pages/Settings.tsx`: `97.16%` statements
-- `src/pages/AIIntegrations.tsx`: `66.49%` statements
+- `src/pages/Settings.tsx`: `97.71%` statements
+- `src/pages/AIIntegrations.tsx`: `64.04%` statements
 - `src/components/mindmap/MindMapToolbar.tsx`: `100%` statements
 
 ## Tech stack

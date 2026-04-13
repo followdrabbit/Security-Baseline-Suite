@@ -643,7 +643,7 @@ const NewProject: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const aiConfigRequiredMessage = t.common.aiIntegrationRequired || AI_CONFIGURATION_REQUIRED_MESSAGE;
-  const projectCreatedWithoutAiMessage = t.common.projectCreatedAiNotConfigured || 'Project created, but AI integration is not configured yet. Configure AI Integrations before processing sources or running the pipeline.';
+  const projectCreatedWithoutAiMessage = t.common.projectCreatedAiNotConfigured || 'Project created, but AI integration is not configured yet. Configure it in Settings > AI Integrations before processing sources or running the pipeline.';
   const [current, setCurrent] = useState(0);
   const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);

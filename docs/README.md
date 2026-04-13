@@ -35,20 +35,28 @@ This folder stores project documentation and visual assets.
 - Any flow that depends on AI must validate provider configuration first.
 - If no provider is configured, the app shows a blocking warning and does not run extraction/pipeline steps.
 
-## AI integrations updates (2026-04-12)
+## AI integrations updates (2026-04-13)
 
-- `AI Integrations` now includes full CRUD for providers and models.
+- `AI Integrations` is organized in three tabs under Settings:
+  - `Provider`: New Provider, Edit Provider, Delete Provider.
+  - `Model`: New Model, Edit Model, Delete Model.
+  - `Integration`: provider/model selection, fallback model, credential setup, and connection test.
+- `AI Integrations` includes full CRUD for providers and models.
 - Provider catalog is stored in `ai_provider_catalog`; model registry is stored in `ai_provider_models`.
+- Business rules covered by UI and local API:
+  - model creation depends on an existing provider (model always belongs to a provider),
+  - OpenAI uses provider-level API key and no endpoint input,
+  - Azure OpenAI uses model-level API key and model-level endpoint.
 - Each provider can define:
   - primary model,
   - fallback model,
-  - optional advanced parameter flags (disabled by default).
-- In-app documentation (`src/pages/Documentation.tsx`) was updated to describe these flows.
+  - optional additional parameters configured per model (disabled by default).
+- In-app documentation (`src/pages/Documentation.tsx` + `src/i18n/translations.ts`) is aligned with this flow.
 
-## QA snapshot (2026-04-12)
+## QA snapshot (2026-04-13)
 
 - Test command: `npm test` -> `165` tests passing.
 - Coverage command: `npm run test:coverage`.
 - Coverage summary:
-  - statements: `47.67%`
-  - branches: `60.47%`
+  - statements: `48.36%`
+  - branches: `60.27%`

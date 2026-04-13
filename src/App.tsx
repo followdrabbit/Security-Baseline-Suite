@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,7 +19,6 @@ import HistoryPage from "@/pages/HistoryPage";
 import AuditDashboard from "@/pages/AuditDashboard";
 import ExportImport from "@/pages/ExportImport";
 import Settings from "@/pages/Settings";
-import AIIntegrations from "@/pages/AIIntegrations";
 import Teams from "@/pages/Teams";
 import Documentation from "@/pages/Documentation";
 import AuthPage from "@/pages/AuthPage";
@@ -49,7 +48,7 @@ const App = () => (
                   <Route path="/audit" element={<AuditDashboard />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/export-import" element={<ExportImport />} />
-                  <Route path="/ai-integrations" element={<AIIntegrations />} />
+                  <Route path="/ai-integrations" element={<Navigate to="/settings?tab=ai" replace />} />
                   <Route path="/teams" element={<Teams />} />
                   <Route path="/docs" element={<Documentation />} />
                   <Route path="/settings" element={<Settings />} />

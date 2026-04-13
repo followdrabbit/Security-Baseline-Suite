@@ -1,6 +1,6 @@
 ﻿Project: Aureum
 Product: Security Baseline Suite
-Date: 2026-04-12
+Date: 2026-04-13
 
 System context for LLM assistants:
 
@@ -21,12 +21,20 @@ System context for LLM assistants:
 - Every user created by admin must change password on first login.
 
 3. AI provider configuration
-- Supported providers in AI Integrations: OpenAI, Google Gemini, Anthropic Claude, Grok/xAI, and Ollama local models.
+- Supported providers in AI Integrations: OpenAI, Azure OpenAI, Google Gemini, Anthropic Claude, Grok/xAI, and Ollama local models.
 - Provider settings are persisted per user in `ai_provider_configs`.
 - Provider registry is persisted in `ai_provider_catalog` and model registry in `ai_provider_models` (per user scope).
+- AI Integrations is organized in tabs under Settings:
+  - Provider: New Provider, Edit Provider, Delete Provider.
+  - Model: New Model, Edit Model, Delete Model.
+  - Integration: select provider/model, set fallback, test and persist integration.
 - AI Integrations supports full CRUD for providers and models (create/read/update/delete).
+- Models can only be registered when there is at least one provider (model is always provider-scoped).
 - Primary model and fallback model are configurable per provider.
-- Advanced model parameters are optional, disabled by default, and enabled per parameter flag.
+- Credential and endpoint scope are provider-dependent:
+  - OpenAI: provider-level API key and no custom endpoint.
+  - Azure OpenAI: model-level API key and model-level endpoint (per deployment/model).
+- Additional model parameters are optional, disabled by default, and configured per model during model create/edit.
 - API keys are encrypted at rest by local-api before storage in SQLite.
 - Connection testing should use /functions/v1/test-ai-provider (server-side), not direct browser calls.
 
@@ -38,13 +46,13 @@ System context for LLM assistants:
 - Unit/integration tests: npm test
 - Coverage: npm run test:coverage
 - Tests mock localDb (not supabase).
-- Latest snapshot (2026-04-12): 165 tests passing, 47.67% statements, 60.47% branches.
+- Latest snapshot (2026-04-13): 165 tests passing, 48.36% statements, 60.27% branches.
 
 6. Documentation alignment
 - README.md and docs/* reflect local SQLite mode.
 - In-app docs (Documentation page + translations) must stay aligned with the local auth flow.
 - Keep docs consistent with local-api and localdb integration.
-- AI documentation must cover provider/model CRUD, fallback model behavior, and advanced-parameter flags.
+- AI documentation must cover the 3-tab UX (Provider, Model, Integration), provider/model CRUD, fallback model behavior, credential/endpoint scope differences, and model-level additional-parameter flags.
 
 
 7. UX/i18n and AI gating behavior

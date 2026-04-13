@@ -170,7 +170,7 @@ const Documentation: React.FC = () => {
             { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard -> "Create New Baseline" -> Fill fields -> Save' },
             { title: d.step3Title, description: d.step3Desc, detail: 'Source Library -> Add URL or Upload -> Wait for extraction' },
             { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates -> Select template -> Customize fields' },
-            { title: d.step5Title, description: d.step5Desc, detail: 'AI Workspace -> Configure and test at least one provider in AI Integrations -> Start Pipeline -> Monitor stages' },
+            { title: d.step5Title, description: d.step5Desc, detail: 'AI Workspace -> Configure and test at least one provider in Settings > AI Integrations -> Start Pipeline -> Monitor stages' },
             { title: d.step6Title, description: d.step6Desc, detail: 'Baseline Editor -> Review -> Approve/Reject/Adjust' },
           ]} />
 
@@ -339,7 +339,7 @@ const Documentation: React.FC = () => {
           <DocCallout variant="tip">{d.workspaceTip}</DocCallout>
 
           <DocCallout variant="warning" title="Important Prerequisite">
-            In local mode, source extraction and pipeline execution require at least one configured provider in AI Integrations. If no provider is configured, execution is blocked and the app shows a warning before continuing.
+            In local mode, source extraction and pipeline execution require at least one configured provider in Settings &gt; AI Integrations. If no provider is configured, execution is blocked and the app shows a warning before continuing.
           </DocCallout>
         </div>
       ),
@@ -482,7 +482,7 @@ const Documentation: React.FC = () => {
     {
       id: 'ai-integrations', icon: Brain, title: d.aiTitle,
       category: 'ai',
-      keywords: 'AI integrations providers GPT Gemini Claude Grok Ollama model API key configuration default',
+      keywords: 'AI integrations providers OpenAI Azure OpenAI Gemini Claude Grok Ollama model API key endpoint tabs provider model integration fallback',
       content: (
         <div className="space-y-6">
           <p className="text-sm text-muted-foreground leading-relaxed">{d.aiDesc}</p>
@@ -496,20 +496,20 @@ const Documentation: React.FC = () => {
             </div>
           </SubSection>
 
-          <SubSection title="Provider and Model Registry (CRUD)">
+          <SubSection title="Settings > AI Integrations Tabs">
             <div className="space-y-1">
-              <FeatureItem label="Provider CRUD:">Create, edit, and delete providers directly from AI Integrations.</FeatureItem>
-              <FeatureItem label="Model CRUD:">Register, rename, set default, and delete models per provider.</FeatureItem>
-              <FeatureItem label="Primary + fallback:">Define primary and fallback models per provider configuration.</FeatureItem>
-              <FeatureItem label="Local persistence:">Provider catalog and model registry are persisted in local SQLite with user scope.</FeatureItem>
+              <FeatureItem label="Provider tab:">Create, edit, and delete provider entries, including credential scope and endpoint scope.</FeatureItem>
+              <FeatureItem label="Model tab:">Create, edit, and delete models for the selected provider. Model creation is always provider-scoped.</FeatureItem>
+              <FeatureItem label="Integration tab:">Select provider and model, set fallback model, provide credentials, and run connection test.</FeatureItem>
+              <FeatureItem label="Persistence:">Provider catalog and model registry are stored in local SQLite with user scope.</FeatureItem>
             </div>
           </SubSection>
 
-          <SubSection title="Advanced Parameters (Optional)">
+          <SubSection title="Provider Rules and Scope Behavior">
             <div className="space-y-1">
-              <FeatureItem label="Default behavior:">Advanced parameters are disabled by default.</FeatureItem>
-              <FeatureItem label="Per-parameter flags:">Enable only the parameters you need before setting values.</FeatureItem>
-              <FeatureItem label="Provider-specific sets:">Available options vary by provider/model family (temperature, reasoning, top_p, etc.).</FeatureItem>
+              <FeatureItem label="OpenAI API:">Single provider-level API key is shared across models. Endpoint is fixed (no endpoint field in UI).</FeatureItem>
+              <FeatureItem label="Azure OpenAI:">API key and endpoint are model-level and must be provided per model/deployment.</FeatureItem>
+              <FeatureItem label="Additional parameters:">Optional provider-specific parameters (temperature, reasoning, top_p, etc.) are configured per model in the Model tab.</FeatureItem>
             </div>
           </SubSection>
 
