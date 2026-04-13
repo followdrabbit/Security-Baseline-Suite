@@ -34,3 +34,21 @@ This folder stores project documentation and visual assets.
 
 - Any flow that depends on AI must validate provider configuration first.
 - If no provider is configured, the app shows a blocking warning and does not run extraction/pipeline steps.
+
+## AI integrations updates (2026-04-12)
+
+- `AI Integrations` now includes full CRUD for providers and models.
+- Provider catalog is stored in `ai_provider_catalog`; model registry is stored in `ai_provider_models`.
+- Each provider can define:
+  - primary model,
+  - fallback model,
+  - optional advanced parameter flags (disabled by default).
+- In-app documentation (`src/pages/Documentation.tsx`) was updated to describe these flows.
+
+## QA snapshot (2026-04-12)
+
+- Test command: `npm test` -> `165` tests passing.
+- Coverage command: `npm run test:coverage`.
+- Coverage summary:
+  - statements: `47.67%`
+  - branches: `60.47%`

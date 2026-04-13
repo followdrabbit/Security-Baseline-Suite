@@ -55,6 +55,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_provider_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          docs_url: string | null
+          endpoint_placeholder: string | null
+          extra_config: Json | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_builtin: boolean
+          name: string
+          provider_id: string
+          requires_api_key: boolean
+          supports_endpoint: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          docs_url?: string | null
+          endpoint_placeholder?: string | null
+          extra_config?: Json | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_builtin?: boolean
+          name: string
+          provider_id: string
+          requires_api_key?: boolean
+          supports_endpoint?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          docs_url?: string | null
+          endpoint_placeholder?: string | null
+          extra_config?: Json | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_builtin?: boolean
+          name?: string
+          provider_id?: string
+          requires_api_key?: boolean
+          supports_endpoint?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_provider_models: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          model_id: string
+          provider_id: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          model_id: string
+          provider_id: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          model_id?: string
+          provider_id?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       baseline_versions: {
         Row: {
           changes_summary: string

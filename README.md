@@ -19,6 +19,9 @@ Supabase was removed from the application code and tests.
 - Import sources from files and URLs
 - Generate controls with local AI function flow
 - Configure AI providers and models (OpenAI, Gemini, Grok/xAI, Anthropic Claude, Ollama)
+- Manage AI provider catalog and model registry with full CRUD
+- Select primary and fallback model per provider configuration
+- Configure advanced model parameters (optional and disabled by default)
 - Store API keys encrypted at rest in local SQLite configuration
 - Review controls in Baseline Editor and Mind Map
 - Map controls to frameworks in Traceability
@@ -76,6 +79,11 @@ Password policy: at least 12 chars, with uppercase, lowercase, number, special c
 - `npm run dev:local` is compatible with Windows (`spawn EINVAL` mitigation in `scripts/dev-local.mjs`).
 - Actions that require AI now validate provider configuration first and show a clear warning when missing.
   - Affected flows: New Project, Source Library, AI Workspace.
+- AI Integrations now supports full provider/model CRUD:
+  - provider catalog create/read/update/delete,
+  - model registry create/read/update/delete per provider,
+  - default model and fallback model configuration.
+- Advanced AI model parameters are configurable through per-parameter flags and remain disabled by default.
 - i18n coverage was expanded across key UI surfaces:
   - Auth, sidebar/layout navigation, Teams, Notifications, Settings local user management,
   - Source/Pipeline runtime messages,
@@ -92,15 +100,20 @@ npm test
 npm run test:coverage
 ```
 
-Coverage is validated for the updated auth/user-management flows in:
+Coverage is validated for updated auth, documentation, notifications, and AI integration flows in:
 - `src/test/AuthPage.test.tsx`
 - `src/test/Settings.test.tsx`
+- `src/test/AIIntegrations.test.tsx`
+- `src/test/Documentation.test.tsx`
+- `src/test/NotificationBell.test.tsx`
 
 Coverage snapshot (2026-04-12):
-- Global statements: `39.90%`
-- Global branches: `58.76%`
+- Total tests: `165` (all passing)
+- Global statements: `47.67%`
+- Global branches: `60.47%`
 - `src/pages/AuthPage.tsx`: `87.97%` statements
 - `src/pages/Settings.tsx`: `97.16%` statements
+- `src/pages/AIIntegrations.tsx`: `66.49%` statements
 - `src/components/mindmap/MindMapToolbar.tsx`: `100%` statements
 
 ## Tech stack

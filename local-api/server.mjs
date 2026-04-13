@@ -54,6 +54,84 @@ const SECRETS_MASTER_KEY = createHash("sha256")
   .update(loadOrCreateSecretMaterial())
   .digest();
 
+const BUILTIN_AI_PROVIDER_DEFINITIONS = Object.freeze([
+  {
+    provider_id: "openai",
+    name: "OpenAI",
+    description: "GPT models for control generation and structured security analysis.",
+    icon: "OAI",
+    docs_url: "https://platform.openai.com/api-keys",
+    requires_api_key: true,
+    supports_endpoint: false,
+    endpoint_placeholder: "",
+    models: [
+      "gpt-5.4",
+      "gpt-5.4-pro",
+      "gpt-5.4-mini",
+      "gpt-5.4-nano",
+      "gpt-5",
+      "gpt-5-mini",
+      "gpt-5-nano",
+      "gpt-5.2",
+      "gpt-5.1",
+      "gpt-4.1",
+      "gpt-4.1-mini",
+      "gpt-4.1-nano",
+      "gpt-4o",
+      "gpt-4o-mini",
+    ],
+    default_model: "gpt-4.1-mini",
+  },
+  {
+    provider_id: "google",
+    name: "Google Gemini",
+    description: "Gemini models optimized for long-context source processing.",
+    icon: "GEM",
+    docs_url: "https://aistudio.google.com/app/apikey",
+    requires_api_key: true,
+    supports_endpoint: false,
+    endpoint_placeholder: "",
+    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+    default_model: "gemini-2.5-pro",
+  },
+  {
+    provider_id: "anthropic",
+    name: "Anthropic Claude",
+    description: "Claude models for deep reasoning and policy-oriented controls.",
+    icon: "CLA",
+    docs_url: "https://console.anthropic.com/settings/keys",
+    requires_api_key: true,
+    supports_endpoint: false,
+    endpoint_placeholder: "",
+    models: ["claude-3-7-sonnet-latest", "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
+    default_model: "claude-3-7-sonnet-latest",
+  },
+  {
+    provider_id: "xai",
+    name: "Grok (xAI)",
+    description: "xAI models for fast synthesis and large-scale baseline drafts.",
+    icon: "XAI",
+    docs_url: "https://console.x.ai",
+    requires_api_key: true,
+    supports_endpoint: false,
+    endpoint_placeholder: "",
+    models: ["grok-4", "grok-3", "grok-3-mini"],
+    default_model: "grok-3",
+  },
+  {
+    provider_id: "ollama",
+    name: "Ollama (Local)",
+    description: "Run local models on your infrastructure (no cloud API key required).",
+    icon: "LOC",
+    docs_url: "https://ollama.com/library",
+    requires_api_key: false,
+    supports_endpoint: true,
+    endpoint_placeholder: "http://127.0.0.1:11434",
+    models: ["llama3.2", "qwen2.5:14b", "mistral"],
+    default_model: "llama3.2",
+  },
+]);
+
 function isEncryptedSecret(value) {
   return typeof value === "string" && value.startsWith(ENCRYPTED_SECRET_PREFIX);
 }
@@ -256,6 +334,36 @@ CREATE TABLE IF NOT EXISTS ai_provider_configs (
   user_id TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS ai_provider_catalog (
+  id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  description TEXT,
+  docs_url TEXT,
+  endpoint_placeholder TEXT,
+  extra_config TEXT,
+  icon TEXT,
+  is_active INTEGER NOT NULL,
+  is_builtin INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
+  requires_api_key INTEGER NOT NULL,
+  supports_endpoint INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  user_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_provider_models (
+  id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  is_active INTEGER NOT NULL,
+  is_default INTEGER NOT NULL,
+  model_id TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
+  sort_order INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  user_id TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_preferences (
   id TEXT PRIMARY KEY,
   created_at TEXT NOT NULL,
@@ -300,12 +408,16 @@ CREATE TABLE IF NOT EXISTS system_settings (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_provider_configs_user_provider ON ai_provider_configs(user_id, provider_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_provider_catalog_user_provider ON ai_provider_catalog(user_id, provider_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_provider_models_user_provider_model ON ai_provider_models(user_id, provider_id, model_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_rule_values_user_rule ON user_rule_values(user_id, rule_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_sources_project_id ON sources(project_id);
 CREATE INDEX IF NOT EXISTS idx_controls_project_id ON controls(project_id);
 CREATE INDEX IF NOT EXISTS idx_versions_project_id ON baseline_versions(project_id);
+CREATE INDEX IF NOT EXISTS idx_ai_provider_catalog_user_id ON ai_provider_catalog(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_provider_models_user_provider ON ai_provider_models(user_id, provider_id);
 `;
 
 db.exec(SCHEMA_SQL);
@@ -320,6 +432,8 @@ const QUERYABLE_TABLES = new Set([
   "teams",
   "team_members",
   "ai_provider_configs",
+  "ai_provider_catalog",
+  "ai_provider_models",
   "user_preferences",
   "user_rule_values",
   "rule_template_versions",
@@ -333,12 +447,15 @@ const JSON_COLUMNS = {
   baseline_versions: new Set(["controls_snapshot", "sources_snapshot", "project_snapshot"]),
   version_audit_logs: new Set(["details"]),
   ai_provider_configs: new Set(["extra_config"]),
+  ai_provider_catalog: new Set(["extra_config"]),
   rule_template_versions: new Set(["snapshot"]),
   source_activity_logs: new Set(["metadata"]),
 };
 
 const BOOLEAN_COLUMNS = {
   ai_provider_configs: new Set(["enabled", "is_default"]),
+  ai_provider_catalog: new Set(["is_active", "is_builtin", "requires_api_key", "supports_endpoint"]),
+  ai_provider_models: new Set(["is_active", "is_default"]),
   notifications: new Set(["is_read"]),
   user_preferences: new Set([
     "notify_control_status",
@@ -394,6 +511,20 @@ const TABLE_DEFAULTS = {
     connection_status: "idle",
     extra_config: {},
   },
+  ai_provider_catalog: {
+    is_active: true,
+    is_builtin: false,
+    requires_api_key: true,
+    supports_endpoint: false,
+    endpoint_placeholder: "",
+    icon: "CUS",
+    extra_config: {},
+  },
+  ai_provider_models: {
+    is_active: true,
+    is_default: false,
+    sort_order: 0,
+  },
   user_preferences: {
     notify_control_status: true,
     notify_source_processed: true,
@@ -422,6 +553,8 @@ const USER_SCOPED_TABLES = [
   "notifications",
   "team_members",
   "ai_provider_configs",
+  "ai_provider_catalog",
+  "ai_provider_models",
   "user_preferences",
   "user_rule_values",
   "rule_template_versions",
@@ -584,7 +717,103 @@ function isAdminUser(user) {
   return String(user?.role || "").toLowerCase() === "admin";
 }
 
+function seedAiProviderRegistryForUser(userId) {
+  const existingCatalog = db
+    .prepare("SELECT id FROM ai_provider_catalog WHERE user_id = ? LIMIT 1;")
+    .get(userId);
+
+  if (existingCatalog) {
+    return;
+  }
+
+  const now = nowIso();
+
+  runInTransaction(() => {
+    for (const provider of BUILTIN_AI_PROVIDER_DEFINITIONS) {
+      db.prepare(
+        `
+          INSERT INTO ai_provider_catalog (
+            id,
+            created_at,
+            description,
+            docs_url,
+            endpoint_placeholder,
+            extra_config,
+            icon,
+            is_active,
+            is_builtin,
+            name,
+            provider_id,
+            requires_api_key,
+            supports_endpoint,
+            updated_at,
+            user_id
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        `
+      ).run(
+        randomUUID(),
+        now,
+        provider.description || "",
+        provider.docs_url || "",
+        provider.endpoint_placeholder || "",
+        JSON.stringify({}),
+        provider.icon || "CUS",
+        1,
+        1,
+        provider.name || provider.provider_id,
+        provider.provider_id,
+        provider.requires_api_key ? 1 : 0,
+        provider.supports_endpoint ? 1 : 0,
+        now,
+        userId
+      );
+
+      const models = Array.isArray(provider.models) ? provider.models.filter(Boolean) : [];
+      const defaultModel = String(provider.default_model || models[0] || "").trim();
+      const uniqueModels = new Set(models);
+      if (defaultModel) {
+        uniqueModels.add(defaultModel);
+      }
+
+      let sortOrder = 0;
+      for (const modelId of uniqueModels) {
+        db.prepare(
+          `
+            INSERT INTO ai_provider_models (
+              id,
+              created_at,
+              is_active,
+              is_default,
+              model_id,
+              provider_id,
+              sort_order,
+              updated_at,
+              user_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+          `
+        ).run(
+          randomUUID(),
+          now,
+          1,
+          modelId === defaultModel ? 1 : 0,
+          modelId,
+          provider.provider_id,
+          sortOrder,
+          now,
+          userId
+        );
+
+        sortOrder += 10;
+      }
+    }
+  });
+}
+
 function seedUserSupportRows(userId) {
+  seedAiProviderRegistryForUser(userId);
+
   const pref = db
     .prepare("SELECT id FROM user_preferences WHERE user_id = ? LIMIT 1;")
     .get(userId);
@@ -1432,6 +1661,8 @@ function migrateStoredAiProviderSecrets() {
 
 function removeDeprecatedBuiltinProviderConfigs() {
   db.prepare("DELETE FROM ai_provider_configs WHERE provider_id = 'lovable_ai';").run();
+  db.prepare("DELETE FROM ai_provider_catalog WHERE provider_id = 'lovable_ai';").run();
+  db.prepare("DELETE FROM ai_provider_models WHERE provider_id = 'lovable_ai';").run();
 
   const users = db.prepare("SELECT id FROM users;").all();
   for (const row of users) {
@@ -2110,6 +2341,39 @@ async function handleTestAiProvider({ user, body }) {
   const selectedModel = String(body?.model || "").trim();
   const apiKeyFromPayload = String(body?.apiKey || "").trim();
   const endpointFromPayload = String(body?.endpointUrl || "").trim();
+  const modelParams = body?.modelParams && typeof body.modelParams === "object" ? body.modelParams : {};
+
+  const readNumberParam = (key) => {
+    const raw = modelParams?.[key];
+    if (raw === null || raw === undefined || raw === "") return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const readIntegerParam = (key) => {
+    const raw = modelParams?.[key];
+    if (raw === null || raw === undefined || raw === "") return null;
+    const parsed = Number.parseInt(String(raw), 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const readStringParam = (key) => {
+    const raw = modelParams?.[key];
+    if (raw === null || raw === undefined) return "";
+    return String(raw).trim();
+  };
+
+  const readStringListParam = (key) => {
+    const raw = modelParams?.[key];
+    if (raw === null || raw === undefined || raw === "") return [];
+    if (Array.isArray(raw)) {
+      return raw.map((item) => String(item).trim()).filter(Boolean);
+    }
+    return String(raw)
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
 
   if (!providerId) {
     throw new Error("providerId is required");
@@ -2153,6 +2417,29 @@ async function handleTestAiProvider({ user, body }) {
 
   if (providerId === "google" || providerId === "gemini") {
     const model = selectedModel || "gemini-2.5-flash";
+    const generationConfig = {
+      maxOutputTokens: Math.max(1, readIntegerParam("maxOutputTokens") ?? 8),
+    };
+
+    const geminiTemperature = readNumberParam("temperature");
+    if (geminiTemperature !== null) generationConfig.temperature = geminiTemperature;
+    const geminiTopP = readNumberParam("topP");
+    if (geminiTopP !== null) generationConfig.topP = geminiTopP;
+    const geminiTopK = readIntegerParam("topK");
+    if (geminiTopK !== null) generationConfig.topK = geminiTopK;
+    const geminiCandidateCount = readIntegerParam("candidateCount");
+    if (geminiCandidateCount !== null) generationConfig.candidateCount = Math.max(1, geminiCandidateCount);
+    const geminiSeed = readIntegerParam("seed");
+    if (geminiSeed !== null) generationConfig.seed = geminiSeed;
+    const geminiPresencePenalty = readNumberParam("presencePenalty");
+    if (geminiPresencePenalty !== null) generationConfig.presencePenalty = geminiPresencePenalty;
+    const geminiFrequencyPenalty = readNumberParam("frequencyPenalty");
+    if (geminiFrequencyPenalty !== null) generationConfig.frequencyPenalty = geminiFrequencyPenalty;
+    const geminiStopSequences = readStringListParam("stopSequences");
+    if (geminiStopSequences.length > 0) generationConfig.stopSequences = geminiStopSequences;
+    const thinkingBudget = readIntegerParam("thinkingBudget");
+    if (thinkingBudget !== null) generationConfig.thinkingConfig = { thinkingBudget };
+
     const response = await fetchWithTimeout(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
@@ -2162,7 +2449,7 @@ async function handleTestAiProvider({ user, body }) {
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: "ping" }] }],
-          generationConfig: { maxOutputTokens: 8 },
+          generationConfig,
         }),
       }
     );
@@ -2171,6 +2458,31 @@ async function handleTestAiProvider({ user, body }) {
 
   if (providerId === "anthropic") {
     const model = selectedModel || "claude-3-5-haiku-latest";
+    const anthropicPayload = {
+      model,
+      max_tokens: Math.max(1, readIntegerParam("max_tokens") ?? 8),
+      messages: [{ role: "user", content: "ping" }],
+    };
+
+    const anthropicTemperature = readNumberParam("temperature");
+    if (anthropicTemperature !== null) anthropicPayload.temperature = anthropicTemperature;
+    const anthropicTopP = readNumberParam("top_p");
+    if (anthropicTopP !== null) anthropicPayload.top_p = anthropicTopP;
+    const anthropicTopK = readIntegerParam("top_k");
+    if (anthropicTopK !== null) anthropicPayload.top_k = anthropicTopK;
+    const anthropicStopSequences = readStringListParam("stop_sequences");
+    if (anthropicStopSequences.length > 0) anthropicPayload.stop_sequences = anthropicStopSequences;
+
+    const thinkingBudgetTokens = readIntegerParam("thinking_budget_tokens");
+    if (thinkingBudgetTokens !== null) {
+      anthropicPayload.thinking = {
+        type: "enabled",
+        budget_tokens: Math.max(1024, thinkingBudgetTokens),
+      };
+      delete anthropicPayload.temperature;
+      delete anthropicPayload.top_k;
+    }
+
     const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -2178,11 +2490,7 @@ async function handleTestAiProvider({ user, body }) {
         "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: 8,
-        messages: [{ role: "user", content: "ping" }],
-      }),
+      body: JSON.stringify(anthropicPayload),
     });
     return { ok: response.ok, message: response.ok ? "Anthropic connection successful" : `Anthropic error (${response.status})` };
   }
@@ -2198,10 +2506,11 @@ async function handleTestAiProvider({ user, body }) {
   }
 
   if (endpointUrl) {
+    const authorizationToken = readStringParam("authorization_token");
     const response = await fetchWithTimeout(endpointUrl, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${authorizationToken || apiKey}`,
       },
     });
     return { ok: response.ok, message: response.ok ? "Connection successful" : `Provider error (${response.status})` };

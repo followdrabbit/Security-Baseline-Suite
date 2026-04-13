@@ -22,7 +22,11 @@ System context for LLM assistants:
 
 3. AI provider configuration
 - Supported providers in AI Integrations: OpenAI, Google Gemini, Anthropic Claude, Grok/xAI, and Ollama local models.
-- Provider selection + model selection are persisted per user in ai_provider_configs.
+- Provider settings are persisted per user in `ai_provider_configs`.
+- Provider registry is persisted in `ai_provider_catalog` and model registry in `ai_provider_models` (per user scope).
+- AI Integrations supports full CRUD for providers and models (create/read/update/delete).
+- Primary model and fallback model are configurable per provider.
+- Advanced model parameters are optional, disabled by default, and enabled per parameter flag.
 - API keys are encrypted at rest by local-api before storage in SQLite.
 - Connection testing should use /functions/v1/test-ai-provider (server-side), not direct browser calls.
 
@@ -34,11 +38,13 @@ System context for LLM assistants:
 - Unit/integration tests: npm test
 - Coverage: npm run test:coverage
 - Tests mock localDb (not supabase).
+- Latest snapshot (2026-04-12): 165 tests passing, 47.67% statements, 60.47% branches.
 
 6. Documentation alignment
 - README.md and docs/* reflect local SQLite mode.
 - In-app docs (Documentation page + translations) must stay aligned with the local auth flow.
 - Keep docs consistent with local-api and localdb integration.
+- AI documentation must cover provider/model CRUD, fallback model behavior, and advanced-parameter flags.
 
 
 7. UX/i18n and AI gating behavior

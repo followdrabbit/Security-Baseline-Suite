@@ -20,6 +20,36 @@ export interface TestAIProviderResult {
   message: string;
 }
 
+export interface AIProviderCatalogEntry {
+  id: string;
+  user_id: string;
+  provider_id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  docs_url: string | null;
+  requires_api_key: boolean;
+  supports_endpoint: boolean;
+  endpoint_placeholder: string | null;
+  is_active: boolean;
+  is_builtin: boolean;
+  extra_config: Record<string, any> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIProviderModelEntry {
+  id: string;
+  user_id: string;
+  provider_id: string;
+  model_id: string;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 type UpsertConfigInput = {
   provider_id: string;
   enabled: boolean;
@@ -30,9 +60,37 @@ type UpsertConfigInput = {
   extra_config?: Record<string, any>;
 };
 
+type UpsertProviderCatalogInput = {
+  provider_id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  docs_url?: string;
+  requires_api_key?: boolean;
+  supports_endpoint?: boolean;
+  endpoint_placeholder?: string;
+  is_active?: boolean;
+  is_builtin?: boolean;
+  extra_config?: Record<string, any>;
+};
+
+type CreateProviderModelInput = {
+  provider_id: string;
+  model_id: string;
+  is_default?: boolean;
+  is_active?: boolean;
+  sort_order?: number;
+};
+
 function normalizeExtraConfig(value?: Record<string, any>) {
   if (!value || typeof value !== 'object') return {};
   return value;
+}
+
+async function getCurrentUserOrThrow() {
+  const { data: { user } } = await localDb.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  return user;
 }
 
 const PROVIDERS_WITHOUT_API_KEY = new Set(['ollama']);
@@ -64,19 +122,183 @@ function isUsableProviderConfig(config: AIProviderConfig | null | undefined): bo
 }
 
 export const aiConfigService = {
+  getProvidersCatalog: async (): Promise<AIProviderCatalogEntry[]> => {
+    const user = await getCurrentUserOrThrow();
+
+    const { data, error } = await localDb
+      .from('ai_provider_catalog')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name');
+
+    if (error) throw error;
+    return (data || []) as AIProviderCatalogEntry[];
+  },
+
+  getProviderModels: async (providerId?: string): Promise<AIProviderModelEntry[]> => {
+    const user = await getCurrentUserOrThrow();
+
+    let query = localDb
+      .from('ai_provider_models')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (providerId) {
+      query = query.eq('provider_id', providerId);
+    }
+
+    const { data, error } = await query
+      .order('sort_order')
+      .order('model_id');
+
+    if (error) throw error;
+    return (data || []) as AIProviderModelEntry[];
+  },
+
+  upsertProviderCatalog: async (provider: UpsertProviderCatalogInput): Promise<AIProviderCatalogEntry> => {
+    const user = await getCurrentUserOrThrow();
+
+    const payload: Record<string, any> = {
+      user_id: user.id,
+      provider_id: String(provider.provider_id || '').trim(),
+      name: String(provider.name || '').trim(),
+      description: provider.description || '',
+      icon: provider.icon || 'CUS',
+      docs_url: provider.docs_url || '',
+      requires_api_key: provider.requires_api_key !== false,
+      supports_endpoint: Boolean(provider.supports_endpoint),
+      endpoint_placeholder: provider.endpoint_placeholder || '',
+      is_active: provider.is_active !== false,
+      is_builtin: Boolean(provider.is_builtin),
+      extra_config: normalizeExtraConfig(provider.extra_config),
+    };
+
+    const { data, error } = await localDb
+      .from('ai_provider_catalog')
+      .upsert(payload, { onConflict: 'user_id,provider_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as AIProviderCatalogEntry;
+  },
+
+  deleteProviderCatalog: async (providerId: string): Promise<void> => {
+    const user = await getCurrentUserOrThrow();
+
+    await localDb
+      .from('ai_provider_models')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('provider_id', providerId);
+
+    await localDb
+      .from('ai_provider_configs')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('provider_id', providerId);
+
+    const { error } = await localDb
+      .from('ai_provider_catalog')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('provider_id', providerId);
+
+    if (error) throw error;
+  },
+
+  createProviderModel: async (model: CreateProviderModelInput): Promise<AIProviderModelEntry> => {
+    const user = await getCurrentUserOrThrow();
+
+    const payload: Record<string, any> = {
+      user_id: user.id,
+      provider_id: String(model.provider_id || '').trim(),
+      model_id: String(model.model_id || '').trim(),
+      is_default: Boolean(model.is_default),
+      is_active: model.is_active !== false,
+      sort_order: Number(model.sort_order || 0),
+    };
+
+    const { data, error } = await localDb
+      .from('ai_provider_models')
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as AIProviderModelEntry;
+  },
+
+  updateProviderModel: async (modelRowId: string, updates: Partial<Pick<AIProviderModelEntry, 'model_id' | 'is_default' | 'is_active' | 'sort_order'>>): Promise<AIProviderModelEntry> => {
+    const user = await getCurrentUserOrThrow();
+
+    const payload: Record<string, any> = {};
+    if (updates.model_id !== undefined) payload.model_id = String(updates.model_id).trim();
+    if (updates.is_default !== undefined) payload.is_default = Boolean(updates.is_default);
+    if (updates.is_active !== undefined) payload.is_active = Boolean(updates.is_active);
+    if (updates.sort_order !== undefined) payload.sort_order = Number(updates.sort_order);
+
+    const { data, error } = await localDb
+      .from('ai_provider_models')
+      .update(payload)
+      .eq('user_id', user.id)
+      .eq('id', modelRowId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as AIProviderModelEntry;
+  },
+
+  deleteProviderModel: async (modelRowId: string): Promise<void> => {
+    const user = await getCurrentUserOrThrow();
+
+    const { error } = await localDb
+      .from('ai_provider_models')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('id', modelRowId);
+
+    if (error) throw error;
+  },
+
+  setDefaultProviderModel: async (providerId: string, modelRowId: string): Promise<void> => {
+    const user = await getCurrentUserOrThrow();
+
+    await localDb
+      .from('ai_provider_models')
+      .update({ is_default: false })
+      .eq('user_id', user.id)
+      .eq('provider_id', providerId);
+
+    const { error } = await localDb
+      .from('ai_provider_models')
+      .update({ is_default: true })
+      .eq('user_id', user.id)
+      .eq('id', modelRowId);
+
+    if (error) throw error;
+  },
+
   getAll: async (): Promise<AIProviderConfig[]> => {
+    const user = await getCurrentUserOrThrow();
+
     const { data, error } = await localDb
       .from('ai_provider_configs')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at');
     if (error) throw error;
     return (data || []) as AIProviderConfig[];
   },
 
   getDefault: async (): Promise<AIProviderConfig | null> => {
+    const user = await getCurrentUserOrThrow();
+
     const { data, error } = await localDb
       .from('ai_provider_configs')
       .select('*')
+      .eq('user_id', user.id)
       .eq('is_default', true)
       .maybeSingle();
     if (error) throw error;
@@ -105,8 +327,7 @@ export const aiConfigService = {
   },
 
   upsert: async (config: UpsertConfigInput): Promise<AIProviderConfig> => {
-    const { data: { user } } = await localDb.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const user = await getCurrentUserOrThrow();
 
     const payload: Record<string, any> = {
       user_id: user.id,
@@ -133,8 +354,7 @@ export const aiConfigService = {
   },
 
   setDefault: async (providerId: string): Promise<void> => {
-    const { data: { user } } = await localDb.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const user = await getCurrentUserOrThrow();
 
     await localDb
       .from('ai_provider_configs')
@@ -153,6 +373,7 @@ export const aiConfigService = {
     apiKey: string,
     model: string,
     endpointUrl?: string,
+    modelParams?: Record<string, any>,
   ): Promise<TestAIProviderResult> => {
     const { data, error } = await localDb.functions.invoke('test-ai-provider', {
       body: {
@@ -160,6 +381,7 @@ export const aiConfigService = {
         apiKey,
         model,
         endpointUrl: endpointUrl || '',
+        modelParams: normalizeExtraConfig(modelParams),
       },
     });
 

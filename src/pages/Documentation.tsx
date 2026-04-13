@@ -136,7 +136,7 @@ const Documentation: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
                 { icon: Cpu, label: 'AI-Powered Generation', desc: 'Automated control creation from diverse sources' },
-                { icon: GitBranch, label: 'Full Traceability', desc: 'Source → Control → Framework mapping' },
+                { icon: GitBranch, label: 'Full Traceability', desc: 'Source -> Control -> Framework mapping' },
                 { icon: History, label: 'Version Control', desc: 'Immutable snapshots with diff comparison' },
                 { icon: Users, label: 'Team Collaboration', desc: 'Shared projects with role-based access' },
                 { icon: Globe, label: 'Multi-Language', desc: 'Interface and output in EN, PT-BR, ES' },
@@ -167,15 +167,15 @@ const Documentation: React.FC = () => {
 
           <DocStepList steps={[
             { title: d.step1Title, description: d.step1Desc, detail: 'Navigate to /auth, sign in as admin, change the default password, validate policy compliance (12+ chars with complexity), then create users in Settings.' },
-            { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard → "Create New Baseline" → Fill fields → Save' },
-            { title: d.step3Title, description: d.step3Desc, detail: 'Source Library → Add URL or Upload → Wait for extraction' },
-            { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates → Select template → Customize fields' },
+            { title: d.step2Title, description: d.step2Desc, detail: 'Dashboard -> "Create New Baseline" -> Fill fields -> Save' },
+            { title: d.step3Title, description: d.step3Desc, detail: 'Source Library -> Add URL or Upload -> Wait for extraction' },
+            { title: d.step4Title, description: d.step4Desc, detail: 'Rules & Templates -> Select template -> Customize fields' },
             { title: d.step5Title, description: d.step5Desc, detail: 'AI Workspace -> Configure and test at least one provider in AI Integrations -> Start Pipeline -> Monitor stages' },
-            { title: d.step6Title, description: d.step6Desc, detail: 'Baseline Editor → Review → Approve/Reject/Adjust' },
+            { title: d.step6Title, description: d.step6Desc, detail: 'Baseline Editor -> Review -> Approve/Reject/Adjust' },
           ]} />
 
           <DocCallout variant="example" title="Example Workflow">
-            Creating an AWS S3 baseline: Create project "AWS S3 Hardening 2025" → Add CIS Benchmark URL + AWS Security Guide PDF → Use "Balanced" template → Run pipeline → Review 45 generated controls → Approve baseline → Export as PDF for audit.
+            Creating an AWS S3 baseline: Create project "AWS S3 Hardening 2025" -&gt; Add CIS Benchmark URL + AWS Security Guide PDF -&gt; Use "Balanced" template -&gt; Run pipeline -&gt; Review 45 generated controls -&gt; Approve baseline -&gt; Export as PDF for audit.
           </DocCallout>
         </div>
       ),
@@ -199,7 +199,7 @@ const Documentation: React.FC = () => {
           </SubSection>
 
           <DocCallout variant="tip">
-            The dashboard updates in real-time. Use the trend charts to identify patterns — a declining confidence score may indicate sources need updating.
+            The dashboard updates in real-time. Use the trend charts to identify patterns - a declining confidence score may indicate sources need updating.
           </DocCallout>
 
           <SubSection title="Quick Actions">
@@ -311,11 +311,11 @@ const Documentation: React.FC = () => {
 
           <SubSection title="Criticality Scale">
             <div className="bg-muted/20 rounded-lg p-4 border border-border/30 space-y-1">
-              <StatusPill color="bg-red-500" label="Critical" desc="Immediate risk — must be implemented. Exploitation leads to full compromise." />
-              <StatusPill color="bg-orange-500" label="High" desc="Significant risk — prioritize implementation. Major impact if exploited." />
-              <StatusPill color="bg-amber-400" label="Medium" desc="Moderate risk — plan implementation. Moderate impact on security." />
-              <StatusPill color="bg-blue-400" label="Low" desc="Minor risk — implement as resources allow." />
-              <StatusPill color="bg-slate-400" label="Informational" desc="Best practice — no direct risk but improves posture." />
+              <StatusPill color="bg-red-500" label="Critical" desc="Immediate risk - must be implemented. Exploitation leads to full compromise." />
+              <StatusPill color="bg-orange-500" label="High" desc="Significant risk - prioritize implementation. Major impact if exploited." />
+              <StatusPill color="bg-amber-400" label="Medium" desc="Moderate risk - plan implementation. Moderate impact on security." />
+              <StatusPill color="bg-blue-400" label="Low" desc="Minor risk - implement as resources allow." />
+              <StatusPill color="bg-slate-400" label="Informational" desc="Best practice - no direct risk but improves posture." />
             </div>
           </SubSection>
         </div>
@@ -376,8 +376,8 @@ const Documentation: React.FC = () => {
 
           <SubSection title="Review Workflow">
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              {['Pending', '→', 'Reviewed', '→', 'Approved / Rejected / Adjusted'].map((item, i) => (
-                item === '→' ? (
+              {['Pending', '->', 'Reviewed', '->', 'Approved / Rejected / Adjusted'].map((item, i) => (
+                item === '->' ? (
                   <ChevronRight key={i} className="h-4 w-4 text-muted-foreground" />
                 ) : (
                   <span key={i} className="px-3 py-1.5 rounded-full bg-muted/40 border border-border/50 font-medium text-foreground">{item}</span>
@@ -387,7 +387,7 @@ const Documentation: React.FC = () => {
           </SubSection>
 
           <DocCallout variant="tip">
-            Start reviewing controls with the lowest confidence scores first — they are most likely to need manual adjustment.
+            Start reviewing controls with the lowest confidence scores first - they are most likely to need manual adjustment.
           </DocCallout>
         </div>
       ),
@@ -470,10 +470,10 @@ const Documentation: React.FC = () => {
 
           <DocCallout variant="example" title="Format Guide">
             <ul className="list-disc pl-4 space-y-1 mt-1">
-              <li><strong>JSON</strong> — Best for backups and importing into other instances</li>
-              <li><strong>Markdown</strong> — Ideal for documentation wikis (Confluence, Notion, GitHub)</li>
-              <li><strong>PDF</strong> — Use for formal audit reports and management presentations</li>
-              <li><strong>CSV</strong> — Perfect for spreadsheet analysis and custom reporting</li>
+              <li><strong>JSON</strong> - Best for backups and importing into other instances</li>
+              <li><strong>Markdown</strong> - Ideal for documentation wikis (Confluence, Notion, GitHub)</li>
+              <li><strong>PDF</strong> - Use for formal audit reports and management presentations</li>
+              <li><strong>CSV</strong> - Perfect for spreadsheet analysis and custom reporting</li>
             </ul>
           </DocCallout>
         </div>
@@ -496,14 +496,31 @@ const Documentation: React.FC = () => {
             </div>
           </SubSection>
 
+          <SubSection title="Provider and Model Registry (CRUD)">
+            <div className="space-y-1">
+              <FeatureItem label="Provider CRUD:">Create, edit, and delete providers directly from AI Integrations.</FeatureItem>
+              <FeatureItem label="Model CRUD:">Register, rename, set default, and delete models per provider.</FeatureItem>
+              <FeatureItem label="Primary + fallback:">Define primary and fallback models per provider configuration.</FeatureItem>
+              <FeatureItem label="Local persistence:">Provider catalog and model registry are persisted in local SQLite with user scope.</FeatureItem>
+            </div>
+          </SubSection>
+
+          <SubSection title="Advanced Parameters (Optional)">
+            <div className="space-y-1">
+              <FeatureItem label="Default behavior:">Advanced parameters are disabled by default.</FeatureItem>
+              <FeatureItem label="Per-parameter flags:">Enable only the parameters you need before setting values.</FeatureItem>
+              <FeatureItem label="Provider-specific sets:">Available options vary by provider/model family (temperature, reasoning, top_p, etc.).</FeatureItem>
+            </div>
+          </SubSection>
+
           <DocCallout variant="tip">{d.aiTip}</DocCallout>
 
           <DocCallout variant="info" title="Model Recommendations">
             <ul className="list-disc pl-4 space-y-1 mt-1">
-              <li><strong>GPT-5 / Gemini Pro</strong> — Best for complex baselines with many sources</li>
-              <li><strong>GPT-5 Mini / Gemini Flash</strong> — Good balance of speed and quality</li>
-              <li><strong>Claude / Grok</strong> — Strong reasoning for structured control descriptions and review notes</li>
-              <li><strong>Ollama local models</strong> — Best when data must stay fully on local infrastructure</li>
+              <li><strong>GPT-5 / Gemini Pro</strong> - Best for complex baselines with many sources</li>
+              <li><strong>GPT-5 Mini / Gemini Flash</strong> - Good balance of speed and quality</li>
+              <li><strong>Claude / Grok</strong> - Strong reasoning for structured control descriptions and review notes</li>
+              <li><strong>Ollama local models</strong> - Best when data must stay fully on local infrastructure</li>
             </ul>
             <p className="mt-3 text-xs text-muted-foreground">Provider configuration is mandatory before running extraction or pipeline execution.</p>
           </DocCallout>
@@ -571,9 +588,9 @@ const Documentation: React.FC = () => {
 
           <DocCallout variant="info" title="AI Strictness Levels">
             <ul className="list-disc pl-4 space-y-1 mt-1">
-              <li><strong>Conservative</strong> — Higher precision, fewer controls. Best for audit-critical baselines.</li>
-              <li><strong>Balanced</strong> — Good mix of coverage and precision. Recommended default.</li>
-              <li><strong>Aggressive</strong> — Maximum coverage, may include more speculative controls.</li>
+              <li><strong>Conservative</strong> - Higher precision, fewer controls. Best for audit-critical baselines.</li>
+              <li><strong>Balanced</strong> - Good mix of coverage and precision. Recommended default.</li>
+              <li><strong>Aggressive</strong> - Maximum coverage, may include more speculative controls.</li>
             </ul>
           </DocCallout>
         </div>
@@ -746,7 +763,7 @@ const Documentation: React.FC = () => {
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                ✕
+                x
               </button>
             )}
           </div>
@@ -899,3 +916,4 @@ const Documentation: React.FC = () => {
 };
 
 export default Documentation;
+
