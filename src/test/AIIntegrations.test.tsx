@@ -250,6 +250,40 @@ describe('AIIntegrations', () => {
     expect(payload.extra_config.fallback_model).toBe('gpt-5');
   });
 
+  it('enables selected provider when saving integration selection', async () => {
+    const user = userEvent.setup();
+    mocks.getAll.mockResolvedValue([
+      {
+        id: 'cfg-google',
+        user_id: 'user-1',
+        provider_id: 'google',
+        selected_model: 'gemini-2.5-pro',
+        is_default: true,
+        enabled: false,
+        api_key_encrypted: '__stored__',
+        has_api_key: true,
+        extra_config: {},
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    render(<AIIntegrations />);
+    await screen.findByText('AI Integrations');
+
+    mocks.upsert.mockClear();
+    await user.click(screen.getAllByRole('button', { name: 'gemini-2.5-flash' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Save Selection' }));
+
+    await waitFor(() => {
+      expect(mocks.upsert).toHaveBeenCalled();
+    });
+
+    const payload = mocks.upsert.mock.calls[mocks.upsert.mock.calls.length - 1][0];
+    expect(payload.provider_id).toBe('google');
+    expect(payload.enabled).toBe(true);
+  });
+
   it('persists model-scoped API key and endpoint from model edit flow for Azure OpenAI', async () => {
     const user = userEvent.setup();
     mocks.getProviderModels.mockResolvedValue([

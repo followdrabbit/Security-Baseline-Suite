@@ -339,7 +339,7 @@ const Documentation: React.FC = () => {
           <DocCallout variant="tip">{d.workspaceTip}</DocCallout>
 
           <DocCallout variant="warning" title="Important Prerequisite">
-            In local mode, source extraction and pipeline execution require at least one configured provider in Settings &gt; AI Integrations. If no provider is configured, execution is blocked and the app shows a warning before continuing.
+            In local mode, source extraction and pipeline execution require at least one configured provider in Settings &gt; AI Integrations. Configure credentials in Provider/Model tabs, then use Save Selection in Integration to persist primary/fallback selection before execution.
           </DocCallout>
         </div>
       ),
@@ -500,7 +500,7 @@ const Documentation: React.FC = () => {
             <div className="space-y-1">
               <FeatureItem label="Provider tab:">Create, edit, and delete provider entries, including credential scope and endpoint scope.</FeatureItem>
               <FeatureItem label="Model tab:">Create, edit, and delete models for the selected provider. Model creation is always provider-scoped.</FeatureItem>
-              <FeatureItem label="Integration tab:">Select provider and model, set fallback model, provide credentials, and run connection test.</FeatureItem>
+              <FeatureItem label="Integration tab:">Select primary/fallback model only, then run Save Selection or Save and Test.</FeatureItem>
               <FeatureItem label="Persistence:">Provider catalog and model registry are stored in local SQLite with user scope.</FeatureItem>
             </div>
           </SubSection>

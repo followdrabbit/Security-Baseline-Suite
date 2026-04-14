@@ -48,8 +48,9 @@ System context for LLM assistants:
 - Unit/integration tests: npm test
 - Coverage: npm run test:coverage
 - Tests mock localDb (not supabase).
-- Latest snapshot (2026-04-14): 168 tests passing, 49.28% statements, 58.26% branches, 37.25% functions.
+- Latest snapshot (2026-04-14): 170 tests passing, 49.76% statements, 57.80% branches, 37.73% functions.
 - Reliability note: AI Integrations model-seed flow now guards against repeated seed attempts when provider models remain empty, preventing intermittent Vitest coverage hangs.
+- Reliability note: provider configuration validation no longer depends on legacy `enabled=false` state when model/key requirements are satisfied; Integration save marks provider as enabled for compatibility.
 
 6. Documentation alignment
 - README.md and docs/* reflect local SQLite mode.

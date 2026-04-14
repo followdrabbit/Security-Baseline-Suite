@@ -67,6 +67,7 @@ Aureum is a local-first Security Baseline Suite that uses AI to analyze technica
   - Provider tab: New/Edit/Delete provider and provider-scoped credentials when applicable
   - Model tab: New/Edit/Delete model and model-scoped credentials/endpoints when applicable
   - Integration tab: choose primary/fallback model only, then use Save Selection or Save and Test
+  - Compatibility: persisted legacy `enabled=false` no longer blocks provider validation when model/key requirements are met
 - Theme customization (light/dark mode)
 - Language selection (EN, PT-BR, ES)
 - User profile management

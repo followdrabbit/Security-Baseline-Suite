@@ -934,6 +934,7 @@ const AIIntegrations: React.FC<AIIntegrationsProps> = ({ embedded = false }) => 
 
     const nextConfig: ProviderConfig = {
       ...config,
+      enabled: true,
       connectionStatus: 'connected',
     };
 
@@ -1790,9 +1791,14 @@ const AIIntegrations: React.FC<AIIntegrationsProps> = ({ embedded = false }) => 
     if (!providerForConfig) return false;
 
     const currentConfig = configs[providerId] || makeProviderConfig(providerForConfig);
-    const saved = await saveConfig(providerId, { ...currentConfig, connectionStatus: 'idle' }, { silent: true });
+    const saved = await saveConfig(providerId, {
+      ...currentConfig,
+      enabled: true,
+      connectionStatus: 'idle',
+    }, { silent: true });
     if (!saved) return false;
 
+    updateConfig(providerId, { enabled: true, connectionStatus: 'idle' });
     setIntegrationDirty(providerId, false);
     toast({
       title: tAI.configSavedTitle || 'Configuration saved',

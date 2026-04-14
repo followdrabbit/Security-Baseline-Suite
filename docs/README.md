@@ -51,14 +51,16 @@ This folder stores project documentation and visual assets.
 - Each provider can define primary and fallback models in Integration and persist/test changes explicitly.
 - Optional additional parameters remain configured per model (disabled by default).
 - Edit Provider supports saving API key for built-in providers even before a catalog row exists.
+- AI validation now accepts provider configs with valid model/key setup even if legacy persisted `enabled` was false.
+- Saving Integration selection now persists provider as enabled to avoid false "not configured" warnings in source/pipeline flows.
 - In-app documentation (`src/pages/Documentation.tsx` + `src/i18n/translations.ts`) is aligned with this flow.
 
 ## QA snapshot (2026-04-14)
 
-- Test command: `npm test` -> `168` tests passing.
+- Test command: `npm test` -> `170` tests passing.
 - Coverage command: `npm run test:coverage`.
 - Coverage summary:
-  - statements: `49.28%`
-  - branches: `58.26%`
-  - functions: `37.25%`
+  - statements: `49.76%`
+  - branches: `57.80%`
+  - functions: `37.73%`
 - Regression fixed: AI Integrations model seed flow no longer loops infinitely when provider models are still empty, avoiding intermittent test/coverage hangs.

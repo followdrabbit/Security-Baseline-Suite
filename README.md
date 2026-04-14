@@ -96,6 +96,7 @@ Password policy: at least 12 chars, with uppercase, lowercase, number, special c
 - Additional model parameters remain in model lifecycle (create/edit), disabled by default.
 - Provider edit now supports saving API key even when editing a built-in provider that was not yet persisted in the provider catalog table.
 - Fixed intermittent Vitest/coverage hangs caused by repeated model seed retries when provider model registry was empty.
+- Fixed false "AI integration is not configured" warnings when provider/model/key were already configured but legacy `enabled=false` state remained persisted.
 - i18n coverage was expanded across key UI surfaces:
   - Auth, sidebar/layout navigation, Teams, Notifications, Settings local user management,
   - Source/Pipeline runtime messages,
@@ -120,12 +121,12 @@ Coverage is validated for updated auth, documentation, notifications, and AI int
 - `src/test/NotificationBell.test.tsx`
 
 Coverage snapshot (2026-04-14):
-- Total tests: `168` (all passing)
-- Global statements: `49.28%`
-- Global branches: `58.26%`
+- Total tests: `170` (all passing)
+- Global statements: `49.76%`
+- Global branches: `57.80%`
 - `src/pages/AuthPage.tsx`: `87.97%` statements
 - `src/pages/Settings.tsx`: `97.71%` statements
-- `src/pages/AIIntegrations.tsx`: `67.96%` statements
+- `src/pages/AIIntegrations.tsx`: `68.38%` statements
 - `src/components/mindmap/MindMapToolbar.tsx`: `100%` statements
 
 ## Tech stack

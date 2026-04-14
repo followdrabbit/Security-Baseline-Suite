@@ -170,7 +170,6 @@ function hasRequiredEndpoint(config: AIProviderConfig | null | undefined): boole
 
 function isUsableProviderConfig(config: AIProviderConfig | null | undefined): boolean {
   if (!config) return false;
-  if (!config.enabled) return false;
 
   const model = String(config.selected_model || '').trim();
   if (!model) return false;
