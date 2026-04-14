@@ -217,21 +217,15 @@ describe('AIIntegrations', () => {
     });
   });
 
-  it('saves API key for selected provider', async () => {
-    const user = userEvent.setup();
+  it('keeps integration focused on primary/fallback model selection only', async () => {
     render(<AIIntegrations />);
+    await screen.findByText('AI Integrations');
 
-    const input = await screen.findByPlaceholderText('Paste provider API key');
-    fireEvent.change(input, { target: { value: 'sk-test-openai-key' } });
-    await user.click(screen.getByRole('button', { name: 'Save key' }));
-
-    await waitFor(() => {
-      expect(mocks.upsert).toHaveBeenCalled();
-    });
-
-    const payload = mocks.upsert.mock.calls[mocks.upsert.mock.calls.length - 1][0];
-    expect(payload.provider_id).toBe('openai');
-    expect(payload.api_key_encrypted).toBe('sk-test-openai-key');
+    expect(screen.queryByPlaceholderText('Paste provider API key')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Primary model').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Fallback model').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Save Selection' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save and Test' })).toBeInTheDocument();
   });
 
   it('persists fallback model selection in provider extra_config', async () => {
@@ -244,6 +238,8 @@ describe('AIIntegrations', () => {
     const gpt5Buttons = screen.getAllByRole('button', { name: 'gpt-5' });
     expect(gpt5Buttons.length).toBeGreaterThan(1);
     await user.click(gpt5Buttons[1]);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Save Selection' }));
 
     await waitFor(() => {
       expect(mocks.upsert).toHaveBeenCalled();
@@ -254,26 +250,48 @@ describe('AIIntegrations', () => {
     expect(payload.extra_config.fallback_model).toBe('gpt-5');
   });
 
-  it('persists model-scoped API key and endpoint for Azure OpenAI', async () => {
+  it('persists model-scoped API key and endpoint from model edit flow for Azure OpenAI', async () => {
     const user = userEvent.setup();
+    mocks.getProviderModels.mockResolvedValue([
+      {
+        id: 'model-azure-1',
+        user_id: 'user-1',
+        provider_id: 'azure_openai',
+        model_id: 'gpt-4.1',
+        is_default: true,
+        is_active: true,
+        sort_order: 10,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    mocks.getAll.mockResolvedValue([
+      {
+        id: 'cfg-azure-openai',
+        user_id: 'user-1',
+        provider_id: 'azure_openai',
+        selected_model: 'gpt-4.1',
+        is_default: true,
+        enabled: true,
+        api_key_encrypted: null,
+        extra_config: {},
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
     render(<AIIntegrations />);
     await screen.findByText('AI Integrations');
-    await user.click(screen.getByRole('button', { name: 'Azure OpenAI' }));
-    const integrationToggle = screen.getAllByRole('checkbox')[0] as HTMLInputElement;
-    if (!integrationToggle.checked) {
-      await user.click(integrationToggle);
-    }
-    await screen.findByText('Model API key');
+    await user.click(screen.getByRole('tab', { name: 'Model' }));
+    await user.click(screen.getByRole('tab', { name: 'Edit Model' }));
+    await screen.findByPlaceholderText('https://<resource>.openai.azure.com');
 
     mocks.upsert.mockClear();
     fireEvent.change(screen.getByPlaceholderText('Paste provider API key'), { target: { value: 'az-key-123' } });
-    await user.click(screen.getByRole('button', { name: 'Save key' }));
-
     fireEvent.change(
       screen.getByPlaceholderText('https://<resource>.openai.azure.com'),
       { target: { value: 'https://my-azure.openai.azure.com' } },
     );
-    fireEvent.blur(screen.getByPlaceholderText('https://<resource>.openai.azure.com'));
+    await user.click(screen.getByRole('button', { name: 'Save Model' }));
 
     await waitFor(() => {
       expect(mocks.upsert).toHaveBeenCalled();
@@ -316,6 +334,36 @@ describe('AIIntegrations', () => {
     expect(modelPayload.is_default).toBe(true);
   });
 
+  it('saves provider API key from edit flow even when provider is not yet in catalog', async () => {
+    const user = userEvent.setup();
+    render(<AIIntegrations />);
+    await screen.findByText('AI Integrations');
+
+    await user.click(screen.getByRole('tab', { name: 'Provider' }));
+    await user.click(screen.getByRole('tab', { name: 'Edit Provider' }));
+
+    const apiKeyInput = await screen.findByPlaceholderText('Paste provider API key');
+    await user.clear(apiKeyInput);
+    await user.type(apiKeyInput, 'sk-openai-provider-key');
+
+    mocks.upsertProviderCatalog.mockClear();
+    mocks.upsert.mockClear();
+
+    await user.click(screen.getByRole('button', { name: 'Save Provider' }));
+
+    await waitFor(() => {
+      expect(mocks.upsertProviderCatalog).toHaveBeenCalled();
+      expect(mocks.upsert).toHaveBeenCalled();
+    });
+
+    const providerPayload = mocks.upsertProviderCatalog.mock.calls[mocks.upsertProviderCatalog.mock.calls.length - 1][0];
+    expect(providerPayload.provider_id).toBe('openai');
+
+    const configPayload = mocks.upsert.mock.calls[mocks.upsert.mock.calls.length - 1][0];
+    expect(configPayload.provider_id).toBe('openai');
+    expect(configPayload.api_key_encrypted).toBe('sk-openai-provider-key');
+  });
+
   it('adds a model to selected provider through CRUD section', async () => {
     const user = userEvent.setup();
     render(<AIIntegrations />);
@@ -329,8 +377,96 @@ describe('AIIntegrations', () => {
       expect(mocks.createProviderModel).toHaveBeenCalled();
     });
 
-    const modelPayload = mocks.createProviderModel.mock.calls[mocks.createProviderModel.mock.calls.length - 1][0];
-    expect(modelPayload.provider_id).toBe('openai');
-    expect(modelPayload.model_id).toBe('gpt-custom-experimental');
+    const customCall = mocks.createProviderModel.mock.calls
+      .map((call) => call[0])
+      .find((payload) => payload.provider_id === 'openai' && payload.model_id === 'gpt-custom-experimental');
+    expect(customCall).toBeTruthy();
+  });
+
+  it('shows legacy OpenAI models with nullable is_active in edit and delete flows', async () => {
+    const user = userEvent.setup();
+    mocks.getProvidersCatalog.mockResolvedValue([
+      {
+        id: 'catalog-openai',
+        user_id: 'user-1',
+        provider_id: 'openai',
+        name: 'OpenAI',
+        description: '',
+        icon: 'OAI',
+        docs_url: 'https://platform.openai.com/api-keys',
+        requires_api_key: true,
+        supports_endpoint: false,
+        endpoint_placeholder: '',
+        is_active: null,
+        is_builtin: true,
+        extra_config: {},
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+    mocks.getProviderModels.mockResolvedValue([
+      {
+        id: 'model-openai-1',
+        user_id: 'user-1',
+        provider_id: 'openai',
+        model_id: 'gpt-4o-mini',
+        is_default: true,
+        is_active: null,
+        sort_order: 10,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'model-openai-2',
+        user_id: 'user-1',
+        provider_id: 'openai',
+        model_id: 'gpt-5',
+        is_default: false,
+        is_active: null,
+        sort_order: 20,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    render(<AIIntegrations />);
+    await screen.findByText('AI Integrations');
+
+    await user.click(screen.getByRole('tab', { name: 'Model' }));
+
+    await user.click(screen.getByRole('tab', { name: 'Edit Model' }));
+    expect(screen.queryByText('No models registered for this provider yet.')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'gpt-4o-mini' }).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('tab', { name: 'Delete Model' }));
+    expect(screen.queryByText('No models registered for this provider yet.')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'gpt-5' }).length).toBeGreaterThan(0);
+  });
+
+  it('matches OpenAI models with legacy provider_id casing in edit flow', async () => {
+    const user = userEvent.setup();
+    mocks.getProvidersCatalog.mockResolvedValue([]);
+    mocks.getProviderModels.mockResolvedValue([
+      {
+        id: 'legacy-model-1',
+        user_id: 'user-1',
+        provider_id: 'OpenAI',
+        model_id: 'gpt-4.1-mini',
+        is_default: true,
+        is_active: true,
+        sort_order: 10,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ]);
+
+    render(<AIIntegrations />);
+    await screen.findByText('AI Integrations');
+
+    await user.click(screen.getByRole('tab', { name: 'Model' }));
+    await user.click(screen.getByRole('tab', { name: 'Edit Model' }));
+
+    expect(screen.queryByText('No models registered for this provider yet.')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'gpt-4.1-mini' }).length).toBeGreaterThan(0);
   });
 });

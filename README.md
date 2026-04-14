@@ -23,7 +23,8 @@ Supabase was removed from the application code and tests.
 - Use dedicated tabs in AI Integrations:
   - Provider: new/edit/delete providers
   - Model: new/edit/delete models (always associated with an existing provider)
-  - Integration: select provider/model, set fallback, save credentials, and test connection
+  - Integration: select primary/fallback models only, then use explicit Save Selection or Save and Test actions
+- Configure provider/model credentials and endpoints only in Provider and Model create/edit screens
 - Configure optional additional model parameters in the Model tab (disabled by default)
 - Support provider-scoped and model-scoped credentials/endpoints per provider rules
 - Store API keys encrypted at rest in local SQLite configuration
@@ -78,20 +79,23 @@ Password policy: at least 12 chars, with uppercase, lowercase, number, special c
 5. Every created user must change password at first login.
 
 
-## Recent updates (2026-04-13)
+## Recent updates (2026-04-14)
 
 - `npm run dev:local` is compatible with Windows (`spawn EINVAL` mitigation in `scripts/dev-local.mjs`).
 - Actions that require AI now validate provider configuration first and show a clear warning when missing.
   - Affected flows: New Project, Source Library, AI Workspace.
-- AI Integrations was reorganized into 3 UX tabs in Settings:
+- AI Integrations is organized into 3 UX tabs in Settings:
   - `Provider`: create, edit, and delete providers.
   - `Model`: create, edit, and delete models per provider.
-  - `Integration`: select provider/model, configure fallback, and test/save integration.
+  - `Integration`: select only primary/fallback model for the selected provider, with explicit `Save Selection` and `Save and Test`.
 - Business rules in AI Integrations were formalized:
   - a model can only be created when a provider exists,
   - OpenAI uses provider-level key (single key for all models),
   - Azure OpenAI uses model-level key and model-level endpoint (per model/deployment).
-- Additional model parameters moved to model lifecycle (create/edit) and are summarized during integration selection.
+- Credentials and endpoint settings were consolidated in Provider/Model create/edit flows (no credential fields in Integration).
+- Additional model parameters remain in model lifecycle (create/edit), disabled by default.
+- Provider edit now supports saving API key even when editing a built-in provider that was not yet persisted in the provider catalog table.
+- Fixed intermittent Vitest/coverage hangs caused by repeated model seed retries when provider model registry was empty.
 - i18n coverage was expanded across key UI surfaces:
   - Auth, sidebar/layout navigation, Teams, Notifications, Settings local user management,
   - Source/Pipeline runtime messages,
@@ -115,13 +119,13 @@ Coverage is validated for updated auth, documentation, notifications, and AI int
 - `src/test/Documentation.test.tsx`
 - `src/test/NotificationBell.test.tsx`
 
-Coverage snapshot (2026-04-13):
-- Total tests: `165` (all passing)
-- Global statements: `48.36%`
-- Global branches: `60.27%`
+Coverage snapshot (2026-04-14):
+- Total tests: `168` (all passing)
+- Global statements: `49.28%`
+- Global branches: `58.26%`
 - `src/pages/AuthPage.tsx`: `87.97%` statements
 - `src/pages/Settings.tsx`: `97.71%` statements
-- `src/pages/AIIntegrations.tsx`: `64.04%` statements
+- `src/pages/AIIntegrations.tsx`: `67.96%` statements
 - `src/components/mindmap/MindMapToolbar.tsx`: `100%` statements
 
 ## Tech stack

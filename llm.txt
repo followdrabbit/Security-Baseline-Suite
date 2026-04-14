@@ -1,6 +1,6 @@
 ﻿Project: Aureum
 Product: Security Baseline Suite
-Date: 2026-04-13
+Date: 2026-04-14
 
 System context for LLM assistants:
 
@@ -27,16 +27,18 @@ System context for LLM assistants:
 - AI Integrations is organized in tabs under Settings:
   - Provider: New Provider, Edit Provider, Delete Provider.
   - Model: New Model, Edit Model, Delete Model.
-  - Integration: select provider/model, set fallback, test and persist integration.
+  - Integration: choose only primary and fallback model for the selected provider.
 - AI Integrations supports full CRUD for providers and models (create/read/update/delete).
 - Models can only be registered when there is at least one provider (model is always provider-scoped).
-- Primary model and fallback model are configurable per provider.
+- Primary model and fallback model are configurable per provider in Integration, with explicit `Save Selection` and `Save and Test` actions.
 - Credential and endpoint scope are provider-dependent:
   - OpenAI: provider-level API key and no custom endpoint.
   - Azure OpenAI: model-level API key and model-level endpoint (per deployment/model).
+- Credential and endpoint fields must be configured only in Provider/Model create/edit flows (not in Integration).
 - Additional model parameters are optional, disabled by default, and configured per model during model create/edit.
 - API keys are encrypted at rest by local-api before storage in SQLite.
 - Connection testing should use /functions/v1/test-ai-provider (server-side), not direct browser calls.
+- Provider Edit flow must support persisting API keys for built-in providers even before catalog rows exist in DB.
 
 4. Removed components
 - Supabase code paths were removed from app runtime.
@@ -46,7 +48,8 @@ System context for LLM assistants:
 - Unit/integration tests: npm test
 - Coverage: npm run test:coverage
 - Tests mock localDb (not supabase).
-- Latest snapshot (2026-04-13): 165 tests passing, 48.36% statements, 60.27% branches.
+- Latest snapshot (2026-04-14): 168 tests passing, 49.28% statements, 58.26% branches, 37.25% functions.
+- Reliability note: AI Integrations model-seed flow now guards against repeated seed attempts when provider models remain empty, preventing intermittent Vitest coverage hangs.
 
 6. Documentation alignment
 - README.md and docs/* reflect local SQLite mode.

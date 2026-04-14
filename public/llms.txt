@@ -63,7 +63,10 @@ Aureum is a local-first Security Baseline Suite that uses AI to analyze technica
 - Notification system for team activities
 
 ### Settings & Configuration
-- AI provider configuration (OpenAI, Gemini, Anthropic Claude, Grok/xAI, Ollama)
+- AI provider configuration in Settings > AI Integrations:
+  - Provider tab: New/Edit/Delete provider and provider-scoped credentials when applicable
+  - Model tab: New/Edit/Delete model and model-scoped credentials/endpoints when applicable
+  - Integration tab: choose primary/fallback model only, then use Save Selection or Save and Test
 - Theme customization (light/dark mode)
 - Language selection (EN, PT-BR, ES)
 - User profile management
@@ -116,7 +119,11 @@ Team collaboration with role-based access control.
 Activity notifications for team events, control reviews, and project updates.
 
 ### AI Provider Configs
-Configuration for multiple AI providers with model selection and connection status.
+Configuration for multiple AI providers with:
+- provider/model registry CRUD
+- provider-scoped and model-scoped credentials
+- primary/fallback model selection per provider
+- explicit save and test actions in Integration
 
 ## API (Edge Functions)
 

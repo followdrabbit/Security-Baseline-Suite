@@ -35,28 +35,30 @@ This folder stores project documentation and visual assets.
 - Any flow that depends on AI must validate provider configuration first.
 - If no provider is configured, the app shows a blocking warning and does not run extraction/pipeline steps.
 
-## AI integrations updates (2026-04-13)
+## AI integrations updates (2026-04-14)
 
 - `AI Integrations` is organized in three tabs under Settings:
   - `Provider`: New Provider, Edit Provider, Delete Provider.
   - `Model`: New Model, Edit Model, Delete Model.
-  - `Integration`: provider/model selection, fallback model, credential setup, and connection test.
+  - `Integration`: primary/fallback model selection only, with explicit `Save Selection` and `Save and Test`.
 - `AI Integrations` includes full CRUD for providers and models.
 - Provider catalog is stored in `ai_provider_catalog`; model registry is stored in `ai_provider_models`.
 - Business rules covered by UI and local API:
   - model creation depends on an existing provider (model always belongs to a provider),
   - OpenAI uses provider-level API key and no endpoint input,
   - Azure OpenAI uses model-level API key and model-level endpoint.
-- Each provider can define:
-  - primary model,
-  - fallback model,
-  - optional additional parameters configured per model (disabled by default).
+- Credentials and endpoints are configured only in Provider/Model create/edit flows.
+- Each provider can define primary and fallback models in Integration and persist/test changes explicitly.
+- Optional additional parameters remain configured per model (disabled by default).
+- Edit Provider supports saving API key for built-in providers even before a catalog row exists.
 - In-app documentation (`src/pages/Documentation.tsx` + `src/i18n/translations.ts`) is aligned with this flow.
 
-## QA snapshot (2026-04-13)
+## QA snapshot (2026-04-14)
 
-- Test command: `npm test` -> `165` tests passing.
+- Test command: `npm test` -> `168` tests passing.
 - Coverage command: `npm run test:coverage`.
 - Coverage summary:
-  - statements: `48.36%`
-  - branches: `60.27%`
+  - statements: `49.28%`
+  - branches: `58.26%`
+  - functions: `37.25%`
+- Regression fixed: AI Integrations model seed flow no longer loops infinitely when provider models are still empty, avoiding intermittent test/coverage hangs.
